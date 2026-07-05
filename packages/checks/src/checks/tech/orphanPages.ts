@@ -6,13 +6,19 @@ import { siteFingerprint } from "../../util";
 const CHECK_ID = "TECH-09";
 
 /**
- * TECH-09: orphan pages — URLs declared in the sitemap that are never linked
- * to from any other crawled page's HTML (no internal inlinks found).
+ * TECH-09: orphan pages — CRAWLED pages that receive no internal inlink from
+ * any other crawled page's HTML (no internal inlinks found).
  *
  * We parse every crawled page's stored HTML for internal <a href> links
  * (rather than relying on crawl-time link discovery, which is skipped when
  * seeding from a sitemap — see crawl.ts) so this check works regardless of
  * how the crawl was seeded.
+ *
+ * IMPORTANT: the orphan candidate set is the set of pages we ACTUALLY crawled,
+ * not the full sitemap. Judging an uncrawled sitemap URL as "orphan" is a false
+ * positive on a bounded crawl (we never fetched the pages that might link to it),
+ * so candidates are restricted to `pages`. The check is skipped entirely unless
+ * this was a sitemap-seeded crawl (sitemapUrls present).
  */
 export const orphanPagesCheck: SiteCheck = {
   checkId: CHECK_ID,
@@ -36,10 +42,15 @@ export const orphanPagesCheck: SiteCheck = {
       });
     }
 
+    // Only pages we actually fetched can be judged; an uncrawled sitemap URL
+    // has no evidence for/against inlinks. Also require the page to be in the
+    // sitemap set so this stays a sitemap-vs-inlink reachability signal.
+    const sitemapSet = new Set(sitemapUrls.map((u) => normalizeUrl(u) ?? u));
     const orphans: string[] = [];
-    for (const sitemapUrl of sitemapUrls) {
-      const normalized = normalizeUrl(sitemapUrl) ?? sitemapUrl;
+    for (const page of pages) {
+      const normalized = normalizeUrl(page.finalUrl ?? page.url) ?? page.url;
       if (normalized === homepage) continue; // the homepage is an entry point, not an orphan
+      if (!sitemapSet.has(normalized)) continue; // only judge sitemap-declared pages
       if (!linkedUrls.has(normalized)) orphans.push(normalized);
     }
 

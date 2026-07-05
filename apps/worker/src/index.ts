@@ -163,11 +163,19 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
 
 const connection = createRedisConnection();
 
+// A real crawl + the CPU-heavy check pass (Cheerio re-parse + SimHash over
+// hundreds of pages) can block the event loop long enough that BullMQ's
+// mid-job lock renewal (every lockDuration/2) can't fire. If lockDuration is
+// shorter than the worst-case job duration, the lock expires mid-run and the
+// job is wrongly treated as stalled -> duplicate processing ("Lock mismatch").
+// Keep lockDuration comfortably ABOVE JOB_TIMEOUT so a legitimately-running
+// job never loses its lock; stalled detection then only fires for a truly
+// dead worker.
 const worker = new Worker<AuditJobData, AuditJobResult>(AUDIT_QUEUE, processAuditJob, {
   connection,
   concurrency: CONCURRENCY,
-  lockDuration: 30_000,
-  stalledInterval: 30_000,
+  lockDuration: JOB_TIMEOUT_MS + 60_000,
+  stalledInterval: JOB_TIMEOUT_MS + 60_000,
   maxStalledCount: 1,
 });
 
