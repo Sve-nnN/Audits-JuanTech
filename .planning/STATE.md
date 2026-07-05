@@ -21,18 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-05)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 6 — Scoring, comparación de corridas y reporte (próxima)
+**Current focus:** Phase 7 — Email, cuota y compuerta de lanzamiento (última)
 
 ## Current Position
 
-Phase: 5 of 7 COMPLETE ✅ → next Phase 6 (Scoring, diff y reporte)
-Plan: 1 of 1 in Phase 5 (done)
-Status: Phase 5 verified (passed) — PSI real con API key: 10 métricas reales, caché 10/10, INP null manejado, tolerancia 429 verificada.
-Last activity: 2026-07-05 — Fase 5: @auditor/psi (PSI muestreado+caché+umbrales), worker integrado (PERF-01..04), 25 tests. PSI_API_KEY en .env (el worker la carga vía Prisma).
+Phase: 6 of 7 COMPLETE ✅ → next Phase 7 (Email/cuota, última)
+Plan: 1 of 1 in Phase 6 (done)
+Status: Phase 6 verified (passed) — auditoría real juan-tech.com: overall 91 (ref 86), reporte render HTTP 200, diff 0/636/0 en corridas idénticas. Bug scoring (onpage=0) arreglado.
+Last activity: 2026-07-05 — Fase 6: @auditor/scoring + reporte visual /audits/[id] + diff (SCORE/REPORT/DIFF). Fix scoring size-independent (health-ratio).
 
-Progress: [███████░░░] 71% (5/7 fases)
+Progress: [████████░] 86% (6/7 fases)
 
-**Fase 6:** research flag — la fórmula de pesos del score global es decisión de producto; validar contra el reporte de referencia (86/100) antes de cerrar. Fase 6 es UI (reporte visual) → tiene UI hint.
+**Fase 7 (última):** email double opt-in + normalización + cuota 1/semana + límite 500 URLs + historial. Necesita servicio de email (Resend recomendado por research) → puede requerir RESEND_API_KEY. Es la compuerta antes de lanzamiento público; incluye registro de consentimiento (GDPR flag).
 
 ## Performance Metrics
 

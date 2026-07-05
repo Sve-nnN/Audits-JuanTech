@@ -75,18 +75,18 @@ Requisitos para el release inicial (lead magnet gratuito). Cada uno mapea a una 
 
 ### Scoring y Reporte (SCORE)
 
-- [ ] **SCORE-01**: Calcula un score por categoría (0-100) con estado (Bueno / Necesita mejora / Crítico)
-- [ ] **SCORE-02**: Calcula un score general ponderado a partir de los scores por categoría
-- [ ] **SCORE-03**: Clasifica cada issue en severidad (Crítico / Necesita mejora / Bueno-OK) con estándar de 3 niveles
-- [ ] **SCORE-04**: Genera una tabla de issues prioritarios ordenada por severidad
-- [ ] **SCORE-05**: Cada issue incluye valor medido, fuente, criterio y recomendación
-- [ ] **REPORT-01**: El reporte se visualiza en la web (score general, scores por categoría, tabla priorizada y detalle por issue)
-- [ ] **REPORT-02**: Cada auditoría tiene un ID/URL único para consultar su reporte
+- [x] **SCORE-01**: Calcula un score por categoría (0-100) con estado (Bueno / Necesita mejora / Crítico)
+- [x] **SCORE-02**: Calcula un score general ponderado a partir de los scores por categoría
+- [x] **SCORE-03**: Clasifica cada issue en severidad (Crítico / Necesita mejora / Bueno-OK) con estándar de 3 niveles
+- [x] **SCORE-04**: Genera una tabla de issues prioritarios ordenada por severidad
+- [x] **SCORE-05**: Cada issue incluye valor medido, fuente, criterio y recomendación
+- [x] **REPORT-01**: El reporte se visualiza en la web (score general, scores por categoría, tabla priorizada y detalle por issue)
+- [x] **REPORT-02**: Cada auditoría tiene un ID/URL único para consultar su reporte
 
 ### Comparación de Corridas (DIFF)
 
-- [ ] **DIFF-01**: Cada issue tiene un fingerprint estable (check_id + URL normalizada) para poder comparar corridas
-- [ ] **DIFF-02**: El sistema compara la corrida actual contra la anterior del mismo sitio/email y marca issues nuevos, persistentes y resueltos
+- [x] **DIFF-01**: Cada issue tiene un fingerprint estable (check_id + URL normalizada) para poder comparar corridas
+- [x] **DIFF-02**: El sistema compara la corrida actual contra la anterior del mismo sitio/email y marca issues nuevos, persistentes y resueltos
 
 ### Captura y Verificación de Email (AUTH)
 
