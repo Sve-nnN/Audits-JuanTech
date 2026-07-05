@@ -1,7 +1,7 @@
 export { statusForScore, STATUS_THRESHOLDS, type ScoreStatus } from "./status";
 export {
   scoreCategory,
-  SEVERITY_PENALTY,
+  SEVERITY_HEALTH,
   type IssueSeverityValue,
   type ScorableIssue,
   type CategoryScoreResult,

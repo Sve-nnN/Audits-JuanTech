@@ -49,13 +49,18 @@ describe("scoreOverall", () => {
   });
 
   it("lands in a plausible range for a mostly-healthy site (reference: ~86/100)", () => {
-    // A handful of warnings scattered across categories, one critical in tech,
-    // decent (but not perfect) perf scores — roughly matching a site like
-    // juan-tech.com in the reference report.
-    const tech = scoreCategory([{ severity: "critical" }, { severity: "warning" }]); // 100-15-5=80
-    const onpage = scoreCategory([{ severity: "warning" }, { severity: "warning" }]); // 100-10=90
-    const schema = scoreCategory([{ severity: "ok" }]); // 100
-    const aeo = scoreCategory([{ severity: "warning" }]); // 95
+    // Realistic per-category issue sets: mostly passing checks (many "ok")
+    // with a scatter of warnings and the odd critical — roughly matching a
+    // real multi-page crawl of a site like juan-tech.com in the reference.
+    const many = (ok: number, warning: number, critical: number) => [
+      ...Array.from({ length: ok }, () => ({ severity: "ok" as const })),
+      ...Array.from({ length: warning }, () => ({ severity: "warning" as const })),
+      ...Array.from({ length: critical }, () => ({ severity: "critical" as const })),
+    ];
+    const tech = scoreCategory(many(40, 5, 1));
+    const onpage = scoreCategory(many(30, 3, 0));
+    const schema = scoreCategory(many(25, 2, 0));
+    const aeo = scoreCategory(many(10, 0, 0));
 
     const result = scoreOverall(
       { tech, onpage, schema, aeo },

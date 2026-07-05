@@ -13,30 +13,35 @@ export interface CategoryScoreResult {
 }
 
 /**
- * Penalty (points deducted from a 100 base) per issue of a given severity.
- * `ok` issues represent a passing check surfaced explicitly (e.g. "title tag
- * present and well-formed") and never penalize. Tunable constants — bump
- * these to make the scoring model stricter/looser without touching the
- * averaging logic below.
+ * "Health" weight per issue severity: the fraction of a perfect check each
+ * issue contributes. `ok` = a passing check (full credit), `warning` = half
+ * credit, `critical` = no credit. Tunable constants — adjust to make the model
+ * stricter/looser without touching the aggregation below.
  */
-export const SEVERITY_PENALTY: Record<IssueSeverityValue, number> = {
-  critical: 15,
-  warning: 5,
-  ok: 0,
+export const SEVERITY_HEALTH: Record<IssueSeverityValue, number> = {
+  ok: 1,
+  warning: 0.5,
+  critical: 0,
 };
 
 /**
  * Scores a single category (0-100) from its Issues.
  *
- * Model: "percentage of checks passed weighted by severity" — start at a
- * perfect 100 and subtract a fixed penalty per issue found, worse severities
- * costing more. This is deterministic (same issue set -> same score, order
- * independent) and explainable (each issue's contribution to the score is
- * visible). The total penalty is floored at 0 so a category can't go
- * negative; a category with zero issues scores a perfect 100.
+ * Model: severity-weighted PASS RATE (Ahrefs/Semrush style) — the score is the
+ * average health across every check result, where each result scores 1 (ok),
+ * 0.5 (warning) or 0 (critical). This is:
+ * - size-independent: a 500-page site and a 5-page site with the same
+ *   proportion of healthy checks score the same (an absolute penalty-sum model
+ *   would drive every large site to 0);
+ * - deterministic and order-independent;
+ * - bounded to 0-100.
+ * A category with zero issues (no data) scores a perfect 100.
  */
 export function scoreCategory(issues: ScorableIssue[]): CategoryScoreResult {
-  const totalPenalty = issues.reduce((sum, issue) => sum + SEVERITY_PENALTY[issue.severity], 0);
-  const score = Math.max(0, Math.min(100, 100 - totalPenalty));
+  if (issues.length === 0) {
+    return { score: 100, status: statusForScore(100) };
+  }
+  const health = issues.reduce((sum, issue) => sum + SEVERITY_HEALTH[issue.severity], 0);
+  const score = Math.round((100 * health) / issues.length);
   return { score, status: statusForScore(score) };
 }
