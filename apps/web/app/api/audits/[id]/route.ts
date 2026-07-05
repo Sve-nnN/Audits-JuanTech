@@ -15,9 +15,12 @@ export async function GET(
       id: true,
       status: true,
       error: true,
+      urlLimit: true,
+      stats: true,
       createdAt: true,
       startedAt: true,
       finishedAt: true,
+      _count: { select: { pages: true } },
     },
   });
 
@@ -25,5 +28,7 @@ export async function GET(
     return NextResponse.json({ error: "Audit not found" }, { status: 404 });
   }
 
-  return NextResponse.json(audit, { status: 200 });
+  const { _count, ...rest } = audit;
+
+  return NextResponse.json({ ...rest, pageCount: _count.pages }, { status: 200 });
 }

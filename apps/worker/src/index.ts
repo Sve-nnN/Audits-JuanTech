@@ -1,5 +1,6 @@
 import { Worker, type Job } from "bullmq";
 import { prisma } from "@auditor/db";
+import { runCrawl } from "@auditor/crawler";
 import {
   AUDIT_QUEUE,
   createRedisConnection,
@@ -7,19 +8,19 @@ import {
   type AuditJobResult,
 } from "@auditor/queue";
 
-// Phase 1: no real crawl logic yet. This worker exists purely to prove the
-// end-to-end wiring — web enqueues, worker picks up, DB transitions
-// queued -> running -> done (or -> failed on error/timeout). Real crawl
-// logic (Crawlee/Playwright/Lighthouse) lands in later phases, and only
-// ever runs here, never in apps/web.
+// Phase 2: the worker now runs a real bounded crawl (Crawlee CheerioCrawler,
+// see @auditor/crawler) for each audit job — discover URLs (sitemap or
+// link-crawl fallback), fetch+parse, persist Page rows, report progress via
+// Audit.stats. Web (apps/web) stays crawl-logic-free: it only enqueues and
+// reads DB. Chrome/Playwright/Lighthouse are not used yet (later phases).
 
-const JOB_TIMEOUT_MS = 15_000;
-const NOOP_WORK_DELAY_MS = 1_000;
+// Real crawls (up to 500 URLs) can legitimately take several minutes; this
+// must stay comfortably above the worst-case crawl duration, while BullMQ's
+// stalled-job detection (below) still catches a genuinely dead worker.
+const JOB_TIMEOUT_MS = 10 * 60_000;
 const CONCURRENCY = 2;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+/** Throttle Audit.stats writes so a fast crawl doesn't hammer Postgres. */
+const PROGRESS_WRITE_THROTTLE_MS = 2_000;
 
 /** Rejects if `promise` doesn't settle within `ms`. */
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -36,9 +37,10 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
 
   console.log(`[worker] job ${job.id} starting audit ${auditId}`);
 
-  await prisma.audit.update({
+  const audit = await prisma.audit.update({
     where: { id: auditId },
     data: { status: "running", startedAt: new Date() },
+    include: { site: true },
   });
 
   // Test-only failure injection: proves the failed-persistence path.
@@ -46,16 +48,37 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     throw new Error("simulated failure (test hook)");
   }
 
-  // Simulated no-op work. Real crawl orchestration replaces this in a later
-  // phase; kept behind a timeout guard so hangs are caught deterministically.
-  await withTimeout(delay(NOOP_WORK_DELAY_MS), JOB_TIMEOUT_MS, `audit ${auditId} no-op work`);
+  const startUrl = `https://${audit.site.domain}`;
+  let lastStatsWriteAt = 0;
+
+  async function onProgress(progress: { discovered: number; crawled: number; total: number }): Promise<void> {
+    const now = Date.now();
+    if (now - lastStatsWriteAt < PROGRESS_WRITE_THROTTLE_MS) return;
+    lastStatsWriteAt = now;
+    await prisma.audit.update({
+      where: { id: auditId },
+      data: { stats: progress },
+    });
+  }
+
+  const summary = await withTimeout(
+    runCrawl({ auditId, startUrl, urlLimit: audit.urlLimit, onProgress }),
+    JOB_TIMEOUT_MS,
+    `audit ${auditId} crawl`
+  );
 
   await prisma.audit.update({
     where: { id: auditId },
-    data: { status: "done", finishedAt: new Date() },
+    data: {
+      status: "done",
+      finishedAt: new Date(),
+      stats: { discovered: summary.discovered, crawled: summary.crawled, total: audit.urlLimit, failed: summary.failed },
+    },
   });
 
-  console.log(`[worker] job ${job.id} finished audit ${auditId}`);
+  console.log(
+    `[worker] job ${job.id} finished audit ${auditId} (discovered=${summary.discovered} crawled=${summary.crawled} failed=${summary.failed})`
+  );
 
   return { auditId, status: "done" };
 }

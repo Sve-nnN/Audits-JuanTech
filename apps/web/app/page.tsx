@@ -4,17 +4,27 @@ import { useState, useRef } from "react";
 
 type AuditStatus = "queued" | "running" | "done" | "failed";
 
+interface AuditStats {
+  discovered?: number;
+  crawled?: number;
+  total?: number;
+  failed?: number;
+}
+
 interface AuditResponse {
   id: string;
   status: AuditStatus;
   error?: string | null;
+  urlLimit?: number;
+  stats?: AuditStats | null;
+  pageCount?: number;
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
 }
 
 export default function HomePage() {
-  const [domain, setDomain] = useState("example.com");
+  const [url, setUrl] = useState("https://example.com");
   const [auditId, setAuditId] = useState<string | null>(null);
   const [audit, setAudit] = useState<AuditResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -47,32 +57,41 @@ export default function HomePage() {
       const res = await fetch("/api/audits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain }),
+        body: JSON.stringify({ url }),
       });
       const data = await res.json();
       if (res.ok) {
         setAuditId(data.auditId);
         startPolling(data.auditId);
       } else {
-        setAudit({ id: "", status: "failed", error: data.error, createdAt: "", startedAt: null, finishedAt: null });
+        setAudit({
+          id: "",
+          status: "failed",
+          error: data.error,
+          createdAt: "",
+          startedAt: null,
+          finishedAt: null,
+        });
       }
     } finally {
       setSubmitting(false);
     }
   }
 
+  const stats = audit?.stats;
+
   return (
     <main style={{ padding: 32, fontFamily: "system-ui, sans-serif", maxWidth: 480 }}>
-      <h1>Auditor — wiring de prueba</h1>
-      <p>Encola un job no-op y muestra la transición de estado en vivo.</p>
+      <h1>Auditor</h1>
+      <p>Ingresa una URL para lanzar una auditoría de rastreo (crawl).</p>
       <input
-        value={domain}
-        onChange={(e) => setDomain(e.target.value)}
-        placeholder="dominio.com"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="https://dominio.com"
         style={{ padding: 8, width: "100%", marginBottom: 12 }}
       />
       <button onClick={handleSubmit} disabled={submitting} style={{ padding: "8px 16px" }}>
-        {submitting ? "Encolando..." : "Auditar (test)"}
+        {submitting ? "Encolando..." : "Auditar"}
       </button>
 
       {auditId && (
@@ -83,6 +102,19 @@ export default function HomePage() {
           <p>
             <strong>Status:</strong> {audit?.status ?? "esperando..."}
           </p>
+          {stats && (
+            <p>
+              <strong>Progreso:</strong> {stats.crawled ?? 0}/{stats.total ?? audit?.urlLimit ?? "?"} páginas
+              rastreadas
+              {typeof stats.discovered === "number" ? ` (descubiertas: ${stats.discovered})` : ""}
+              {typeof stats.failed === "number" && stats.failed > 0 ? ` — fallidas: ${stats.failed}` : ""}
+            </p>
+          )}
+          {typeof audit?.pageCount === "number" && (
+            <p>
+              <strong>Páginas guardadas:</strong> {audit.pageCount}
+            </p>
+          )}
           {audit?.error && <p style={{ color: "red" }}>Error: {audit.error}</p>}
         </div>
       )}

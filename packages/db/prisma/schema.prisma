@@ -66,12 +66,20 @@ model Audit {
 }
 
 model Page {
-  id         String   @id @default(cuid())
-  auditId    String
-  audit      Audit    @relation(fields: [auditId], references: [id])
-  url        String
-  statusCode Int?
-  createdAt  DateTime @default(now())
+  id            String    @id @default(cuid())
+  auditId       String
+  audit         Audit     @relation(fields: [auditId], references: [id])
+  url           String
+  statusCode    Int?
+  html          String?   @db.Text
+  finalUrl      String?
+  redirectChain Json?
+  contentType   String?
+  depth         Int?
+  fromSitemap   Boolean   @default(false)
+  fetchedAt     DateTime?
+  error         String?
+  createdAt     DateTime  @default(now())
 
   issues Issue[]
 

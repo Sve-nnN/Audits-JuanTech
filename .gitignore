@@ -11,6 +11,10 @@ out/
 # turborepo
 .turbo/
 
+# crawlee (ephemeral crawl storage — never committed)
+storage/
+.crawlee/
+
 # env
 .env
 .env*.local
