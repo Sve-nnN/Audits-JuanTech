@@ -133,17 +133,75 @@ Excluido explícitamente. Documentado para evitar scope creep.
 
 ## Traceability
 
-Se completa durante la creación del roadmap.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (pendiente — lo llena el roadmapper) | — | Pending |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-03 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Pending |
+| CRAWL-01 | Phase 2 | Pending |
+| CRAWL-02 | Phase 2 | Pending |
+| CRAWL-03 | Phase 2 | Pending |
+| CRAWL-04 | Phase 2 | Pending |
+| CRAWL-05 | Phase 2 | Pending |
+| CRAWL-06 | Phase 2 | Pending |
+| CRAWL-07 | Phase 2 | Pending |
+| CRAWL-08 | Phase 2 | Pending |
+| TECH-01 | Phase 3 | Pending |
+| TECH-02 | Phase 3 | Pending |
+| TECH-03 | Phase 3 | Pending |
+| TECH-04 | Phase 3 | Pending |
+| TECH-05 | Phase 3 | Pending |
+| TECH-06 | Phase 3 | Pending |
+| TECH-07 | Phase 3 | Pending |
+| TECH-08 | Phase 3 | Pending |
+| TECH-09 | Phase 3 | Pending |
+| TECH-10 | Phase 3 | Pending |
+| TECH-11 | Phase 3 | Pending |
+| TECH-12 | Phase 3 | Pending |
+| TECH-13 | Phase 3 | Pending |
+| ONPAGE-01 | Phase 3 | Pending |
+| ONPAGE-02 | Phase 3 | Pending |
+| ONPAGE-03 | Phase 3 | Pending |
+| ONPAGE-04 | Phase 3 | Pending |
+| ONPAGE-05 | Phase 3 | Pending |
+| ONPAGE-06 | Phase 3 | Pending |
+| ONPAGE-07 | Phase 3 | Pending |
+| SD-01 | Phase 4 | Pending |
+| SD-02 | Phase 4 | Pending |
+| SD-03 | Phase 4 | Pending |
+| AEO-01 | Phase 4 | Pending |
+| AEO-02 | Phase 4 | Pending |
+| AEO-03 | Phase 4 | Pending |
+| AEO-04 | Phase 4 | Pending |
+| PERF-01 | Phase 5 | Pending |
+| PERF-02 | Phase 5 | Pending |
+| PERF-03 | Phase 5 | Pending |
+| PERF-04 | Phase 5 | Pending |
+| SCORE-01 | Phase 6 | Pending |
+| SCORE-02 | Phase 6 | Pending |
+| SCORE-03 | Phase 6 | Pending |
+| SCORE-04 | Phase 6 | Pending |
+| SCORE-05 | Phase 6 | Pending |
+| REPORT-01 | Phase 6 | Pending |
+| REPORT-02 | Phase 6 | Pending |
+| DIFF-01 | Phase 6 | Pending |
+| DIFF-02 | Phase 6 | Pending |
+| AUTH-01 | Phase 7 | Pending |
+| AUTH-02 | Phase 7 | Pending |
+| AUTH-03 | Phase 7 | Pending |
+| AUTH-04 | Phase 7 | Pending |
+| AUTH-05 | Phase 7 | Pending |
+| QUOTA-01 | Phase 7 | Pending |
+| QUOTA-02 | Phase 7 | Pending |
+| QUOTA-03 | Phase 7 | Pending |
+| QUOTA-04 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 54 total
-- Mapped to phases: 0 (pendiente)
-- Unmapped: 54 ⚠️
+- v1 requirements: 61 total (nota: el conteo previo de "54" en este archivo era un placeholder desactualizado; el conteo real de requisitos v1 listados arriba es 61)
+- Mapped to phases: 61/61 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-05*
-*Last updated: 2026-07-05 after initial definition*
+*Last updated: 2026-07-05 after roadmap creation (traceability mapped to 7 phases)*
