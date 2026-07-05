@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 
 type AuditStatus = "queued" | "running" | "done" | "failed";
 
@@ -116,6 +117,11 @@ export default function HomePage() {
             </p>
           )}
           {audit?.error && <p style={{ color: "red" }}>Error: {audit.error}</p>}
+          {audit?.status === "done" && (
+            <p>
+              <Link href={`/audits/${auditId}/pages`}>Ver páginas y datos estructurados &rarr;</Link>
+            </p>
+          )}
         </div>
       )}
     </main>

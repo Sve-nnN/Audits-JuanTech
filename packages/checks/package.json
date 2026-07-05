@@ -15,7 +15,8 @@
   "dependencies": {
     "@auditor/crawler": "workspace:*",
     "@auditor/db": "workspace:*",
-    "cheerio": "^1.2.0"
+    "cheerio": "^1.2.0",
+    "robots-parser": "^3.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

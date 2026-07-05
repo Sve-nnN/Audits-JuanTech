@@ -20,6 +20,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@auditor/checks':
+        specifier: workspace:*
+        version: link:../../packages/checks
       '@auditor/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -91,6 +94,9 @@ importers:
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
+      robots-parser:
+        specifier: ^3.0.1
+        version: 3.0.1
     devDependencies:
       '@types/node':
         specifier: ^22.10.0

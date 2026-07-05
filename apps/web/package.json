@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@auditor/checks": "workspace:*",
     "@auditor/db": "workspace:*",
     "@auditor/queue": "workspace:*",
     "next": "^15.1.0",

@@ -1,5 +1,5 @@
 import { Worker, type Job } from "bullmq";
-import { prisma } from "@auditor/db";
+import { prisma, Prisma } from "@auditor/db";
 import { runCrawl, discoverSitemapUrls, DEFAULT_USER_AGENT } from "@auditor/crawler";
 import { runAllChecks } from "@auditor/checks";
 import {
@@ -100,7 +100,12 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       discoverSitemapUrls(origin),
     ]);
 
-    const issueDrafts = await runAllChecks({ pages, origin, robotsTxt, sitemapUrls });
+    const { issues: issueDrafts, pageSchemaGraphs } = await runAllChecks({
+      pages,
+      origin,
+      robotsTxt,
+      sitemapUrls,
+    });
 
     // Idempotent re-run: wipe previously-generated Issues for this audit
     // before persisting the fresh batch.
@@ -123,6 +128,19 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
           recommendation: draft.recommendation ?? null,
         })),
       });
+    }
+
+    // Persist each page's entity graph (SD-05) for the graph-visualization
+    // route in apps/web. Only pages with JSON-LD produce a graph.
+    if (pageSchemaGraphs.size > 0) {
+      await Promise.all(
+        Array.from(pageSchemaGraphs.entries()).map(([pageId, graph]) =>
+          prisma.page.update({
+            where: { id: pageId },
+            data: { schemaGraph: graph as unknown as Prisma.InputJsonValue },
+          })
+        )
+      );
     }
 
     const issueCounts = { critical: 0, warning: 0, ok: 0, total: issueDrafts.length };

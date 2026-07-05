@@ -143,7 +143,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Fundamentos — monorepo, esquema de datos y cola | 1/1 | Complete ✅ | 2026-07-05 |
 | 2. Motor de crawler | 1/1 | Complete ✅ | 2026-07-05 |
 | 3. SEO Técnico + On-Page | 1/1 | Complete   | 2026-07-05 |
-| 4. Datos Estructurados + AEO | 0/TBD | Not started | - |
+| 4. Datos Estructurados + AEO | 0/1 | Planned    |  |
 | 5. Rendimiento / Core Web Vitals | 0/TBD | Not started | - |
 | 6. Scoring, comparación de corridas y reporte | 0/TBD | Not started | - |
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 0/TBD | Not started | - |

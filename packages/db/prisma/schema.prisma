@@ -80,6 +80,8 @@ model Page {
   fetchedAt     DateTime?
   error         String?
   createdAt     DateTime  @default(now())
+  /** Entity graph built from this page's JSON-LD (schema.org): { nodes, edges } — Phase 4. */
+  schemaGraph   Json?
 
   issues Issue[]
 

@@ -53,11 +53,11 @@ Requisitos para el release inicial (lead magnet gratuito). Cada uno mapea a una 
 
 ### Datos Estructurados (SD)
 
-- [ ] **SD-01**: Detecta presencia de bloques JSON-LD
-- [ ] **SD-02**: Valida la sintaxis/validez de cada bloque JSON-LD
-- [ ] **SD-03**: Clasifica y evalúa impacto de schemas por tipo (Organization, WebSite, FAQPage, Person, etc.)
-- [ ] **SD-04**: Valida cada bloque JSON-LD contra schema.org por página (propiedades requeridas/recomendadas por tipo, tipos de valor, referencias `@id` no resueltas) y reporta errores y warnings, estilo Classy Schema
-- [ ] **SD-05**: Construye y visualiza un grafo de entidades del JSON-LD por página (nodos por `@type`/`@id`, aristas por `@id`/references/`sameAs`) mostrando las conexiones entre entidades
+- [x] **SD-01**: Detecta presencia de bloques JSON-LD
+- [x] **SD-02**: Valida la sintaxis/validez de cada bloque JSON-LD
+- [x] **SD-03**: Clasifica y evalúa impacto de schemas por tipo (Organization, WebSite, FAQPage, Person, etc.)
+- [x] **SD-04**: Valida cada bloque JSON-LD contra schema.org por página (propiedades requeridas/recomendadas por tipo, tipos de valor, referencias `@id` no resueltas) y reporta errores y warnings, estilo Classy Schema
+- [x] **SD-05**: Construye y visualiza un grafo de entidades del JSON-LD por página (nodos por `@type`/`@id`, aristas por `@id`/references/`sameAs`) mostrando las conexiones entre entidades
 
 ### Rendimiento / Core Web Vitals (PERF)
 
@@ -68,10 +68,10 @@ Requisitos para el release inicial (lead magnet gratuito). Cada uno mapea a una 
 
 ### Visibilidad en IA / AEO (AEO)
 
-- [ ] **AEO-01**: Verifica control de acceso de crawlers de IA en robots.txt (GPTBot, ClaudeBot, PerplexityBot, Google-Extended)
-- [ ] **AEO-02**: Verifica presencia y estructura de llms.txt / llms-full.txt (peso bajo en el score)
-- [ ] **AEO-03**: Evalúa datos estructurados orientados a IA (FAQPage, Article, Organization/Person con sameAs)
-- [ ] **AEO-04**: Evalúa formato de contenido para extracción por IA (encabezados como preguntas, listas, tablas, longitud de párrafo)
+- [x] **AEO-01**: Verifica control de acceso de crawlers de IA en robots.txt (GPTBot, ClaudeBot, PerplexityBot, Google-Extended)
+- [x] **AEO-02**: Verifica presencia y estructura de llms.txt / llms-full.txt (peso bajo en el score)
+- [x] **AEO-03**: Evalúa datos estructurados orientados a IA (FAQPage, Article, Organization/Person con sameAs)
+- [x] **AEO-04**: Evalúa formato de contenido para extracción por IA (encabezados como preguntas, listas, tablas, longitud de párrafo)
 
 ### Scoring y Reporte (SCORE)
 
@@ -169,15 +169,15 @@ Excluido explícitamente. Documentado para evitar scope creep.
 | ONPAGE-05 | Phase 3 | Complete |
 | ONPAGE-06 | Phase 3 | Complete |
 | ONPAGE-07 | Phase 3 | Complete |
-| SD-01 | Phase 4 | Pending |
-| SD-02 | Phase 4 | Pending |
-| SD-03 | Phase 4 | Pending |
-| SD-04 | Phase 4 | Pending |
-| SD-05 | Phase 4 | Pending |
-| AEO-01 | Phase 4 | Pending |
-| AEO-02 | Phase 4 | Pending |
-| AEO-03 | Phase 4 | Pending |
-| AEO-04 | Phase 4 | Pending |
+| SD-01 | Phase 4 | Complete |
+| SD-02 | Phase 4 | Complete |
+| SD-03 | Phase 4 | Complete |
+| SD-04 | Phase 4 | Complete |
+| SD-05 | Phase 4 | Complete |
+| AEO-01 | Phase 4 | Complete |
+| AEO-02 | Phase 4 | Complete |
+| AEO-03 | Phase 4 | Complete |
+| AEO-04 | Phase 4 | Complete |
 | PERF-01 | Phase 5 | Pending |
 | PERF-02 | Phase 5 | Pending |
 | PERF-03 | Phase 5 | Pending |
