@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-07-05)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 2 — Motor de crawler (próxima)
+**Current focus:** Phase 3 — SEO Técnico + On-Page (próxima)
 
 ## Current Position
 
-Phase: 1 of 7 COMPLETE ✅ → next Phase 2 (Motor de crawler)
-Plan: 1 of 1 in Phase 1 (done)
-Status: Phase 1 verified (passed) against real Neon+Upstash
-Last activity: 2026-07-05 — Fase 1 construida y verificada E2E (INFRA-01..04). Monorepo + Prisma/Neon + BullMQ/Upstash + web→worker wiring, happy path y failed path.
+Phase: 2 of 7 COMPLETE ✅ → next Phase 3 (SEO Técnico + On-Page)
+Plan: 1 of 1 in Phase 2 (done)
+Status: Phase 2 verified (passed) — crawls reales contra juan-tech.com (152 descubiertas, 30 rastreadas) y example.com (fallback)
+Last activity: 2026-07-05 — Fase 2: motor Crawlee (sitemap/robots/fallback), fetch+parse+persist Page, progreso en vivo, resiliencia + fix 4xx/5xx con statusCode (CRAWL-01..08).
 
-Progress: [█░░░░░░░░░] 14% (1/7 fases)
+Progress: [██░░░░░░░░] 29% (2/7 fases)
 
 ## Performance Metrics
 

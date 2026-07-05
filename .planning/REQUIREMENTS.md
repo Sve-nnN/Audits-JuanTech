@@ -16,14 +16,14 @@ Requisitos para el release inicial (lead magnet gratuito). Cada uno mapea a una 
 
 ### Motor de Crawler (CRAWL)
 
-- [ ] **CRAWL-01**: El crawler descubre URLs desde sitemap.xml (incluye sitemap index / sitemaps anidados)
-- [ ] **CRAWL-02**: Si no hay sitemap, el crawler descubre URLs siguiendo enlaces internos desde la home (fallback)
-- [ ] **CRAWL-03**: El crawler respeta robots.txt (no rastrea rutas bloqueadas para su user-agent)
-- [ ] **CRAWL-04**: El crawler aplica rate limiting / concurrencia conservadora por dominio para no ser bloqueado ni abusar del sitio destino
-- [ ] **CRAWL-05**: El crawler descarga y parsea el HTML de cada página (extracción con Cheerio) capturando status HTTP, headers y cadena de redirects
-- [ ] **CRAWL-06**: El crawl respeta el límite de 500 URLs por auditoría en free tier
-- [ ] **CRAWL-07**: El crawl reporta progreso (páginas rastreadas / total estimado) consultable desde la UI
-- [ ] **CRAWL-08**: El crawl es resiliente: timeouts por URL y por job, reintentos, y detección de jobs colgados (no deja zombis)
+- [x] **CRAWL-01**: El crawler descubre URLs desde sitemap.xml (incluye sitemap index / sitemaps anidados)
+- [x] **CRAWL-02**: Si no hay sitemap, el crawler descubre URLs siguiendo enlaces internos desde la home (fallback)
+- [x] **CRAWL-03**: El crawler respeta robots.txt (no rastrea rutas bloqueadas para su user-agent)
+- [x] **CRAWL-04**: El crawler aplica rate limiting / concurrencia conservadora por dominio para no ser bloqueado ni abusar del sitio destino
+- [x] **CRAWL-05**: El crawler descarga y parsea el HTML de cada página (extracción con Cheerio) capturando status HTTP, headers y cadena de redirects
+- [x] **CRAWL-06**: El crawl respeta el límite de 500 URLs por auditoría en free tier
+- [x] **CRAWL-07**: El crawl reporta progreso (páginas rastreadas / total estimado) consultable desde la UI
+- [x] **CRAWL-08**: El crawl es resiliente: timeouts por URL y por job, reintentos, y detección de jobs colgados (no deja zombis)
 
 ### SEO Técnico (TECH)
 

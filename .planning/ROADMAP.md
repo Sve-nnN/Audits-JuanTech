@@ -13,7 +13,7 @@ El proyecto se construye de adentro hacia afuera: primero el esqueleto de datos 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Fundamentos — monorepo, esquema de datos y cola** - Wiring end-to-end verificable (enqueue → dequeue → estado en DB) antes de cualquier lógica de crawl
-- [ ] **Phase 2: Motor de crawler** - Descubrimiento, rastreo y parseo confiables de hasta 500 URLs por sitio
+- [x] **Phase 2: Motor de crawler** - Descubrimiento, rastreo y parseo confiables de hasta 500 URLs por sitio
 - [ ] **Phase 3: SEO Técnico + On-Page** - Checks sin dependencias externas sobre las páginas ya rastreadas
 - [ ] **Phase 4: Datos Estructurados + AEO** - Validación de JSON-LD y visibilidad en IA (diferenciador del producto)
 - [ ] **Phase 5: Rendimiento / Core Web Vitals** - Integración con PageSpeed Insights, muestreada y cacheada
@@ -119,7 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Fundamentos — monorepo, esquema de datos y cola | 1/1 | Complete ✅ | 2026-07-05 |
-| 2. Motor de crawler | 0/TBD | Not started | - |
+| 2. Motor de crawler | 1/1 | Complete ✅ | 2026-07-05 |
 | 3. SEO Técnico + On-Page | 0/TBD | Not started | - |
 | 4. Datos Estructurados + AEO | 0/TBD | Not started | - |
 | 5. Rendimiento / Core Web Vitals | 0/TBD | Not started | - |
