@@ -29,33 +29,8 @@ describe("schemaValidateCheck (SD-04)", () => {
     expect(warning).toBeTruthy();
   });
 
-  it("flags a dangling @id reference (not resolved to a defined node)", () => {
-    const issues = run(`<html><body><script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Person",
-        "name": "Jane",
-        "worksFor": { "@id": "#missing-org" }
-      }
-    </script></body></html>`);
-    const dangling = issues.find((i) => i.title === "Referencias @id sin resolver");
-    expect(dangling).toBeTruthy();
-    expect(dangling?.measuredValue).toContain("#missing-org");
-  });
-
-  it("does not flag a resolved @id reference as dangling", () => {
-    const issues = run(`<html><body><script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          { "@type": "Organization", "@id": "#org", "name": "Acme", "url": "https://acme.example", "logo": "https://acme.example/logo.png", "sameAs": ["https://twitter.com/acme"] },
-          { "@type": "Person", "name": "Jane", "url": "https://acme.example/jane", "sameAs": ["https://twitter.com/jane"], "jobTitle": "CEO", "worksFor": { "@id": "#org" } }
-        ]
-      }
-    </script></body></html>`);
-    const dangling = issues.find((i) => i.title === "Referencias @id sin resolver");
-    expect(dangling).toBeUndefined();
-  });
+  // Dangling @id detection moved to the site-level danglingIdRefsCheck
+  // (resolves references site-wide); see danglingIds.test.ts.
 
   it("reports ok with no errors when all required/recommended props are present", () => {
     const issues = run(`<html><body><script type="application/ld+json">

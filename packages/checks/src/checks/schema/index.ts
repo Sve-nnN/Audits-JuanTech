@@ -1,9 +1,10 @@
-import type { PageCheck } from "../../types";
+import type { PageCheck, SiteCheck } from "../../types";
 import { jsonldPresenceCheck } from "./jsonldPresence";
 import { jsonldValidityCheck } from "./jsonldValidity";
 import { schemaTypesCheck } from "./schemaTypes";
 import { schemaValidateCheck } from "./schemaValidate";
 import { entityGraphCheck } from "./entityGraph";
+import { danglingIdRefsCheck } from "./danglingIds";
 
 export const schemaPageChecks: PageCheck[] = [
   jsonldPresenceCheck,
@@ -13,12 +14,15 @@ export const schemaPageChecks: PageCheck[] = [
   entityGraphCheck,
 ];
 
+export const schemaSiteChecks: SiteCheck[] = [danglingIdRefsCheck];
+
 export {
   jsonldPresenceCheck,
   jsonldValidityCheck,
   schemaTypesCheck,
   schemaValidateCheck,
   entityGraphCheck,
+  danglingIdRefsCheck,
 };
 
 export { SCHEMA_RULES } from "./schemaValidate";

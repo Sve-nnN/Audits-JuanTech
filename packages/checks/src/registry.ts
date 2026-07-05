@@ -4,7 +4,7 @@ import type { IssueDraft, PageCheck, SiteCheck, NetworkCheck } from "./types";
 import { onPageChecks } from "./checks/onpage";
 import { techPageChecks, techSiteChecks } from "./checks/tech";
 import { networkChecks as baseNetworkChecks } from "./checks/network";
-import { schemaPageChecks, computeSchemaGraph, type EntityGraph } from "./checks/schema";
+import { schemaPageChecks, schemaSiteChecks, computeSchemaGraph, type EntityGraph } from "./checks/schema";
 import { aeoPageChecks, aeoSiteChecks, aeoNetworkChecks } from "./checks/aeo";
 
 export const pageChecks: PageCheck[] = [
@@ -13,7 +13,7 @@ export const pageChecks: PageCheck[] = [
   ...schemaPageChecks,
   ...aeoPageChecks,
 ];
-export const siteChecks: SiteCheck[] = [...techSiteChecks, ...aeoSiteChecks];
+export const siteChecks: SiteCheck[] = [...techSiteChecks, ...schemaSiteChecks, ...aeoSiteChecks];
 export const networkChecks: NetworkCheck[] = [...baseNetworkChecks, ...aeoNetworkChecks];
 
 export interface RunAllChecksOptions {

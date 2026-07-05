@@ -31,41 +31,7 @@ export const SCHEMA_RULES: Record<string, SchemaRule> = {
   Offer: { required: ["price", "priceCurrency"], recommended: ["availability"] },
 };
 
-/**
- * Collects every `@id` referenced inside a node's property values (not the
- * node's own `@id`). A "reference" is an object whose only key is `@id`
- * (e.g. `{ "@id": "#organization" }`), the standard JSON-LD way of pointing
- * at another node instead of inlining it.
- */
-function collectReferencedIds(data: Record<string, unknown>): string[] {
-  const ids: string[] = [];
-
-  function walk(value: unknown): void {
-    if (Array.isArray(value)) {
-      for (const item of value) walk(item);
-      return;
-    }
-    if (typeof value !== "object" || value === null) return;
-
-    const obj = value as Record<string, unknown>;
-    const keys = Object.keys(obj);
-
-    if (typeof obj["@id"] === "string" && keys.length === 1) {
-      ids.push(obj["@id"] as string);
-      return;
-    }
-
-    for (const key of keys) {
-      if (key === "@id") continue;
-      walk(obj[key]);
-    }
-  }
-
-  walk(data);
-  return ids;
-}
-
-/** SD-04 (Classy Schema style): validates required/recommended properties per type + dangling `@id` references. */
+/** SD-04 (Classy Schema style): validates required/recommended properties per type. Dangling `@id` refs are checked site-wide by danglingIdRefsCheck. */
 export const schemaValidateCheck: PageCheck = {
   checkId: CHECK_ID,
   run({ page, $ }) {
@@ -73,14 +39,7 @@ export const schemaValidateCheck: PageCheck = {
     const nodes = flattenNodes(extractJsonLdBlocks($));
     if (nodes.length === 0) return [];
 
-    const definedIds = new Set<string>();
-    for (const node of nodes) {
-      const id = node.data["@id"];
-      if (typeof id === "string") definedIds.add(id);
-    }
-
     const issues: IssueDraft[] = [];
-    const dangling = new Set<string>();
 
     for (const node of nodes) {
       const types = typesOf(node.data);
@@ -124,27 +83,13 @@ export const schemaValidateCheck: PageCheck = {
         }
       }
 
-      for (const ref of collectReferencedIds(node.data)) {
-        if (!definedIds.has(ref)) dangling.add(ref);
-      }
     }
 
-    if (dangling.size > 0) {
-      issues.push({
-        checkId: CHECK_ID,
-        category: "schema",
-        title: "Referencias @id sin resolver",
-        severity: "warning",
-        measuredValue: `${dangling.size} referencia(s): ${Array.from(dangling).join(", ")}`,
-        source: url,
-        criterion:
-          "Todo @id referenciado dentro del grafo JSON-LD debe corresponder a un nodo definido en la misma página",
-        recommendation:
-          "Define como nodo completo (con su propio @type) cada @id que se referencia, o corrige la referencia si apunta a un identificador incorrecto.",
-        fingerprint: pageFingerprint(CHECK_ID, `${url}:dangling`),
-        pageId: page.id,
-      });
-    }
+    // NOTE: dangling `@id` reference detection lives in the SITE-level check
+    // (danglingIdRefsCheck) so that cross-page references — e.g. an internal
+    // page pointing at the site-wide `#person`/`#organization` node defined
+    // once on the homepage — resolve against the whole audit's JSON-LD and
+    // are not flagged as false positives per page.
 
     if (issues.length === 0) {
       issues.push({
