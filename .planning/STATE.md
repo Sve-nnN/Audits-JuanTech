@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-05)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 3 — SEO Técnico + On-Page (próxima)
+**Current focus:** Phase 4 — Datos Estructurados + AEO (próxima)
 
 ## Current Position
 
-Phase: 2 of 7 COMPLETE ✅ → next Phase 3 (SEO Técnico + On-Page)
-Plan: 1 of 1 in Phase 2 (done)
-Status: Phase complete — ready for verification
-Last activity: 2026-07-05
+Phase: 3 of 7 COMPLETE ✅ → next Phase 4 (Datos Estructurados + AEO)
+Plan: 1 of 1 in Phase 3 (done)
+Status: Phase 3 verified (passed) — auditoría real juan-tech.com 40 y 120 URLs; 2 bugs (orphan FP, BullMQ lock) arreglados
+Last activity: 2026-07-05 — Fase 3: framework de checks @auditor/checks (20 checks TECH+ONPAGE), 32 tests. Fixes: orphan false-positives, lockDuration.
 
-Progress: [██░░░░░░░░] 29% (2/7 fases)
+Progress: [████░░░░░░] 43% (3/7 fases)
 
 ## Performance Metrics
 
