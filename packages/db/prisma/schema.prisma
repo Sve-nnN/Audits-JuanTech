@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuditStatus {
+  queued
+  running
+  done
+  failed
+}
+
+enum IssueSeverity {
+  critical
+  warning
+  ok
+}
+
+model Email {
+  id               String   @id @default(cuid())
+  address          String   @unique
+  normalizedAddress String  @unique
+  verified         Boolean  @default(false)
+  verifiedAt       DateTime?
+  consentIp        String?
+  consentTextShown String?
+  consentAt        DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  audits      Audit[]
+  quotaUsages QuotaUsage[]
+}
+
+model Site {
+  id        String   @id @default(cuid())
+  domain    String   @unique
+  createdAt DateTime @default(now())
+
+  audits Audit[]
+}
+
+model Audit {
+  id        String      @id @default(cuid())
+  siteId    String
+  site      Site        @relation(fields: [siteId], references: [id])
+  emailId   String?
+  email     Email?      @relation(fields: [emailId], references: [id])
+  status    AuditStatus @default(queued)
+  urlLimit  Int         @default(500)
+  stats     Json?
+  error     String?
+  createdAt DateTime    @default(now())
+  startedAt DateTime?
+  finishedAt DateTime?
+
+  pages  Page[]
+  issues Issue[]
+
+  @@index([siteId])
+  @@index([emailId])
+}
+
+model Page {
+  id         String   @id @default(cuid())
+  auditId    String
+  audit      Audit    @relation(fields: [auditId], references: [id])
+  url        String
+  statusCode Int?
+  createdAt  DateTime @default(now())
+
+  issues Issue[]
+
+  @@unique([auditId, url])
+}
+
+model Issue {
+  id              String        @id @default(cuid())
+  auditId         String
+  audit           Audit         @relation(fields: [auditId], references: [id])
+  pageId          String?
+  page            Page?         @relation(fields: [pageId], references: [id])
+  checkId         String
+  severity        IssueSeverity
+  fingerprint     String
+  measuredValue   String?
+  recommendation  String?
+  createdAt       DateTime      @default(now())
+
+  @@index([auditId])
+  @@index([pageId])
+}
+
+model QuotaUsage {
+  id        String   @id @default(cuid())
+  emailId   String
+  email     Email    @relation(fields: [emailId], references: [id])
+  weekStart DateTime
+  count     Int      @default(0)
+
+  @@unique([emailId, weekStart])
+}

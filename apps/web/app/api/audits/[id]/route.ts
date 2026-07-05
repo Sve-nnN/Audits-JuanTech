@@ -1,0 +1,29 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@auditor/db";
+
+export const runtime = "nodejs";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const { id } = await params;
+
+  const audit = await prisma.audit.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      status: true,
+      error: true,
+      createdAt: true,
+      startedAt: true,
+      finishedAt: true,
+    },
+  });
+
+  if (!audit) {
+    return NextResponse.json({ error: "Audit not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(audit, { status: 200 });
+}
