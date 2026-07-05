@@ -9,6 +9,15 @@ const DEFAULT_MAX_CONCURRENCY = 5;
 const DEFAULT_MAX_REQUESTS_PER_MINUTE = 120;
 const REQUEST_HANDLER_TIMEOUT_SECS = 30;
 const MAX_REQUEST_RETRIES = 2;
+/**
+ * For an audit crawler, 4xx/5xx responses are DATA, not errors: we must
+ * record the actual status code (404, 410, 500, …) so later phases can flag
+ * broken internal pages (TECH-03). Ignoring the full 400–599 range routes
+ * these responses to requestHandler (with their statusCode) instead of
+ * burning retries and landing in failedRequestHandler with a null status.
+ * genuine transport failures (DNS, TLS, timeouts) still fail normally.
+ */
+const IGNORED_HTTP_ERROR_STATUS_CODES = Array.from({ length: 200 }, (_v, i) => 400 + i);
 /** Throttle onProgress callbacks so we don't hammer Postgres every page. */
 const PROGRESS_THROTTLE_MS = 2_000;
 
@@ -80,6 +89,7 @@ export async function runCrawl(options: RunCrawlOptions): Promise<CrawlSummary> 
       maxRequestsPerCrawl,
       requestHandlerTimeoutSecs: REQUEST_HANDLER_TIMEOUT_SECS,
       maxRequestRetries: MAX_REQUEST_RETRIES,
+      ignoreHttpErrorStatusCodes: IGNORED_HTTP_ERROR_STATUS_CODES,
       useSessionPool: true,
       preNavigationHooks: [
         (_ctx, gotOptions) => {
