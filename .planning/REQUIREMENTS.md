@@ -61,10 +61,10 @@ Requisitos para el release inicial (lead magnet gratuito). Cada uno mapea a una 
 
 ### Rendimiento / Core Web Vitals (PERF)
 
-- [ ] **PERF-01**: Obtiene Performance Score (Lighthouse) móvil y desktop vía Google PageSpeed Insights API sobre una muestra de páginas
-- [ ] **PERF-02**: Reporta LCP, CLS, INP y TTFB (móvil y desktop) cuando estén disponibles
-- [ ] **PERF-03**: El muestreo de páginas para PSI respeta las cuotas de la API y cachea resultados (no corre PSI en las 500 URLs)
-- [ ] **PERF-04**: Cada métrica se compara contra los umbrales oficiales de Google (LCP ≤ 2500ms, INP ≤ 200ms, etc.) y se marca su severidad
+- [x] **PERF-01**: Obtiene Performance Score (Lighthouse) móvil y desktop vía Google PageSpeed Insights API sobre una muestra de páginas
+- [x] **PERF-02**: Reporta LCP, CLS, INP y TTFB (móvil y desktop) cuando estén disponibles
+- [x] **PERF-03**: El muestreo de páginas para PSI respeta las cuotas de la API y cachea resultados (no corre PSI en las 500 URLs)
+- [x] **PERF-04**: Cada métrica se compara contra los umbrales oficiales de Google (LCP ≤ 2500ms, INP ≤ 200ms, etc.) y se marca su severidad
 
 ### Visibilidad en IA / AEO (AEO)
 

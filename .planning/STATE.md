@@ -21,18 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-05)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 5 — Rendimiento / Core Web Vitals (próxima)
+**Current focus:** Phase 6 — Scoring, comparación de corridas y reporte (próxima)
 
 ## Current Position
 
-Phase: 4 of 7 COMPLETE ✅ → next Phase 5 (Rendimiento / Core Web Vitals)
-Plan: 1 of 1 in Phase 4 (done)
-Status: Phase 4 verified (passed) — auditoría real juan-tech.com: 6 schemas, grafo de entidades (ruta SVG), AEO. Bug @id cross-page (28 FP) arreglado.
-Last activity: 2026-07-05 — Fase 4: validación JSON-LD Classy Schema + grafo de entidades + checks AEO (SD-01..05, AEO-01..04), 59 tests. Fix @id site-wide.
+Phase: 5 of 7 COMPLETE ✅ → next Phase 6 (Scoring, diff y reporte)
+Plan: 1 of 1 in Phase 5 (done)
+Status: Phase 5 verified (passed) — PSI real con API key: 10 métricas reales, caché 10/10, INP null manejado, tolerancia 429 verificada.
+Last activity: 2026-07-05 — Fase 5: @auditor/psi (PSI muestreado+caché+umbrales), worker integrado (PERF-01..04), 25 tests. PSI_API_KEY en .env (el worker la carga vía Prisma).
 
-Progress: [█████░░░░░] 57% (4/7 fases)
+Progress: [███████░░░] 71% (5/7 fases)
 
-**Nota Fase 5 (research flag):** verificar cuota real de PageSpeed Insights API en Google Cloud Console + conseguir PSI API key (env `PSI_API_KEY`) antes/durante la fase.
+**Fase 6:** research flag — la fórmula de pesos del score global es decisión de producto; validar contra el reporte de referencia (86/100) antes de cerrar. Fase 6 es UI (reporte visual) → tiene UI hint.
 
 ## Performance Metrics
 
