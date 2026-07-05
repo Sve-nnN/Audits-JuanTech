@@ -48,8 +48,28 @@ export async function GET(
     bucket.total += group._count._all;
   }
 
+  // Phase 5: PerfMetric preview — scores + Core Web Vitals per url/strategy
+  // for the small PSI sample (never the full crawl). The full perf report
+  // (weighted scoring, per-metric breakdown UI) lands in Phase 6.
+  const perfMetrics = await prisma.perfMetric.findMany({
+    where: { auditId: id },
+    select: {
+      url: true,
+      strategy: true,
+      performanceScore: true,
+      lcpMs: true,
+      cls: true,
+      inpMs: true,
+      ttfbMs: true,
+      fromCache: true,
+      error: true,
+      fetchedAt: true,
+    },
+    orderBy: { fetchedAt: "asc" },
+  });
+
   return NextResponse.json(
-    { ...rest, pageCount: _count.pages, issuesByCategory },
+    { ...rest, pageCount: _count.pages, issuesByCategory, perf: perfMetrics },
     { status: 200 }
   );
 }

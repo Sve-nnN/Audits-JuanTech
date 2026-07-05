@@ -13,6 +13,7 @@
     "@auditor/checks": "workspace:*",
     "@auditor/crawler": "workspace:*",
     "@auditor/db": "workspace:*",
+    "@auditor/psi": "workspace:*",
     "@auditor/queue": "workspace:*",
     "bullmq": "^5.34.0",
     "ioredis": "5.10.1"

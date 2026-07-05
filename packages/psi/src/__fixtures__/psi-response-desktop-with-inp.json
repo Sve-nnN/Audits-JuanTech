@@ -1,0 +1,43 @@
+{
+  "lighthouseResult": {
+    "requestedUrl": "https://juan-tech.com/",
+    "finalUrl": "https://juan-tech.com/",
+    "categories": {
+      "performance": {
+        "id": "performance",
+        "title": "Performance",
+        "score": 0.99
+      }
+    },
+    "audits": {
+      "largest-contentful-paint": {
+        "id": "largest-contentful-paint",
+        "title": "Largest Contentful Paint",
+        "score": 1,
+        "numericValue": 1001.2,
+        "numericUnit": "millisecond"
+      },
+      "cumulative-layout-shift": {
+        "id": "cumulative-layout-shift",
+        "title": "Cumulative Layout Shift",
+        "score": 1,
+        "numericValue": 0.003,
+        "numericUnit": "unitless"
+      },
+      "server-response-time": {
+        "id": "server-response-time",
+        "title": "Initial server response time was short",
+        "score": 1,
+        "numericValue": 5.1,
+        "numericUnit": "millisecond"
+      }
+    }
+  },
+  "loadingExperience": {
+    "id": "https://juan-tech.com/",
+    "metrics": {
+      "INTERACTION_TO_NEXT_PAINT": { "percentile": 180, "category": "FAST" },
+      "CUMULATIVE_LAYOUT_SHIFT_SCORE": { "percentile": 3, "category": "FAST" }
+    }
+  }
+}
