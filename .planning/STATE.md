@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-07-05)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 1 — Fundamentos (monorepo, esquema de datos y cola)
+**Current focus:** Phase 2 — Motor de crawler (próxima)
 
 ## Current Position
 
-Phase: 1 of 7 (Fundamentos — monorepo, esquema de datos y cola)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-07-05 — ROADMAP.md y STATE.md creados; REQUIREMENTS.md actualizado con traceability
+Phase: 1 of 7 COMPLETE ✅ → next Phase 2 (Motor de crawler)
+Plan: 1 of 1 in Phase 1 (done)
+Status: Phase 1 verified (passed) against real Neon+Upstash
+Last activity: 2026-07-05 — Fase 1 construida y verificada E2E (INFRA-01..04). Monorepo + Prisma/Neon + BullMQ/Upstash + web→worker wiring, happy path y failed path.
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 14% (1/7 fases)
 
 ## Performance Metrics
 

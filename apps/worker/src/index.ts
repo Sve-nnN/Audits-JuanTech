@@ -32,7 +32,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<AuditJobResult> {
-  const { auditId } = job.data;
+  const { auditId, simulateFailure } = job.data;
 
   console.log(`[worker] job ${job.id} starting audit ${auditId}`);
 
@@ -40,6 +40,11 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     where: { id: auditId },
     data: { status: "running", startedAt: new Date() },
   });
+
+  // Test-only failure injection: proves the failed-persistence path.
+  if (simulateFailure) {
+    throw new Error("simulated failure (test hook)");
+  }
 
   // Simulated no-op work. Real crawl orchestration replaces this in a later
   // phase; kept behind a timeout guard so hangs are caught deterministically.

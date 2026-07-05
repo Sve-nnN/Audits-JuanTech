@@ -9,10 +9,10 @@ Requisitos para el release inicial (lead magnet gratuito). Cada uno mapea a una 
 
 ### Fundamentos (INFRA)
 
-- [ ] **INFRA-01**: El proyecto se estructura como monorepo con app web (Next.js/Vercel) y worker de fondo desplegables por separado
-- [ ] **INFRA-02**: Existe un esquema de base de datos persistente (Postgres) para email, sitio, auditoría, corrida, página e issue
-- [ ] **INFRA-03**: La app web encola un job de auditoría en una cola (Redis) y el worker lo consume (wiring end-to-end verificable con un job no-op)
-- [ ] **INFRA-04**: El worker actualiza el estado del job en la base de datos (queued → running → done/failed) como fuente única de verdad
+- [x] **INFRA-01**: El proyecto se estructura como monorepo con app web (Next.js/Vercel) y worker de fondo desplegables por separado
+- [x] **INFRA-02**: Existe un esquema de base de datos persistente (Postgres) para email, sitio, auditoría, corrida, página e issue
+- [x] **INFRA-03**: La app web encola un job de auditoría en una cola (Redis) y el worker lo consume (wiring end-to-end verificable con un job no-op)
+- [x] **INFRA-04**: El worker actualiza el estado del job en la base de datos (queued → running → done/failed) como fuente única de verdad
 
 ### Motor de Crawler (CRAWL)
 

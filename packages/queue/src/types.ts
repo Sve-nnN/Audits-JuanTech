@@ -8,6 +8,12 @@ export const AUDIT_QUEUE = "audit" as const;
  */
 export interface AuditJobData {
   auditId: string;
+  /**
+   * Test-only hook. When true, the worker throws after marking the audit
+   * `running`, exercising the failure-persistence path (audit -> failed).
+   * Never set in production paths.
+   */
+  simulateFailure?: boolean;
 }
 
 /** Job return value on success. */
