@@ -27,29 +27,29 @@ Requisitos para el release inicial (lead magnet gratuito). Cada uno mapea a una 
 
 ### SEO Técnico (TECH)
 
-- [ ] **TECH-01**: Detecta accesibilidad y contenido de robots.txt
-- [ ] **TECH-02**: Detecta presencia y validez de sitemap.xml (conteo de URLs)
-- [ ] **TECH-03**: Reporta el código de estado HTTP de cada página y marca páginas internas con error (4xx/5xx)
-- [ ] **TECH-04**: Verifica la etiqueta canonical de cada página
-- [ ] **TECH-05**: Evalúa indexabilidad (meta robots / X-Robots-Tag: index/noindex)
-- [ ] **TECH-06**: Detecta cadenas de redirects
-- [ ] **TECH-07**: Detecta viewport meta tag
-- [ ] **TECH-08**: Detecta contenido duplicado y near-duplicate entre páginas (fingerprint tipo SimHash/shingling)
-- [ ] **TECH-09**: Analiza profundidad de clic y detecta páginas huérfanas
-- [ ] **TECH-10**: Verifica reciprocidad de hreflang y conflictos canonical-hreflang
-- [ ] **TECH-11**: Detecta mixed content (recursos HTTP servidos en páginas HTTPS)
-- [ ] **TECH-12**: Verifica enlaces externos rotos (HEAD/GET, detecta 4xx/5xx/timeout)
-- [ ] **TECH-13**: Verifica recursos rotos (imágenes, CSS, JS)
+- [x] **TECH-01**: Detecta accesibilidad y contenido de robots.txt
+- [x] **TECH-02**: Detecta presencia y validez de sitemap.xml (conteo de URLs)
+- [x] **TECH-03**: Reporta el código de estado HTTP de cada página y marca páginas internas con error (4xx/5xx)
+- [x] **TECH-04**: Verifica la etiqueta canonical de cada página
+- [x] **TECH-05**: Evalúa indexabilidad (meta robots / X-Robots-Tag: index/noindex)
+- [x] **TECH-06**: Detecta cadenas de redirects
+- [x] **TECH-07**: Detecta viewport meta tag
+- [x] **TECH-08**: Detecta contenido duplicado y near-duplicate entre páginas (fingerprint tipo SimHash/shingling)
+- [x] **TECH-09**: Analiza profundidad de clic y detecta páginas huérfanas
+- [x] **TECH-10**: Verifica reciprocidad de hreflang y conflictos canonical-hreflang
+- [x] **TECH-11**: Detecta mixed content (recursos HTTP servidos en páginas HTTPS)
+- [x] **TECH-12**: Verifica enlaces externos rotos (HEAD/GET, detecta 4xx/5xx/timeout)
+- [x] **TECH-13**: Verifica recursos rotos (imágenes, CSS, JS)
 
 ### On-Page (ONPAGE)
 
-- [ ] **ONPAGE-01**: Evalúa title tag (presencia, longitud, calidad de keyword)
-- [ ] **ONPAGE-02**: Evalúa meta description (presencia, longitud, calidad)
-- [ ] **ONPAGE-03**: Evalúa H1 (presencia, unicidad)
-- [ ] **ONPAGE-04**: Verifica alt text en imágenes (cobertura)
-- [ ] **ONPAGE-05**: Verifica Open Graph tags
-- [ ] **ONPAGE-06**: Evalúa longitud de contenido (conteo de palabras)
-- [ ] **ONPAGE-07**: Verifica atributo lang del documento
+- [x] **ONPAGE-01**: Evalúa title tag (presencia, longitud, calidad de keyword)
+- [x] **ONPAGE-02**: Evalúa meta description (presencia, longitud, calidad)
+- [x] **ONPAGE-03**: Evalúa H1 (presencia, unicidad)
+- [x] **ONPAGE-04**: Verifica alt text en imágenes (cobertura)
+- [x] **ONPAGE-05**: Verifica Open Graph tags
+- [x] **ONPAGE-06**: Evalúa longitud de contenido (conteo de palabras)
+- [x] **ONPAGE-07**: Verifica atributo lang del documento
 
 ### Datos Estructurados (SD)
 
@@ -149,26 +149,26 @@ Excluido explícitamente. Documentado para evitar scope creep.
 | CRAWL-06 | Phase 2 | Pending |
 | CRAWL-07 | Phase 2 | Pending |
 | CRAWL-08 | Phase 2 | Pending |
-| TECH-01 | Phase 3 | Pending |
-| TECH-02 | Phase 3 | Pending |
-| TECH-03 | Phase 3 | Pending |
-| TECH-04 | Phase 3 | Pending |
-| TECH-05 | Phase 3 | Pending |
-| TECH-06 | Phase 3 | Pending |
-| TECH-07 | Phase 3 | Pending |
-| TECH-08 | Phase 3 | Pending |
-| TECH-09 | Phase 3 | Pending |
-| TECH-10 | Phase 3 | Pending |
-| TECH-11 | Phase 3 | Pending |
-| TECH-12 | Phase 3 | Pending |
-| TECH-13 | Phase 3 | Pending |
-| ONPAGE-01 | Phase 3 | Pending |
-| ONPAGE-02 | Phase 3 | Pending |
-| ONPAGE-03 | Phase 3 | Pending |
-| ONPAGE-04 | Phase 3 | Pending |
-| ONPAGE-05 | Phase 3 | Pending |
-| ONPAGE-06 | Phase 3 | Pending |
-| ONPAGE-07 | Phase 3 | Pending |
+| TECH-01 | Phase 3 | Complete |
+| TECH-02 | Phase 3 | Complete |
+| TECH-03 | Phase 3 | Complete |
+| TECH-04 | Phase 3 | Complete |
+| TECH-05 | Phase 3 | Complete |
+| TECH-06 | Phase 3 | Complete |
+| TECH-07 | Phase 3 | Complete |
+| TECH-08 | Phase 3 | Complete |
+| TECH-09 | Phase 3 | Complete |
+| TECH-10 | Phase 3 | Complete |
+| TECH-11 | Phase 3 | Complete |
+| TECH-12 | Phase 3 | Complete |
+| TECH-13 | Phase 3 | Complete |
+| ONPAGE-01 | Phase 3 | Complete |
+| ONPAGE-02 | Phase 3 | Complete |
+| ONPAGE-03 | Phase 3 | Complete |
+| ONPAGE-04 | Phase 3 | Complete |
+| ONPAGE-05 | Phase 3 | Complete |
+| ONPAGE-06 | Phase 3 | Complete |
+| ONPAGE-07 | Phase 3 | Complete |
 | SD-01 | Phase 4 | Pending |
 | SD-02 | Phase 4 | Pending |
 | SD-03 | Phase 4 | Pending |
@@ -202,6 +202,7 @@ Excluido explícitamente. Documentado para evitar scope creep.
 | QUOTA-04 | Phase 7 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 63 total (se agregaron SD-04 y SD-05: validación estilo Classy Schema + grafo de entidades)
 - Mapped to phases: 63/63 ✓
 - Unmapped: 0 ✓

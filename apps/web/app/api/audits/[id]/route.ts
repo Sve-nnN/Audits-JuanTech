@@ -30,5 +30,26 @@ export async function GET(
 
   const { _count, ...rest } = audit;
 
-  return NextResponse.json({ ...rest, pageCount: _count.pages }, { status: 200 });
+  // Preview-only issue counts by category + severity. The full report
+  // (issue details, scoring) is built in Phase 6 — this just gives the web
+  // client enough to render a summary while an audit is running/done.
+  const issueGroups = await prisma.issue.groupBy({
+    by: ["category", "severity"],
+    where: { auditId: id },
+    _count: { _all: true },
+  });
+
+  const issuesByCategory: Record<string, { critical: number; warning: number; ok: number; total: number }> = {};
+  for (const group of issueGroups) {
+    const bucket =
+      issuesByCategory[group.category] ??
+      (issuesByCategory[group.category] = { critical: 0, warning: 0, ok: 0, total: 0 });
+    bucket[group.severity] += group._count._all;
+    bucket.total += group._count._all;
+  }
+
+  return NextResponse.json(
+    { ...rest, pageCount: _count.pages, issuesByCategory },
+    { status: 200 }
+  );
 }

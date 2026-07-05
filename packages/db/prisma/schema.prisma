@@ -93,9 +93,14 @@ model Issue {
   pageId          String?
   page            Page?         @relation(fields: [pageId], references: [id])
   checkId         String
+  category        String
+  title           String
   severity        IssueSeverity
   fingerprint     String
   measuredValue   String?
+  source          String?
+  criterion       String?
+  scope           String?
   recommendation  String?
   createdAt       DateTime      @default(now())
 

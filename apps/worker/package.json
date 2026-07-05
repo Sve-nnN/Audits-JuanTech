@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@auditor/checks": "workspace:*",
     "@auditor/crawler": "workspace:*",
     "@auditor/db": "workspace:*",
     "@auditor/queue": "workspace:*",

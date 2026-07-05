@@ -1,6 +1,7 @@
 import { Worker, type Job } from "bullmq";
 import { prisma } from "@auditor/db";
-import { runCrawl } from "@auditor/crawler";
+import { runCrawl, discoverSitemapUrls, DEFAULT_USER_AGENT } from "@auditor/crawler";
+import { runAllChecks } from "@auditor/checks";
 import {
   AUDIT_QUEUE,
   createRedisConnection,
@@ -13,6 +14,31 @@ import {
 // link-crawl fallback), fetch+parse, persist Page rows, report progress via
 // Audit.stats. Web (apps/web) stays crawl-logic-free: it only enqueues and
 // reads DB. Chrome/Playwright/Lighthouse are not used yet (later phases).
+
+// Phase 3: after the crawl completes, the worker runs the full SEO técnico +
+// on-page check battery (@auditor/checks) over the crawled Pages and
+// persists the resulting Issues (idempotent: existing Issues for the audit
+// are deleted first, so re-running an audit doesn't accumulate duplicates).
+
+const ROBOTS_FETCH_TIMEOUT_MS = 10_000;
+
+/** Fetches the raw robots.txt body for `origin` (best-effort, for the TECH-01 check). */
+async function fetchRobotsTxtBody(origin: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ROBOTS_FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${origin}/robots.txt`, {
+      signal: controller.signal,
+      headers: { "user-agent": DEFAULT_USER_AGENT },
+    });
+    if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 // Real crawls (up to 500 URLs) can legitimately take several minutes; this
 // must stay comfortably above the worst-case crawl duration, while BullMQ's
@@ -61,10 +87,56 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     });
   }
 
-  const summary = await withTimeout(
-    runCrawl({ auditId, startUrl, urlLimit: audit.urlLimit, onProgress }),
+  async function crawlAndCheck(): Promise<{
+    summary: Awaited<ReturnType<typeof runCrawl>>;
+    issueCounts: { critical: number; warning: number; ok: number; total: number };
+  }> {
+    const summary = await runCrawl({ auditId, startUrl, urlLimit: audit.urlLimit, onProgress });
+
+    const origin = new URL(startUrl).origin;
+    const [pages, robotsTxt, sitemapUrls] = await Promise.all([
+      prisma.page.findMany({ where: { auditId } }),
+      fetchRobotsTxtBody(origin),
+      discoverSitemapUrls(origin),
+    ]);
+
+    const issueDrafts = await runAllChecks({ pages, origin, robotsTxt, sitemapUrls });
+
+    // Idempotent re-run: wipe previously-generated Issues for this audit
+    // before persisting the fresh batch.
+    await prisma.issue.deleteMany({ where: { auditId } });
+
+    if (issueDrafts.length > 0) {
+      await prisma.issue.createMany({
+        data: issueDrafts.map((draft) => ({
+          auditId,
+          pageId: draft.pageId ?? null,
+          checkId: draft.checkId,
+          category: draft.category,
+          title: draft.title,
+          severity: draft.severity,
+          fingerprint: draft.fingerprint,
+          measuredValue: draft.measuredValue ?? null,
+          source: draft.source ?? null,
+          criterion: draft.criterion ?? null,
+          scope: draft.scope ?? null,
+          recommendation: draft.recommendation ?? null,
+        })),
+      });
+    }
+
+    const issueCounts = { critical: 0, warning: 0, ok: 0, total: issueDrafts.length };
+    for (const draft of issueDrafts) {
+      issueCounts[draft.severity]++;
+    }
+
+    return { summary, issueCounts };
+  }
+
+  const { summary, issueCounts } = await withTimeout(
+    crawlAndCheck(),
     JOB_TIMEOUT_MS,
-    `audit ${auditId} crawl`
+    `audit ${auditId} crawl+checks`
   );
 
   await prisma.audit.update({
@@ -72,12 +144,18 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     data: {
       status: "done",
       finishedAt: new Date(),
-      stats: { discovered: summary.discovered, crawled: summary.crawled, total: audit.urlLimit, failed: summary.failed },
+      stats: {
+        discovered: summary.discovered,
+        crawled: summary.crawled,
+        total: audit.urlLimit,
+        failed: summary.failed,
+        issues: issueCounts,
+      },
     },
   });
 
   console.log(
-    `[worker] job ${job.id} finished audit ${auditId} (discovered=${summary.discovered} crawled=${summary.crawled} failed=${summary.failed})`
+    `[worker] job ${job.id} finished audit ${auditId} (discovered=${summary.discovered} crawled=${summary.crawled} failed=${summary.failed} issues=${issueCounts.total})`
   );
 
   return { auditId, status: "done" };
