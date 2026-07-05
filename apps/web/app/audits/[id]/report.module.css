@@ -1,0 +1,445 @@
+/*
+ * Self-contained report styles (CSP: no external stylesheets/fonts). CSS
+ * Modules compile to a same-origin stylesheet at build time, so this file
+ * never touches a CDN and works under a strict style-src 'self' policy.
+ */
+
+.page {
+  --color-good: #16a34a;
+  --color-good-bg: #f0fdf4;
+  --color-warn: #d97706;
+  --color-warn-bg: #fffbeb;
+  --color-critical: #dc2626;
+  --color-critical-bg: #fef2f2;
+  --color-border: #e2e8f0;
+  --color-muted: #64748b;
+  --color-text: #0f172a;
+  --color-surface: #ffffff;
+  --color-bg: #f8fafc;
+
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  padding: 32px 20px 64px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .page {
+    --color-good-bg: #052e16;
+    --color-warn-bg: #451a03;
+    --color-critical-bg: #450a0a;
+    --color-border: #1e293b;
+    --color-muted: #94a3b8;
+    --color-text: #f1f5f9;
+    --color-surface: #0f172a;
+    --color-bg: #020617;
+  }
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.breadcrumb {
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.breadcrumb a {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.domain {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+  word-break: break-all;
+}
+
+.meta {
+  color: var(--color-muted);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.section {
+  margin-bottom: 40px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  margin: 0 0 14px;
+}
+
+/* Overall score hero */
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.scoreCircle {
+  flex-shrink: 0;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 8px solid currentColor;
+}
+
+.scoreCircleNumber {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.scoreCircleMax {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.heroBody h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.heroBody p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  max-width: 52ch;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.good {
+  color: var(--color-good);
+}
+.good .statusBadge,
+.statusGood {
+  background: var(--color-good-bg);
+  color: var(--color-good);
+}
+
+.needs_improvement {
+  color: var(--color-warn);
+}
+.needs_improvement .statusBadge,
+.statusNeeds_improvement {
+  background: var(--color-warn-bg);
+  color: var(--color-warn);
+}
+
+.critical {
+  color: var(--color-critical);
+}
+.critical .statusBadge,
+.statusCritical {
+  background: var(--color-critical-bg);
+  color: var(--color-critical);
+}
+
+/* Category cards */
+.categoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.categoryCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.categoryCardLabel {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0 0 8px;
+}
+
+.categoryCardScore {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.categoryCardStatus {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+/* Priority issues table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-muted);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.tableNote {
+  color: var(--color-muted);
+  font-size: 13px;
+  margin: 8px 2px 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.severityCritical {
+  background: var(--color-critical-bg);
+  color: var(--color-critical);
+}
+
+.severityWarning {
+  background: var(--color-warn-bg);
+  color: var(--color-warn);
+}
+
+.severityOk {
+  background: var(--color-good-bg);
+  color: var(--color-good);
+}
+
+.diffNew {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.diffPersistent {
+  background: #f1f5f9;
+  color: var(--color-muted);
+}
+
+.diffResolved {
+  background: var(--color-good-bg);
+  color: var(--color-good);
+}
+
+@media (prefers-color-scheme: dark) {
+  .diffNew {
+    background: #0c1e3d;
+    color: #60a5fa;
+  }
+  .diffPersistent {
+    background: #1e293b;
+  }
+}
+
+.categoryTag {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+/* Category detail accordion */
+.categoryGroup {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.categoryGroupSummary {
+  cursor: pointer;
+  padding: 14px 18px;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  list-style: none;
+}
+
+.categoryGroupSummary::-webkit-details-marker {
+  display: none;
+}
+
+.categoryGroupCount {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.issueDetail {
+  border-top: 1px solid var(--color-border);
+  padding: 14px 18px;
+}
+
+.issueDetail + .issueDetail {
+  border-top: 1px solid var(--color-border);
+}
+
+.issueHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.issueTitle {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.issueFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  font-size: 13px;
+}
+
+.issueField dt {
+  color: var(--color-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 2px;
+}
+
+.issueField dd {
+  margin: 0;
+}
+
+/* Perf summary */
+.perfGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.perfCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.perfCardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.perfMetricRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.perfMetricRow:last-child {
+  border-bottom: none;
+}
+
+.perfMetricLabel {
+  color: var(--color-muted);
+}
+
+.emptyState {
+  color: var(--color-muted);
+  font-size: 14px;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.diffSummary {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.diffSummaryItem strong {
+  font-size: 18px;
+  display: block;
+}
+
+.linkOut {
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.footerLinks {
+  margin-top: 24px;
+  font-size: 14px;
+}

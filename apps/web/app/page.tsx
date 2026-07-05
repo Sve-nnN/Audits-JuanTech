@@ -1,59 +1,20 @@
 "use client";
 
-import { useState, useRef } from "react";
-import Link from "next/link";
-
-type AuditStatus = "queued" | "running" | "done" | "failed";
-
-interface AuditStats {
-  discovered?: number;
-  crawled?: number;
-  total?: number;
-  failed?: number;
-}
-
-interface AuditResponse {
-  id: string;
-  status: AuditStatus;
-  error?: string | null;
-  urlLimit?: number;
-  stats?: AuditStats | null;
-  pageCount?: number;
-  createdAt: string;
-  startedAt: string | null;
-  finishedAt: string | null;
-}
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import styles from "./home.module.css";
 
 export default function HomePage() {
-  const [url, setUrl] = useState("https://example.com");
-  const [auditId, setAuditId] = useState<string | null>(null);
-  const [audit, setAudit] = useState<AuditResponse | null>(null);
+  const router = useRouter();
+  const [url, setUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  function stopPolling() {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }
-
-  function startPolling(id: string) {
-    stopPolling();
-    pollRef.current = setInterval(async () => {
-      const res = await fetch(`/api/audits/${id}`);
-      if (!res.ok) return;
-      const data: AuditResponse = await res.json();
-      setAudit(data);
-      if (data.status === "done" || data.status === "failed") {
-        stopPolling();
-      }
-    }, 2000);
-  }
-
-  async function handleSubmit() {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+    setError(null);
     setSubmitting(true);
-    setAudit(null);
     try {
       const res = await fetch("/api/audits", {
         method: "POST",
@@ -62,68 +23,44 @@ export default function HomePage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setAuditId(data.auditId);
-        startPolling(data.auditId);
+        router.push(`/audits/${data.auditId}`);
       } else {
-        setAudit({
-          id: "",
-          status: "failed",
-          error: data.error,
-          createdAt: "",
-          startedAt: null,
-          finishedAt: null,
-        });
+        setError(data.error ?? "No se pudo iniciar la auditoría.");
+        setSubmitting(false);
       }
-    } finally {
+    } catch {
+      setError("No se pudo conectar con el servidor.");
       setSubmitting(false);
     }
   }
 
-  const stats = audit?.stats;
-
   return (
-    <main style={{ padding: 32, fontFamily: "system-ui, sans-serif", maxWidth: 480 }}>
-      <h1>Auditor</h1>
-      <p>Ingresa una URL para lanzar una auditoría de rastreo (crawl).</p>
-      <input
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        placeholder="https://dominio.com"
-        style={{ padding: 8, width: "100%", marginBottom: 12 }}
-      />
-      <button onClick={handleSubmit} disabled={submitting} style={{ padding: "8px 16px" }}>
-        {submitting ? "Encolando..." : "Auditar"}
-      </button>
-
-      {auditId && (
-        <div style={{ marginTop: 24 }}>
-          <p>
-            <strong>Audit ID:</strong> {auditId}
-          </p>
-          <p>
-            <strong>Status:</strong> {audit?.status ?? "esperando..."}
-          </p>
-          {stats && (
-            <p>
-              <strong>Progreso:</strong> {stats.crawled ?? 0}/{stats.total ?? audit?.urlLimit ?? "?"} páginas
-              rastreadas
-              {typeof stats.discovered === "number" ? ` (descubiertas: ${stats.discovered})` : ""}
-              {typeof stats.failed === "number" && stats.failed > 0 ? ` — fallidas: ${stats.failed}` : ""}
-            </p>
-          )}
-          {typeof audit?.pageCount === "number" && (
-            <p>
-              <strong>Páginas guardadas:</strong> {audit.pageCount}
-            </p>
-          )}
-          {audit?.error && <p style={{ color: "red" }}>Error: {audit.error}</p>}
-          {audit?.status === "done" && (
-            <p>
-              <Link href={`/audits/${auditId}/pages`}>Ver páginas y datos estructurados &rarr;</Link>
-            </p>
-          )}
-        </div>
-      )}
+    <main className={styles.page}>
+      <div className={styles.card}>
+        <h1 className={styles.title}>Auditor SEO</h1>
+        <p className={styles.subtitle}>
+          Ingresá la URL de tu sitio y te damos un reporte completo: SEO técnico, on-page, datos
+          estructurados, rendimiento (Core Web Vitals) y visibilidad en IA.
+        </p>
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <input
+            className={styles.input}
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://tu-dominio.com"
+            type="text"
+            required
+          />
+          <button className={styles.button} type="submit" disabled={submitting}>
+            {submitting ? "Encolando auditoría…" : "Auditar mi sitio"}
+          </button>
+          {error && <p className={styles.error}>{error}</p>}
+        </form>
+        <p className={styles.footnote}>
+          Rastreamos hasta 500 URLs por sitio. El reporte se genera en una URL única que podés
+          consultar o compartir en cualquier momento.
+        </p>
+      </div>
     </main>
   );
 }

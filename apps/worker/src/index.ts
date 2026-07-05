@@ -18,6 +18,13 @@ import {
   type PsiMetrics,
   type PerfIssueDraft,
 } from "@auditor/psi";
+import {
+  scoreCategory,
+  scoreOverall,
+  diffIssues,
+  type Category,
+  type CategoryScoreResult,
+} from "@auditor/scoring";
 
 // Phase 2: the worker now runs a real bounded crawl (Crawlee CheerioCrawler,
 // see @auditor/crawler) for each audit job — discover URLs (sitemap or
@@ -263,6 +270,18 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     summary: Awaited<ReturnType<typeof runCrawl>>;
     issueCounts: { critical: number; warning: number; ok: number; total: number };
     perfSummary: PerfSampleSummary;
+    scores: {
+      overall: number;
+      status: string;
+      byCategory: Partial<Record<Category, CategoryScoreResult>>;
+      diff: {
+        newCount: number;
+        persistentCount: number;
+        resolvedCount: number;
+        resolvedFingerprints: string[];
+        previousAuditId: string | null;
+      };
+    };
   }> {
     const summary = await runCrawl({ auditId, startUrl, urlLimit: audit.urlLimit, onProgress });
 
@@ -305,7 +324,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     // narrower PerfIssueDraft from @auditor/psi, which has no source/scope)
     // into the same row shape before persisting, to keep `Issue.createMany`
     // typed against a single concrete input rather than a union.
-    const issueRows = [
+    const issueRowsWithoutDiff = [
       ...issueDrafts.map((draft) => ({
         auditId,
         pageId: draft.pageId ?? null,
@@ -336,6 +355,29 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       })),
     ];
 
+    // Phase 6 (DIFF-01/02): find the previous COMPLETED audit for the same
+    // site (most recent one before this one, excluding this one) and diff
+    // by fingerprint. `new`/`persistent` get persisted on this run's Issue
+    // rows via `diffStatus`; `resolved` fingerprints (present before, gone
+    // now) have no current row to attach to, so they're summarized into
+    // `Audit.scores.diff` instead.
+    const previousAudit = await prisma.audit.findFirst({
+      where: { siteId: audit.siteId, status: "done", id: { not: auditId } },
+      orderBy: { finishedAt: "desc" },
+      select: { id: true },
+    });
+
+    const previousIssues = previousAudit
+      ? await prisma.issue.findMany({ where: { auditId: previousAudit.id }, select: { fingerprint: true } })
+      : [];
+
+    const diffResult = diffIssues(issueRowsWithoutDiff, previousIssues);
+
+    const issueRows = issueRowsWithoutDiff.map((row) => ({
+      ...row,
+      diffStatus: diffResult.statusByFingerprint.get(row.fingerprint) ?? null,
+    }));
+
     // Idempotent re-run: wipe previously-generated Issues for this audit
     // before persisting the fresh batch.
     await prisma.issue.deleteMany({ where: { auditId } });
@@ -362,10 +404,48 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       issueCounts[row.severity]++;
     }
 
-    return { summary, issueCounts, perfSummary };
+    // Phase 6 (SCORE-01..05): score every Issue-derived category
+    // (tech/onpage/schema/aeo) from this run's issues, then combine with the
+    // PSI-derived perf score into an overall weighted score. `perf` issues
+    // ARE persisted (they drive the priority table), but the perf CATEGORY
+    // score comes from PerfMetric averages, not from counting perf issues.
+    const issuesByCategory = new Map<Category, { severity: "critical" | "warning" | "ok" }[]>();
+    for (const row of issueRows) {
+      if (row.category === "perf") continue;
+      const category = row.category as Category;
+      const bucket = issuesByCategory.get(category) ?? [];
+      bucket.push({ severity: row.severity });
+      issuesByCategory.set(category, bucket);
+    }
+
+    const categoryScores: Partial<Record<Exclude<Category, "perf">, CategoryScoreResult>> = {};
+    for (const [category, issues] of issuesByCategory) {
+      if (category === "perf") continue;
+      categoryScores[category as Exclude<Category, "perf">] = scoreCategory(issues);
+    }
+
+    const overallResult = scoreOverall(categoryScores, {
+      mobileAvgScore: perfSummary.mobile.avgScore,
+      desktopAvgScore: perfSummary.desktop.avgScore,
+    });
+
+    const scores = {
+      overall: overallResult.overall,
+      status: overallResult.status,
+      byCategory: overallResult.byCategory,
+      diff: {
+        newCount: [...diffResult.statusByFingerprint.values()].filter((s) => s === "new").length,
+        persistentCount: [...diffResult.statusByFingerprint.values()].filter((s) => s === "persistent").length,
+        resolvedCount: diffResult.resolved.length,
+        resolvedFingerprints: diffResult.resolved,
+        previousAuditId: previousAudit?.id ?? null,
+      },
+    };
+
+    return { summary, issueCounts, perfSummary, scores };
   }
 
-  const { summary, issueCounts, perfSummary } = await withTimeout(
+  const { summary, issueCounts, perfSummary, scores } = await withTimeout(
     crawlAndCheck(),
     JOB_TIMEOUT_MS,
     `audit ${auditId} crawl+checks+perf`
@@ -384,6 +464,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
         issues: issueCounts,
         perf: perfSummary,
       } as unknown as Prisma.InputJsonValue,
+      scores: scores as unknown as Prisma.InputJsonValue,
     },
   });
 

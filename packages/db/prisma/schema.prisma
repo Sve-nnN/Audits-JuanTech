@@ -53,6 +53,14 @@ model Audit {
   status    AuditStatus @default(queued)
   urlLimit  Int         @default(500)
   stats     Json?
+  /**
+   * Scoring snapshot computed at audit completion (Phase 6, SCORE-01..05):
+   * overall score/status, per-category scores/status, and a resolved-issues
+   * summary from the diff against the previous completed audit of the same
+   * site. Shape: { overall, status, byCategory: { [category]: { score, status } },
+   * diff: { newCount, persistentCount, resolvedCount, resolvedFingerprints } }.
+   */
+  scores    Json?
   error     String?
   createdAt DateTime    @default(now())
   startedAt DateTime?
@@ -106,6 +114,8 @@ model Issue {
   criterion       String?
   scope           String?
   recommendation  String?
+  /** Diff vs the previous completed audit of the same site (Phase 6, DIFF-01/02): 'new' | 'persistent' | 'resolved'. Null until a diff has been computed (e.g. first audit of a site). */
+  diffStatus      String?
   createdAt       DateTime      @default(now())
 
   @@index([auditId])

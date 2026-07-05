@@ -17,6 +17,7 @@ export async function GET(
       error: true,
       urlLimit: true,
       stats: true,
+      scores: true,
       createdAt: true,
       startedAt: true,
       finishedAt: true,
@@ -30,9 +31,9 @@ export async function GET(
 
   const { _count, ...rest } = audit;
 
-  // Preview-only issue counts by category + severity. The full report
-  // (issue details, scoring) is built in Phase 6 — this just gives the web
-  // client enough to render a summary while an audit is running/done.
+  // Issue counts by category + severity, for the lightweight polling view
+  // on the home page. The full report (issue details, scoring, diff) lives
+  // at `/audits/[id]` (Phase 6) and queries Issue/PerfMetric directly.
   const issueGroups = await prisma.issue.groupBy({
     by: ["category", "severity"],
     where: { auditId: id },
@@ -48,9 +49,8 @@ export async function GET(
     bucket.total += group._count._all;
   }
 
-  // Phase 5: PerfMetric preview — scores + Core Web Vitals per url/strategy
-  // for the small PSI sample (never the full crawl). The full perf report
-  // (weighted scoring, per-metric breakdown UI) lands in Phase 6.
+  // PerfMetric preview — scores + Core Web Vitals per url/strategy for the
+  // small PSI sample (never the full crawl).
   const perfMetrics = await prisma.perfMetric.findMany({
     where: { auditId: id },
     select: {

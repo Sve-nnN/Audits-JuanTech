@@ -1,0 +1,32 @@
+/* Minimal, self-contained global reset (no CDN fonts/resets — CSP-safe). */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #020617;
+    color: #f1f5f9;
+  }
+}
+
+a {
+  color: inherit;
+}
