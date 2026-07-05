@@ -21,16 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-05)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 4 — Datos Estructurados + AEO (próxima)
+**Current focus:** Phase 5 — Rendimiento / Core Web Vitals (próxima)
 
 ## Current Position
 
-Phase: 3 of 7 COMPLETE ✅ → next Phase 4 (Datos Estructurados + AEO)
-Plan: 1 of 1 in Phase 3 (done)
-Status: Phase complete — ready for verification
-Last activity: 2026-07-05
+Phase: 4 of 7 COMPLETE ✅ → next Phase 5 (Rendimiento / Core Web Vitals)
+Plan: 1 of 1 in Phase 4 (done)
+Status: Phase 4 verified (passed) — auditoría real juan-tech.com: 6 schemas, grafo de entidades (ruta SVG), AEO. Bug @id cross-page (28 FP) arreglado.
+Last activity: 2026-07-05 — Fase 4: validación JSON-LD Classy Schema + grafo de entidades + checks AEO (SD-01..05, AEO-01..04), 59 tests. Fix @id site-wide.
 
-Progress: [████░░░░░░] 43% (3/7 fases)
+Progress: [█████░░░░░] 57% (4/7 fases)
+
+**Nota Fase 5 (research flag):** verificar cuota real de PageSpeed Insights API en Google Cloud Console + conseguir PSI API key (env `PSI_API_KEY`) antes/durante la fase.
 
 ## Performance Metrics
 
