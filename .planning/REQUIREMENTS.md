@@ -56,6 +56,8 @@ Requisitos para el release inicial (lead magnet gratuito). Cada uno mapea a una 
 - [ ] **SD-01**: Detecta presencia de bloques JSON-LD
 - [ ] **SD-02**: Valida la sintaxis/validez de cada bloque JSON-LD
 - [ ] **SD-03**: Clasifica y evalúa impacto de schemas por tipo (Organization, WebSite, FAQPage, Person, etc.)
+- [ ] **SD-04**: Valida cada bloque JSON-LD contra schema.org por página (propiedades requeridas/recomendadas por tipo, tipos de valor, referencias `@id` no resueltas) y reporta errores y warnings, estilo Classy Schema
+- [ ] **SD-05**: Construye y visualiza un grafo de entidades del JSON-LD por página (nodos por `@type`/`@id`, aristas por `@id`/references/`sameAs`) mostrando las conexiones entre entidades
 
 ### Rendimiento / Core Web Vitals (PERF)
 
@@ -170,6 +172,8 @@ Excluido explícitamente. Documentado para evitar scope creep.
 | SD-01 | Phase 4 | Pending |
 | SD-02 | Phase 4 | Pending |
 | SD-03 | Phase 4 | Pending |
+| SD-04 | Phase 4 | Pending |
+| SD-05 | Phase 4 | Pending |
 | AEO-01 | Phase 4 | Pending |
 | AEO-02 | Phase 4 | Pending |
 | AEO-03 | Phase 4 | Pending |
@@ -198,10 +202,10 @@ Excluido explícitamente. Documentado para evitar scope creep.
 | QUOTA-04 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 61 total (nota: el conteo previo de "54" en este archivo era un placeholder desactualizado; el conteo real de requisitos v1 listados arriba es 61)
-- Mapped to phases: 61/61 ✓
+- v1 requirements: 63 total (se agregaron SD-04 y SD-05: validación estilo Classy Schema + grafo de entidades)
+- Mapped to phases: 63/63 ✓
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-05*
-*Last updated: 2026-07-05 after roadmap creation (traceability mapped to 7 phases)*
+*Last updated: 2026-07-05 after adding SD-04/SD-05 (schema validation + entity graph) to Phase 4*

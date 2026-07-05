@@ -63,13 +63,15 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Goal**: Cada página rastreada produce hallazgos de validez de datos estructurados y de visibilidad ante motores de IA.
 **Mode:** mvp
 **Depends on**: Phase 2
-**Requirements**: SD-01, SD-02, SD-03, AEO-01, AEO-02, AEO-03, AEO-04
+**Requirements**: SD-01, SD-02, SD-03, SD-04, SD-05, AEO-01, AEO-02, AEO-03, AEO-04
 **Success Criteria** (what must be TRUE):
   1. La presencia y validez sintáctica de cada bloque JSON-LD se detecta y reporta, clasificando el tipo de schema y su impacto.
-  2. El control de acceso de crawlers de IA (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) en robots.txt se evalúa explícitamente.
-  3. La presencia de llms.txt/llms-full.txt se reporta como señal de bajo peso.
-  4. El formato de contenido para extracción por IA (encabezados como preguntas, listas, tablas, longitud de párrafo) se evalúa.
+  2. Cada bloque JSON-LD se valida contra schema.org (propiedades requeridas/recomendadas, referencias `@id` no resueltas) y sus errores/warnings se reportan por página, estilo Classy Schema.
+  3. Cada página con datos estructurados muestra un grafo de entidades (nodos por `@type`/`@id`, aristas por `@id`/references/`sameAs`) que visualiza las conexiones entre entidades.
+  4. El control de acceso de crawlers de IA (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) en robots.txt se evalúa explícitamente.
+  5. La presencia de llms.txt/llms-full.txt se reporta como señal de bajo peso, y el formato de contenido para extracción por IA (encabezados como preguntas, listas, tablas, longitud de párrafo) se evalúa.
 **Plans**: TBD
+**UI hint**: yes
 
 ### Phase 5: Rendimiento / Core Web Vitals
 **Goal**: Cada auditoría incluye datos reales de rendimiento y Core Web Vitals sobre una muestra de páginas, sin agotar la cuota de PageSpeed Insights.
