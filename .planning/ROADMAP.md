@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Scoring, comparación de corridas y reporte** - Score general/por categoría, tabla priorizada y diff entre auditorías
 - [x] **Phase 7: Verificación de email, cuota y compuerta de lanzamiento** - Double opt-in, normalización, rate limiting y persistencia de historial (completed 2026-07-06)
 - [x] **Phase 8: Fundamentos de marca — fuentes y design system** - Tipografía de marca (Array/Khand/Geist), tokens de diseño y theming claro/oscuro sin flash (completed 2026-07-06)
-- [ ] **Phase 9: Librería de componentes** - Score gauge, cards, badges, tabla de issues, acordeones, formularios, estados vacíos y skeletons pulidos y reutilizables
+- [x] **Phase 9: Librería de componentes** - Score gauge, cards, badges, tabla de issues, acordeones, formularios, estados vacíos y skeletons pulidos y reutilizables (completed 2026-07-06)
 - [ ] **Phase 10: Pantallas rediseñadas, copy, motion y accesibilidad** - Todas las pantallas ensambladas con copy humanizado, motion sutil y accesibilidad/responsive validados
 
 ## Phase Details
@@ -183,7 +183,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 09-03-PLAN.md — Badge severidad/diff (COMP-03) + Skeleton con shimmer accesible (COMP-08)
 - [x] 09-04-PLAN.md — Button + Input + Field con estados accesibles (COMP-06)
 - [x] 09-05-PLAN.md — EmptyState/ErrorState (COMP-07) + CategoryAccordion (COMP-05)
-- [ ] 09-06-PLAN.md — IssuesTable responsive con URL sticky/clickeable + estado vacío (COMP-04)
+- [x] 09-06-PLAN.md — IssuesTable responsive con URL sticky/clickeable + estado vacío (COMP-04)
 
 **UI hint**: yes
 
@@ -219,7 +219,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Scoring, comparación de corridas y reporte | 1/1 | Complete ✅ | 2026-07-05 |
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 1/1 | Complete   | 2026-07-06 |
 | 8. Fundamentos de marca — fuentes y design system | 5/5 | Complete   | 2026-07-06 |
-| 9. Librería de componentes | 5/6 | In Progress|  |
+| 9. Librería de componentes | 6/6 | Complete   | 2026-07-06 |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | 0/? | Not started | - |
 
 ---

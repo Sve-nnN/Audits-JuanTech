@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: milestone
 status: verifying
 stopped_at: Completed 09-01-PLAN.md (fundación de librería de componentes — lucide-react + labels.ts + url.ts)
-last_updated: "2026-07-06T06:03:18.250Z"
+last_updated: "2026-07-06T06:13:39.373Z"
 last_activity: 2026-07-06 — Plan 09-01 ejecutado (lucide-react + módulos compartidos labels.ts/url.ts)
 progress:
   total_phases: 10
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 18
-  completed_plans: 17
-  percent: 80
+  completed_plans: 18
+  percent: 90
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 
 ## Current Position
 
-Phase: Phase 9 (Librería de componentes) — in progress
-Plan: 09-01 (fundación: lucide-react + labels.ts + url.ts) completado. Waves 2-4 (Badge, Button, Field, EmptyState, Accordion, IssuesTable) pendientes.
-Status: lucide-react ^1.23.0 instalado y verificado legítimo; módulos compartidos components/ui/labels.ts (5 mapas de etiqueta español neutro) y components/ui/url.ts (shortUrl, issueUrl) extraídos verbatim de audits/[id]/page.tsx. COMP-03 y COMP-04 cerrados. Fundación lista para los componentes reutilizables de las waves siguientes.
+Phase: Phase 9 (Librería de componentes) — 6/6 planes ejecutados (listo para verificación)
+Plan: 09-06 (IssuesTable — COMP-04) completado. Waves 1-4 completas: fundación (09-01), Badge/Field, Button, EmptyState/Accordion (09-05) e IssuesTable (09-06).
+Status: IssuesTable (COMP-04) construido — tabla real responsive por scroll horizontal con región enfocable por teclado, columna de URL sticky/clickeable segura (solo http/https, rel=noreferrer, shortUrl display) y estado vacío vía EmptyState (CheckCircle2/--success). Cierra la librería de componentes de la Fase 9; solo tokens, cero hex, sin voceo. Pendiente: verificación de fase.
 Last activity: 2026-07-06 — Plan 09-01 ejecutado (lucide-react + módulos compartidos labels.ts/url.ts)
 
 ## Performance Metrics
@@ -58,6 +58,7 @@ Last activity: 2026-07-06 — Plan 09-01 ejecutado (lucide-react + módulos comp
 | Phase 8 P2 | 3 min | 2 tasks | 1 file |
 | Phase 8 P1 | 4 min | 3 tasks | 4 files |
 | Phase 09 P05 | 8min | 2 tasks | 4 files |
+| Phase 09 P06 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,7 @@ Recent decisions affecting current work:
 - [Phase 7]: Interfaces de storage (VerificationStore, AuditCountStore) para probar lógica de tokens/cuota 100% offline; dev-mode expone devVerifyUrl en request-verification para probar el flujo sin bandeja de entrada real.
 - [Roadmap v1.1]: Fases 8-10 anexadas (fundamentos de marca → librería de componentes → pantallas+copy+motion+a11y). UI-only, no toca pipeline de v1.0.
 - [Phase ?]: 09-05: EmptyState/ErrorState y CategoryAccordion (composites wave 3) sobre details/summary nativos; EmptyState consume Button, acordeón consume Badge; tokens-only, cero hex
+- [Phase ?]: IssuesTable estado vacio remapea text-muted a success
 
 ### Pending Todos
 
@@ -99,6 +101,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06T06:02:05.456Z
+Last session: 2026-07-06T06:10:21.557Z
 Stopped at: Completed 09-01-PLAN.md (fundación de librería de componentes — lucide-react + labels.ts + url.ts)
 Resume file: None
