@@ -53,13 +53,25 @@ export function Field({
   const errorId = hasError ? `${htmlFor}-error` : undefined;
   const describedBy = hasError ? errorId : hintId;
 
-  const control = isValidElement(children)
-    ? cloneElement(children as React.ReactElement<InjectedControlProps>, {
-        id: htmlFor,
-        "aria-describedby": describedBy,
+  let control: React.ReactNode = children;
+  if (isValidElement(children)) {
+    const childProps = (children as React.ReactElement<InjectedControlProps>)
+      .props;
+    // Fusiona (no sobrescribe) el `aria-describedby` que el hijo ya trajera con
+    // los ids de hint/error; si no hay ninguno queda `undefined` en vez de "".
+    const childDescribedBy = childProps["aria-describedby"];
+    const mergedDescribedBy =
+      [describedBy, childDescribedBy].filter(Boolean).join(" ") || undefined;
+    control = cloneElement(
+      children as React.ReactElement<InjectedControlProps>,
+      {
+        // Preserva el id propio del hijo; solo genera uno si falta.
+        id: childProps.id ?? htmlFor,
+        "aria-describedby": mergedDescribedBy,
         ...(hasError ? { "aria-invalid": true, invalid: true } : {}),
-      })
-    : children;
+      },
+    );
+  }
 
   return (
     <div className={styles.field}>
