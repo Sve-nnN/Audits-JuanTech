@@ -1,0 +1,194 @@
+/*
+ * shell.module.css — Primitivas de layout del shell base (DS-04).
+ *
+ * Contenedor centrado, grid de 12 columnas, header sticky y footer.
+ * Solo referencia tokens semánticos (var(--*)); sin hex crudo.
+ * Nombres de clase camelCase de una sola palabra, coherentes con la
+ * convención de CSS Modules del repo (home.module.css / report.module.css).
+ */
+
+/* Envoltorio del shell: columna flexible a pantalla completa para que el
+ * footer quede siempre al fondo aunque el contenido sea corto. */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Contenedor: ancho máximo centrado con gutter responsive.
+ * 16px (móvil) -> 24px (>=640px) -> 32px (>=1024px). Nunca excede el
+ * viewport (sin overflow horizontal, cimiento de A11Y-01). */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding-inline: var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-inline: var(--space-8);
+  }
+}
+
+/* Grid base de 12 columnas; colapsa a una sola columna en móvil.
+ * Los layouts específicos de componente componen encima en Fase 9. */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+/* Región principal de contenido: crece para empujar el footer.
+ * No impone max-width a propósito: las pantallas v1.0 traen su propio
+ * fondo full-bleed y contenedor interno, así que constreñir aquí las
+ * recortaría en pantallas anchas. Cada pantalla constriñe su contenido y
+ * Fase 10 adopta .container donde corresponda. */
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Header sticky de 64px, ancho completo. */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  height: 64px;
+  width: 100%;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Fila interna del header: logo | nav | spacer | toggle, constreñida al
+ * contenedor con el mismo gutter. */
+.headerInner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  height: 100%;
+}
+
+/* Footer: fondo del canvas, borde superior y padding vertical amplio. */
+.footer {
+  width: 100%;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding-block: var(--space-12);
+}
+
+.footerInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-8);
+}
+
+/* Wordmark de marca (rol Khand h4), con glifo acento en color de marca. */
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-heading);
+  letter-spacing: 0;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.wordmarkAccent {
+  color: var(--accent);
+}
+
+/* Nav primaria: rol Khand h4 (20px / 500). */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.navLink {
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-xl);
+  font-weight: var(--weight-medium);
+  line-height: var(--lh-heading);
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
+}
+
+.navLink:hover {
+  color: var(--text);
+}
+
+/* Empuja el toggle (y el copyright en el footer) al extremo. */
+.spacer {
+  flex: 1 1 auto;
+}
+
+/* Enlaces mínimos del footer (rol body small). */
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.footerLink {
+  font-family:
+    var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
+}
+
+.footerLink:hover {
+  color: var(--text);
+}
+
+/* Línea de copyright (body small, texto secundario). */
+.copyright {
+  margin: 0;
+  font-family:
+    var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+}
+
+/* Focus visible con ring de marca en todos los interactivos del shell. */
+.wordmark:focus-visible,
+.navLink:focus-visible,
+.footerLink:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Respeta la preferencia de movimiento reducido. */
+@media (prefers-reduced-motion: reduce) {
+  .navLink,
+  .footerLink {
+    transition: none;
+  }
+}
