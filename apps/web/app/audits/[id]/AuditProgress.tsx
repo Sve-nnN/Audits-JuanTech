@@ -39,19 +39,25 @@ export function AuditProgress({ auditId }: { auditId: string }) {
 
   useEffect(() => {
     async function tick() {
-      const res = await fetch(`/api/audits/${auditId}`);
-      if (!res.ok) return;
-      const data: AuditPollResponse = await res.json();
-      setPoll(data);
-      if (data.status === "done") {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        window.location.reload();
-      } else if (data.status === "failed") {
-        // Terminal, pero mantenemos la SPA: paramos el polling y dejamos que el
-        // componente renderice su rama de error (role="alert"). Recargar aquí
-        // volvería a montar AuditProgress (page.tsx renderiza este componente
-        // para cualquier status !== "done") y crearía un bucle de recargas.
-        if (intervalRef.current) clearInterval(intervalRef.current);
+      try {
+        const res = await fetch(`/api/audits/${auditId}`);
+        if (!res.ok) return;
+        const data: AuditPollResponse = await res.json();
+        setPoll(data);
+        if (data.status === "done") {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          window.location.reload();
+        } else if (data.status === "failed") {
+          // Terminal, pero mantenemos la SPA: paramos el polling y dejamos que el
+          // componente renderice su rama de error (role="alert"). Recargar aquí
+          // volvería a montar AuditProgress (page.tsx renderiza este componente
+          // para cualquier status !== "done") y crearía un bucle de recargas.
+          if (intervalRef.current) clearInterval(intervalRef.current);
+        }
+      } catch {
+        // Fallo transitorio de red o body no-JSON mientras el worker aún no
+        // responde: lo tragamos y dejamos que el siguiente intervalo reintente,
+        // en vez de escapar como unhandled promise rejection.
       }
     }
     void tick();
