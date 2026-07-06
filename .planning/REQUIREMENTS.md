@@ -35,7 +35,7 @@
 
 ### Pantallas (SCREEN)
 
-- [ ] **SCREEN-01**: Home elevado: hero + flujo email→verificar→URL claro, jerárquico y profesional
+- [x] **SCREEN-01**: Home elevado: hero + flujo email→verificar→URL claro, jerárquico y profesional
 - [x] **SCREEN-02**: Página de verificación de email pulida (éxito/error/expirado)
 - [x] **SCREEN-03**: Progreso de auditoría con indicador de fase legible (rastreando / analizando / midiendo rendimiento) sin sensación de colgado
 - [x] **SCREEN-04**: Reporte `/audits/[id]` rediseñado (hero score, categorías, issues prioritarios, detalle problemas/correctos, rendimiento, diff) espejo mejorado del reporte de referencia
@@ -94,7 +94,7 @@
 | COMP-06 | Phase 9 | Complete |
 | COMP-07 | Phase 9 | Complete |
 | COMP-08 | Phase 9 | Complete |
-| SCREEN-01 | Phase 10 | Pending |
+| SCREEN-01 | Phase 10 | Complete |
 | SCREEN-02 | Phase 10 | Complete |
 | SCREEN-03 | Phase 10 | Complete |
 | SCREEN-04 | Phase 10 | Complete |
