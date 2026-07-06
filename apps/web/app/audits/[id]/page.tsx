@@ -14,6 +14,7 @@ import {
 } from "../../components/ui/CategoryAccordion";
 import { Badge, SeverityBadge, DiffBadge } from "../../components/ui/Badge";
 import { EmptyState, ErrorState } from "../../components/ui/EmptyState";
+import { Reveal } from "../../components/motion/useReveal";
 import {
   CATEGORY_LABEL,
   STATUS_LABEL,
@@ -21,6 +22,7 @@ import {
 } from "../../components/ui/labels";
 import { issueUrl, shortUrl } from "../../components/ui/url";
 import { AuditProgress } from "./AuditProgress";
+import { ScoreGaugeAnimated } from "./ScoreGaugeAnimated";
 import styles from "./report.module.css";
 
 interface PageProps {
@@ -227,19 +229,23 @@ export default async function AuditReportPage({ params }: PageProps) {
         </div>
 
         {/* Score general */}
-        <section className={styles.section}>
+        <Reveal as="section" className={styles.section} delay={0}>
           <div className={styles.hero}>
             <div className={styles.heroGauge}>
-              <ScoreGauge
-                size="lg"
-                value={overall}
-                status={scores ? overallStatus : null}
-                aria-label={
-                  overall !== null
-                    ? `Score general ${overall} de 100, ${STATUS_LABEL[overallStatus]}`
-                    : "Score general sin datos"
-                }
-              />
+              {overall !== null ? (
+                <ScoreGaugeAnimated
+                  value={overall}
+                  status={scores ? overallStatus : null}
+                  ariaLabel={`Score general ${overall} de 100, ${STATUS_LABEL[overallStatus]}`}
+                />
+              ) : (
+                <ScoreGauge
+                  size="lg"
+                  value={null}
+                  status={null}
+                  aria-label="Score general sin datos"
+                />
+              )}
             </div>
             <div className={styles.heroBody}>
               <h2 className={styles.heroTitle}>Score general</h2>
@@ -252,33 +258,34 @@ export default async function AuditReportPage({ params }: PageProps) {
               </Badge>
             </div>
           </div>
-        </section>
+        </Reveal>
 
         {/* Scores por categoría */}
-        <section className={styles.section}>
+        <Reveal as="section" className={styles.section} delay={60}>
           <h3 className={styles.sectionTitle}>Scores por categoría</h3>
           <div className={styles.categoryGrid}>
-            {CATEGORY_ORDER.map((category) => {
+            {CATEGORY_ORDER.map((category, i) => {
               const result = scores?.byCategory[category];
               const status = result?.status ?? null;
               return (
-                <CategoryCard
-                  key={category}
-                  label={CATEGORY_LABEL[category]}
-                  score={result ? result.score : null}
-                  status={status}
-                  statusLabel={
-                    status ? STATUS_LABEL[status] : result ? undefined : "sin datos"
-                  }
-                />
+                <Reveal key={category} delay={Math.min(i, 3) * 60}>
+                  <CategoryCard
+                    label={CATEGORY_LABEL[category]}
+                    score={result ? result.score : null}
+                    status={status}
+                    statusLabel={
+                      status ? STATUS_LABEL[status] : result ? undefined : "sin datos"
+                    }
+                  />
+                </Reveal>
               );
             })}
           </div>
-        </section>
+        </Reveal>
 
         {/* Cambios desde la auditoría anterior */}
         {scores?.diff.previousAuditId && (
-          <section className={styles.section}>
+          <Reveal as="section" className={styles.section} delay={120}>
             <h3 className={styles.sectionTitle}>Cambios desde la auditoría anterior</h3>
             <div className={styles.diffSummary}>
               <div className={styles.diffItem}>
@@ -310,11 +317,11 @@ export default async function AuditReportPage({ params }: PageProps) {
                 ))}
               </ul>
             )}
-          </section>
+          </Reveal>
         )}
 
         {/* Issues prioritarios */}
-        <section className={styles.section}>
+        <Reveal as="section" className={styles.section} delay={180}>
           <h3 className={styles.sectionTitle}>Issues prioritarios</h3>
           <IssuesTable
             columns={issueColumns}
@@ -327,10 +334,10 @@ export default async function AuditReportPage({ params }: PageProps) {
                 : undefined
             }
           />
-        </section>
+        </Reveal>
 
         {/* Resumen de rendimiento */}
-        <section className={styles.section}>
+        <Reveal as="section" className={styles.section} delay={0}>
           <h3 className={styles.sectionTitle}>Resumen de rendimiento</h3>
           {!perf || perf.sampledPages === 0 ? (
             perf?.error ? (
@@ -394,10 +401,10 @@ export default async function AuditReportPage({ params }: PageProps) {
               </p>
             </>
           )}
-        </section>
+        </Reveal>
 
         {/* Detalle por categoría */}
-        <section className={styles.section}>
+        <Reveal as="section" className={styles.section} delay={60}>
           <h3 className={styles.sectionTitle}>Detalle por categoría</h3>
           {CATEGORY_ORDER.map((category) => {
             const issues = issuesByCategory.get(category) ?? [];
@@ -447,7 +454,7 @@ export default async function AuditReportPage({ params }: PageProps) {
               </CategoryAccordion>
             );
           })}
-        </section>
+        </Reveal>
 
         <p className={styles.footerLinks}>
           <Link href={`/audits/${auditId}/pages`}>Ver páginas rastreadas y grafo de entidades</Link>
