@@ -1,0 +1,54 @@
+/*
+ * ThemeToggle.module.css — estilos del botón de tema.
+ * Solo tokens semánticos (sin hex crudo). CSP-safe (same-origin, sin CDN).
+ */
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.toggle:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+.toggle:disabled {
+  cursor: default;
+}
+
+.icon {
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.toggle:hover .icon {
+  transform: rotate(12deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle,
+  .icon {
+    transition: none;
+  }
+
+  .toggle:hover .icon {
+    transform: none;
+  }
+}
