@@ -1,0 +1,182 @@
+/*
+ * pages.module.css — Estilos tokenizados de SCREEN-05 (lista de páginas
+ * rastreadas + detalle estructura/AEO). Solo tokens semánticos (DS-01),
+ * CSP-safe, sin hex crudo. Cierra la deuda DS-01 de estas dos vistas.
+ */
+
+.main {
+  max-width: var(--container-narrow);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5) var(--space-16);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+}
+
+.breadcrumb {
+  font-size: var(--font-size-sm);
+  margin: 0 0 var(--space-4);
+}
+
+.breadcrumb a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--lh-heading);
+  color: var(--text);
+  margin: 0 0 var(--space-6);
+}
+
+/* ---------- Lista de páginas ---------- */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.rowLink {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: var(--font-size-sm);
+  color: var(--accent-text);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.rowLink:hover {
+  text-decoration: underline;
+}
+
+.rowLink:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 640px) {
+  .row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ---------- Detalle de página ---------- */
+
+.meta {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin: 0 0 var(--space-6);
+}
+
+.section {
+  margin-top: var(--space-8);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  margin: 0 0 var(--space-4);
+}
+
+.graphCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+/* ---------- Hallazgos ---------- */
+
+.findings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.finding {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--finding-color, var(--text-muted));
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.findingCritical {
+  --finding-color: var(--critical);
+}
+
+.findingWarning {
+  --finding-color: var(--warning);
+}
+
+.findingOk {
+  --finding-color: var(--success);
+}
+
+.findingHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.findingTitle {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  margin: 0;
+}
+
+.findingValue {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: var(--font-size-sm);
+  color: var(--text);
+  margin: var(--space-2) 0 0;
+  word-break: break-word;
+}
+
+.findingRec {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: var(--lh-body);
+  margin: var(--space-2) 0 0;
+}

@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { prisma } from "@auditor/db";
 import type { EntityGraph } from "@auditor/checks";
 import { EntityGraphSvg } from "../../../../components/EntityGraphSvg";
+import { SeverityBadge } from "../../../../components/ui/Badge";
+import { EmptyState } from "../../../../components/ui/EmptyState";
+import styles from "../pages.module.css";
 
 const EMPTY_GRAPH: EntityGraph = { nodes: [], edges: [] };
 
@@ -10,16 +13,15 @@ interface PageProps {
   params: Promise<{ id: string; pageId: string }>;
 }
 
-const SEVERITY_LABEL: Record<string, string> = {
-  critical: "Crítico",
-  warning: "Advertencia",
-  ok: "Correcto",
-};
+type Severity = "critical" | "warning" | "ok";
 
-const SEVERITY_COLOR: Record<string, string> = {
-  critical: "#dc2626",
-  warning: "#d97706",
-  ok: "#16a34a",
+const SEVERITY_SET = new Set<string>(["critical", "warning", "ok"]);
+
+/** severidad → clase que setea el borde izquierdo del hallazgo por token. */
+const FINDING_CLASS: Record<string, string | undefined> = {
+  critical: styles.findingCritical,
+  warning: styles.findingWarning,
+  ok: styles.findingOk,
 };
 
 /**
@@ -43,51 +45,60 @@ export default async function PageDetailPage({ params }: PageProps) {
     orderBy: [{ severity: "asc" }, { checkId: "asc" }],
   });
 
+  const finalUrl = page.finalUrl ?? page.url;
+
   return (
-    <main style={{ padding: 32, fontFamily: "system-ui, sans-serif", maxWidth: 900 }}>
-      <p>
+    <main className={styles.main}>
+      <p className={styles.breadcrumb}>
         <Link href={`/audits/${auditId}/pages`}>&larr; Volver a páginas</Link>
       </p>
-      <h1 style={{ fontSize: 20 }}>Datos estructurados y AEO</h1>
-      <p style={{ color: "#475569", wordBreak: "break-all" }}>
-        {page.finalUrl ?? page.url}
+      <h1 className={styles.title}>Datos estructurados y AEO</h1>
+      <p className={styles.meta}>
+        {finalUrl}
         {typeof page.statusCode === "number" ? ` (HTTP ${page.statusCode})` : ""}
       </p>
 
-      <h2 style={{ fontSize: 16, marginTop: 24 }}>Grafo de entidades</h2>
-      <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: 12 }}>
-        <EntityGraphSvg graph={graph} />
-      </div>
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>Grafo de entidades</h3>
+        <div className={styles.graphCard}>
+          <EntityGraphSvg graph={graph} />
+        </div>
+      </section>
 
-      <h2 style={{ fontSize: 16, marginTop: 24 }}>Hallazgos ({issues.length})</h2>
-      {issues.length === 0 ? (
-        <p style={{ color: "#475569" }}>Sin hallazgos de datos estructurados o AEO para esta página.</p>
-      ) : (
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {issues.map((issue) => (
-            <li
-              key={issue.id}
-              style={{
-                borderLeft: `4px solid ${SEVERITY_COLOR[issue.severity] ?? "#64748b"}`,
-                padding: "8px 12px",
-                marginBottom: 8,
-                background: "#f8fafc",
-              }}
-            >
-              <strong>
-                [{issue.checkId}] {issue.title}
-              </strong>{" "}
-              <span style={{ color: SEVERITY_COLOR[issue.severity] ?? "#64748b" }}>
-                ({SEVERITY_LABEL[issue.severity] ?? issue.severity})
-              </span>
-              {issue.measuredValue && <p style={{ margin: "4px 0" }}>{issue.measuredValue}</p>}
-              {issue.recommendation && (
-                <p style={{ margin: "4px 0", color: "#475569" }}>{issue.recommendation}</p>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>Hallazgos ({issues.length})</h3>
+        {issues.length === 0 ? (
+          <EmptyState
+            titleLevel={3}
+            title="Sin hallazgos"
+            description="Sin hallazgos de datos estructurados ni de AEO para esta página."
+          />
+        ) : (
+          <ul className={styles.findings}>
+            {issues.map((issue) => (
+              <li
+                key={issue.id}
+                className={`${styles.finding} ${FINDING_CLASS[issue.severity] ?? ""}`}
+              >
+                <div className={styles.findingHeader}>
+                  <p className={styles.findingTitle}>
+                    [{issue.checkId}] {issue.title}
+                  </p>
+                  {SEVERITY_SET.has(issue.severity) ? (
+                    <SeverityBadge severity={issue.severity as Severity} />
+                  ) : null}
+                </div>
+                {issue.measuredValue && (
+                  <p className={styles.findingValue}>{issue.measuredValue}</p>
+                )}
+                {issue.recommendation && (
+                  <p className={styles.findingRec}>{issue.recommendation}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
