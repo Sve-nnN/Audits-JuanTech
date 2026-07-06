@@ -1,0 +1,85 @@
+/*
+ * CategoryCard.module.css — card por categoría (COMP-02).
+ * Solo tokens semánticos (DS-01/DS-02), CSP-safe, sin hex crudo.
+ * Clases camelCase de una palabra. Score y estado toman color de la clase de
+ * estado (mismo mapa que ScoreGauge). Hover/focus solo en la variante link.
+ */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .card {
+    padding: var(--space-5);
+  }
+}
+
+.label {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-regular);
+  color: var(--text-secondary);
+}
+
+.score {
+  margin: 0;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+}
+
+.status {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-semibold);
+}
+
+/* Estado → color de score y caption (reusa los tokens de severidad). */
+.good {
+  color: var(--success);
+}
+
+.needs_improvement {
+  color: var(--warning);
+}
+
+.critical {
+  color: var(--critical);
+}
+
+.unknown {
+  color: var(--text-muted);
+}
+
+/* Variante link: un solo tab stop, hover + focus-visible de marca. */
+.link {
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.link:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link {
+    transition: none;
+  }
+}
