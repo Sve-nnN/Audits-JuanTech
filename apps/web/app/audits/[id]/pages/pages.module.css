@@ -18,7 +18,10 @@
 }
 
 .breadcrumb a {
-  color: var(--text-muted);
+  /* Enlace de navegación: --accent-text (AA, coherente con el breadcrumb del
+   * reporte). Antes usaba --text-muted, que fallaba contraste en un elemento
+   * interactivo (fix del sweep A11Y-02). */
+  color: var(--accent-text);
   text-decoration: none;
 }
 

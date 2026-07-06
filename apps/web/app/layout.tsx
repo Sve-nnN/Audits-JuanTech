@@ -23,9 +23,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="es" className={fontVariables} suppressHydrationWarning>
       <body>
         <Providers>
+          {/* Skip-to-content (A11Y-03): primer elemento enfocable; salta el
+           * header y lleva el foco al contenido principal. Oculto hasta recibir
+           * foco por teclado (ver .skipLink en globals.css). */}
+          <a href="#main-content" className="skipLink">
+            Saltar al contenido
+          </a>
           <div className={shell.shell}>
             <AppHeader />
-            <main className={shell.main}>{children}</main>
+            <main id="main-content" className={shell.main}>
+              {children}
+            </main>
             <AppFooter />
           </div>
         </Providers>
