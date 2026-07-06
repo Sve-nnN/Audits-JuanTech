@@ -5,41 +5,19 @@
  */
 
 .page {
-  --color-good: #16a34a;
-  --color-good-bg: #f0fdf4;
-  --color-warn: #d97706;
-  --color-warn-bg: #fffbeb;
-  --color-critical: #dc2626;
-  --color-critical-bg: #fef2f2;
-  --color-border: #e2e8f0;
-  --color-muted: #64748b;
-  --color-text: #0f172a;
-  --color-surface: #ffffff;
-  --color-bg: #f8fafc;
+  /* Fondos suaves de severidad derivados por transparencia sobre el token de
+   * color, para preservar el badge tenue en ambos temas sin hex hardcodeado. */
+  --severity-good-bg: color-mix(in srgb, var(--success) 12%, transparent);
+  --severity-warn-bg: color-mix(in srgb, var(--warning) 12%, transparent);
+  --severity-critical-bg: color-mix(in srgb, var(--critical) 12%, transparent);
+  --severity-info-bg: color-mix(in srgb, var(--accent-text) 12%, transparent);
 
   min-height: 100vh;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
   padding: 32px 20px 64px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .page {
-    --color-good-bg: #052e16;
-    --color-warn-bg: #451a03;
-    --color-critical-bg: #450a0a;
-    --color-border: #1e293b;
-    --color-muted: #94a3b8;
-    --color-text: #f1f5f9;
-    --color-surface: #0f172a;
-    --color-bg: #020617;
-  }
 }
 
 .container {
@@ -53,7 +31,7 @@
 }
 
 .breadcrumb a {
-  color: var(--color-muted);
+  color: var(--text-muted);
   text-decoration: none;
 }
 
@@ -78,7 +56,7 @@
 }
 
 .meta {
-  color: var(--color-muted);
+  color: var(--text-muted);
   font-size: 13px;
   margin: 4px 0 0;
 }
@@ -92,7 +70,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-muted);
+  color: var(--text-muted);
   margin: 0 0 14px;
 }
 
@@ -101,11 +79,11 @@
   display: flex;
   align-items: center;
   gap: 28px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 28px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 .scoreCircle {
@@ -121,6 +99,8 @@
 }
 
 .scoreCircleNumber {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
   font-size: 40px;
   font-weight: 800;
   line-height: 1;
@@ -128,7 +108,7 @@
 
 .scoreCircleMax {
   font-size: 13px;
-  color: var(--color-muted);
+  color: var(--text-muted);
 }
 
 .heroBody h2 {
@@ -138,7 +118,7 @@
 
 .heroBody p {
   margin: 0;
-  color: var(--color-muted);
+  color: var(--text-muted);
   font-size: 14px;
   max-width: 52ch;
 }
@@ -153,30 +133,30 @@
 }
 
 .good {
-  color: var(--color-good);
+  color: var(--success);
 }
 .good .statusBadge,
 .statusGood {
-  background: var(--color-good-bg);
-  color: var(--color-good);
+  background: var(--severity-good-bg);
+  color: var(--success);
 }
 
 .needs_improvement {
-  color: var(--color-warn);
+  color: var(--warning);
 }
 .needs_improvement .statusBadge,
 .statusNeeds_improvement {
-  background: var(--color-warn-bg);
-  color: var(--color-warn);
+  background: var(--severity-warn-bg);
+  color: var(--warning);
 }
 
 .critical {
-  color: var(--color-critical);
+  color: var(--critical);
 }
 .critical .statusBadge,
 .statusCritical {
-  background: var(--color-critical-bg);
-  color: var(--color-critical);
+  background: var(--severity-critical-bg);
+  color: var(--critical);
 }
 
 /* Category cards */
@@ -187,19 +167,21 @@
 }
 
 .categoryCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
 }
 
 .categoryCardLabel {
   font-size: 13px;
-  color: var(--color-muted);
+  color: var(--text-muted);
   margin: 0 0 8px;
 }
 
 .categoryCardScore {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
   font-size: 28px;
   font-weight: 800;
   margin: 0;
@@ -215,8 +197,8 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
   font-size: 14px;
@@ -227,15 +209,15 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-muted);
+  color: var(--text-muted);
   padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
 }
 
 .table td {
   padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
 
@@ -244,7 +226,7 @@
 }
 
 .tableNote {
-  color: var(--color-muted);
+  color: var(--text-muted);
   font-size: 13px;
   margin: 8px 2px 0;
 }
@@ -259,54 +241,44 @@
 }
 
 .severityCritical {
-  background: var(--color-critical-bg);
-  color: var(--color-critical);
+  background: var(--severity-critical-bg);
+  color: var(--critical);
 }
 
 .severityWarning {
-  background: var(--color-warn-bg);
-  color: var(--color-warn);
+  background: var(--severity-warn-bg);
+  color: var(--warning);
 }
 
 .severityOk {
-  background: var(--color-good-bg);
-  color: var(--color-good);
+  background: var(--severity-good-bg);
+  color: var(--success);
 }
 
 .diffNew {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--severity-info-bg);
+  color: var(--accent-text);
 }
 
 .diffPersistent {
-  background: #f1f5f9;
-  color: var(--color-muted);
+  background: var(--surface-hover);
+  color: var(--text-muted);
 }
 
 .diffResolved {
-  background: var(--color-good-bg);
-  color: var(--color-good);
-}
-
-@media (prefers-color-scheme: dark) {
-  .diffNew {
-    background: #0c1e3d;
-    color: #60a5fa;
-  }
-  .diffPersistent {
-    background: #1e293b;
-  }
+  background: var(--severity-good-bg);
+  color: var(--success);
 }
 
 .categoryTag {
-  color: var(--color-muted);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
 /* Category detail accordion */
 .categoryGroup {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -331,16 +303,16 @@
 .categoryGroupCount {
   font-weight: 500;
   font-size: 13px;
-  color: var(--color-muted);
+  color: var(--text-muted);
 }
 
 .issueDetail {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
   padding: 14px 18px;
 }
 
 .issueDetail + .issueDetail {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 
 .issueHeader {
@@ -364,7 +336,7 @@
 }
 
 .issueField dt {
-  color: var(--color-muted);
+  color: var(--text-muted);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -375,6 +347,13 @@
   margin: 0;
 }
 
+/* Valor medido (2.º campo de cada issue) en Geist Mono; las etiquetas (dt)
+ * y los campos de texto (URL, criterio, recomendación) siguen en Geist Sans. */
+.issueFields > .issueField:nth-of-type(2) dd {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
+}
+
 /* Perf summary */
 .perfGrid {
   display: grid;
@@ -383,8 +362,8 @@
 }
 
 .perfCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
 }
@@ -400,7 +379,7 @@
   justify-content: space-between;
   font-size: 13px;
   padding: 4px 0;
-  border-bottom: 1px dashed var(--color-border);
+  border-bottom: 1px dashed var(--border);
 }
 
 .perfMetricRow:last-child {
@@ -408,14 +387,22 @@
 }
 
 .perfMetricLabel {
-  color: var(--color-muted);
+  color: var(--text-muted);
+}
+
+/* Valores medidos del grid de rendimiento en Geist Mono con numerales
+ * tabulares (la etiqueta .perfMetricLabel permanece en Geist Sans). */
+.perfMetricRow > strong,
+.perfMetricRow > span:not(.perfMetricLabel) {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
 }
 
 .emptyState {
-  color: var(--color-muted);
+  color: var(--text-muted);
   font-size: 14px;
-  background: var(--color-surface);
-  border: 1px dashed var(--color-border);
+  background: var(--surface);
+  border: 1px dashed var(--border);
   border-radius: 12px;
   padding: 20px;
   text-align: center;
