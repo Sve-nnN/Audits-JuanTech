@@ -20,6 +20,24 @@
   margin: 0 auto;
 }
 
+/* --- Utilidad accesible: texto solo para lectores de pantalla --- */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Fila del fallback de carga (espaciado entre skeletons de issues) --- */
+.loadingRow {
+  margin-bottom: var(--space-2);
+}
+
 /* --- Breadcrumb --- */
 .breadcrumb {
   font-size: var(--font-size-sm);
