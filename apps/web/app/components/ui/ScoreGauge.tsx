@@ -73,7 +73,10 @@ export function ScoreGauge({
   const circumference = 2 * Math.PI * radius;
 
   const hasValue = value !== null && value !== undefined;
-  const ratio = hasValue ? Math.min(Math.max(value / max, 0), 1) : 0;
+  // Evita `0 / 0 = NaN` cuando `max <= 0`: normaliza el denominador antes de
+  // dividir para que un score de 0 (o max=0) dibuje un arco VACÍO, no lleno.
+  const safeMax = max > 0 ? max : 1;
+  const ratio = hasValue ? Math.min(Math.max(value / safeMax, 0), 1) : 0;
   const offset = circumference * (1 - ratio);
 
   const statusClass = status ? STATUS_CLASS[status] : styles.unknown;
