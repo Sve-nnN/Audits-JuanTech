@@ -9,18 +9,11 @@
 .card {
   width: 100%;
   max-width: 480px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 36px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-}
-
-@media (prefers-color-scheme: dark) {
-  .card {
-    background: #0f172a;
-    border-color: #1e293b;
-  }
+  box-shadow: var(--shadow-sm);
 }
 
 .title {
@@ -31,7 +24,7 @@
 
 .subtitle {
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-muted);
   margin: 0 0 24px;
 }
 
@@ -44,14 +37,14 @@
 .input {
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   font-size: 15px;
   background: transparent;
   color: inherit;
 }
 
 .input:focus {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 
@@ -59,8 +52,8 @@
   padding: 12px 14px;
   border-radius: 10px;
   border: none;
-  background: #0f172a;
-  color: #ffffff;
+  background: var(--accent);
+  color: var(--accent-foreground);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -71,51 +64,38 @@
   cursor: default;
 }
 
-@media (prefers-color-scheme: dark) {
-  .button {
-    background: #2563eb;
-  }
-}
-
 .error {
-  color: #dc2626;
+  color: var(--critical);
   font-size: 13px;
   margin: 0;
 }
 
 .footnote {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin: 18px 0 0;
 }
 
 .success {
-  color: #16a34a;
+  color: var(--success);
   font-size: 13px;
   margin: 0;
 }
 
 .hint {
   font-size: 13px;
-  color: #475569;
+  color: var(--text-secondary);
   margin: 0 0 12px;
-  background: #f1f5f9;
+  background: var(--surface-hover);
   border-radius: 8px;
   padding: 10px 12px;
   word-break: break-all;
 }
 
-@media (prefers-color-scheme: dark) {
-  .hint {
-    background: #1e293b;
-    color: #cbd5e1;
-  }
-}
-
 .linkButton {
   background: none;
   border: none;
-  color: #2563eb;
+  color: var(--accent-text);
   font-size: 13px;
   cursor: pointer;
   padding: 0;
@@ -133,19 +113,12 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #64748b;
+  color: var(--text-muted);
   padding: 8px 10px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
 
 .table td {
   padding: 8px 10px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .table th,
-  .table td {
-    border-bottom-color: #1e293b;
-  }
+  border-bottom: 1px solid var(--border);
 }
