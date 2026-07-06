@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: planning
-stopped_at: ROADMAP.md v1.1 (Phases 8-10) creado y anexado; REQUIREMENTS.md v1.1 traceability actualizado (31/31 mapeados); STATE.md actualizado
-last_updated: "2026-07-06T04:19:12.819Z"
-last_activity: 2026-07-05 — Roadmap v1.1 creado (Phases 8-10 anexadas)
+status: fonts.ts creado (4 tipografías con CSS vars + swap, geist + next-themes instalados); pendiente 08-03 (wiring a layout.tsx)
+stopped_at: Completed 08-01-PLAN.md (módulo central de fuentes de marca)
+last_updated: "2026-07-06T04:22:00.000Z"
+last_activity: 2026-07-06 — Plan 08-01 ejecutado (fundamentos de tipografía)
 progress:
   total_phases: 10
   completed_phases: 7
   total_plans: 12
-  completed_plans: 8
-  percent: 67
+  completed_plans: 10
+  percent: 75
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 ## Current Position
 
 Phase: Phase 8 (Fundamentos de marca — fuentes y design system) — in progress
-Plan: 08-02 completado (tokens.css)
-Status: tokens.css creado (primitivos + semánticos dark + override light); pendiente 08-03 (import a globals.css)
-Last activity: 2026-07-06 — Plan 08-02 ejecutado (design tokens)
+Plan: 08-01 completado (fonts.ts); 08-02 completado (tokens.css)
+Status: fonts.ts creado (4 tipografías con CSS vars + swap, geist + next-themes instalados); pendiente 08-03 (wiring a layout.tsx)
+Last activity: 2026-07-06 — Plan 08-01 ejecutado (fundamentos de tipografía)
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Last activity: 2026-07-06 — Plan 08-02 ejecutado (design tokens)
 | Phase 3 P3 | 60 | 5 tasks | 30 files |
 | Phase 7 P1 | 90 min | 5 tasks | 29 files |
 | Phase 8 P2 | 3 min | 2 tasks | 1 file |
+| Phase 8 P1 | 4 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06T04:19:12.815Z
-Stopped at: Completed 08-02-PLAN.md (tokens.css con primitivos + semánticos dark + override light)
+Last session: 2026-07-06T04:22:00.000Z
+Stopped at: Completed 08-01-PLAN.md (módulo central de fuentes de marca)
 Resume file: None

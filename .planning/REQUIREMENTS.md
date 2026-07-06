@@ -10,10 +10,10 @@
 
 ### Fuentes de marca (FONT)
 
-- [ ] **FONT-01**: Array (display) integrada self-hosted (woff2 de Fontshare) vía `next/font/local`, expuesta como `--font-array`
-- [ ] **FONT-02**: Khand (títulos/UI) integrada vía `next/font/google`, expuesta como `--font-khand`
-- [ ] **FONT-03**: Geist Sans (body) y Geist Mono (código/valores) integradas, expuestas como `--font-geist-sans` / `--font-geist-mono`
-- [ ] **FONT-04**: Roles tipográficos aplicados consistentemente (display=Array, headings/UI=Khand, body=Geist Sans, código/métricas=Geist Mono), con fallbacks y `font-display: swap`
+- [x] **FONT-01**: Array (display) integrada self-hosted (woff2 de Fontshare) vía `next/font/local`, expuesta como `--font-array`
+- [x] **FONT-02**: Khand (títulos/UI) integrada vía `next/font/google`, expuesta como `--font-khand`
+- [x] **FONT-03**: Geist Sans (body) y Geist Mono (código/valores) integradas, expuestas como `--font-geist-sans` / `--font-geist-mono`
+- [x] **FONT-04**: Roles tipográficos aplicados consistentemente (display=Array, headings/UI=Khand, body=Geist Sans, código/métricas=Geist Mono), con fallbacks y `font-display: swap`
 
 ### Design System (DS)
 
@@ -78,10 +78,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FONT-01 | Phase 8 | Pending |
-| FONT-02 | Phase 8 | Pending |
-| FONT-03 | Phase 8 | Pending |
-| FONT-04 | Phase 8 (base: body Geist Sans, nav Khand, Mono en métricas del reporte), 9 (roles en componentes), 10 (headings de pantalla=Khand, display=Array) | Pending |
+| FONT-01 | Phase 8 | Complete |
+| FONT-02 | Phase 8 | Complete |
+| FONT-03 | Phase 8 | Complete |
+| FONT-04 | Phase 8 (base: body Geist Sans, nav Khand, Mono en métricas del reporte), 9 (roles en componentes), 10 (headings de pantalla=Khand, display=Array) | Complete |
 | DS-01 | Phase 8 (tokens + migración globals/home/report), 10 (tokenizar hex inline/SVG en SCREEN-03/05) | Complete |
 | DS-02 | Phase 8 | Complete |
 | DS-03 | Phase 8 | Pending |
