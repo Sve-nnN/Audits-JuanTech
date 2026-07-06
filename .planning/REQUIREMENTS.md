@@ -40,7 +40,7 @@
 - [x] **SCREEN-03**: Progreso de auditoría con indicador de fase legible (rastreando / analizando / midiendo rendimiento) sin sensación de colgado
 - [ ] **SCREEN-04**: Reporte `/audits/[id]` rediseñado (hero score, categorías, issues prioritarios, detalle problemas/correctos, rendimiento, diff) espejo mejorado del reporte de referencia
 - [ ] **SCREEN-05**: Páginas rastreadas + grafo de entidades con visual limpio y navegable
-- [ ] **SCREEN-06**: Historial por email presentado como lista de auditorías con score, fecha y acceso al reporte
+- [x] **SCREEN-06**: Historial por email presentado como lista de auditorías con score, fecha y acceso al reporte
 
 ### Copy humanizado (COPY)
 
@@ -99,7 +99,7 @@
 | SCREEN-03 | Phase 10 | Complete |
 | SCREEN-04 | Phase 10 | Pending |
 | SCREEN-05 | Phase 10 | Pending |
-| SCREEN-06 | Phase 10 | Pending |
+| SCREEN-06 | Phase 10 | Complete |
 | COPY-01 | Phase 10 | Complete |
 | COPY-02 | Phase 10 | Complete |
 | COPY-03 | Phase 10 | Pending |

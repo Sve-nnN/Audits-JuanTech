@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Primitivas de motion entregadas — hooks useCountUp (número + arco del gauge vía --gauge-offset, WAAPI) y useReveal (+Reveal wrapper, IntersectionObserver de disparo único), tokens --motion-*/--ease-* en tokens.css, y en globals.css @property --gauge-offset, reglas base [data-reveal] y red de seguridad global prefers-reduced-motion. CSS + WAAPI, cero librerías, CSP-safe. typecheck + build verdes.
-stopped_at: Completed 09-01-PLAN.md (fundación de librería de componentes — lucide-react + labels.ts + url.ts)
-last_updated: "2026-07-06T15:57:06.138Z"
-last_activity: 2026-07-06 — Plan 10-01 ejecutado (fundación de motion transversal)
+status: completed
+stopped_at: Completed 10-04-PLAN.md (SCREEN-03 progreso de auditoría re-skineado + tokenizado)
+last_updated: "2026-07-06T16:01:11.477Z"
+last_activity: 2026-07-06 — Plan 10-04 ejecutado (SCREEN-03 progreso de auditoría)
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 26
-  completed_plans: 20
-  percent: 77
+  completed_plans: 22
+  percent: 85
 ---
 
 # Project State
@@ -61,6 +61,7 @@ Last activity: 2026-07-06 — Plan 10-04 ejecutado (SCREEN-03 progreso de audito
 | Phase 10 P01 | 8 min | 3 tasks | 4 files |
 | Phase 09 P06 | 4min | 2 tasks | 2 files |
 | Phase 10 P04 | ~15 min | 1 task | 2 files |
+| Phase 10 P07 | ~12m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,7 @@ Recent decisions affecting current work:
 - [Roadmap v1.1]: Fases 8-10 anexadas (fundamentos de marca → librería de componentes → pantallas+copy+motion+a11y). UI-only, no toca pipeline de v1.0.
 - [Phase ?]: 09-05: EmptyState/ErrorState y CategoryAccordion (composites wave 3) sobre details/summary nativos; EmptyState consume Button, acordeón consume Badge; tokens-only, cero hex
 - [Phase ?]: IssuesTable estado vacio remapea text-muted a success
+- [Phase ?]: 10-07: History desacoplado de home.module.css con history.module.css propio; locale fecha es neutro; STATUS_LABEL desde labels.ts
 
 ### Pending Todos
 
@@ -103,6 +105,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06T15:57:06.138Z
+Last session: 2026-07-06T15:58:38.040Z
 Stopped at: Completed 10-04-PLAN.md (SCREEN-03 progreso de auditoría re-skineado + tokenizado)
 Resume file: None
