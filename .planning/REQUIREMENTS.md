@@ -37,21 +37,21 @@
 
 - [ ] **SCREEN-01**: Home elevado: hero + flujo email→verificar→URL claro, jerárquico y profesional
 - [ ] **SCREEN-02**: Página de verificación de email pulida (éxito/error/expirado)
-- [ ] **SCREEN-03**: Progreso de auditoría con indicador de fase legible (rastreando / analizando / midiendo rendimiento) sin sensación de colgado
+- [x] **SCREEN-03**: Progreso de auditoría con indicador de fase legible (rastreando / analizando / midiendo rendimiento) sin sensación de colgado
 - [ ] **SCREEN-04**: Reporte `/audits/[id]` rediseñado (hero score, categorías, issues prioritarios, detalle problemas/correctos, rendimiento, diff) espejo mejorado del reporte de referencia
 - [ ] **SCREEN-05**: Páginas rastreadas + grafo de entidades con visual limpio y navegable
 - [ ] **SCREEN-06**: Historial por email presentado como lista de auditorías con score, fecha y acceso al reporte
 
 ### Copy humanizado (COPY)
 
-- [ ] **COPY-01**: Todos los textos de UI reescritos en español neutro sin voceo, humanizados (sin tells de IA, sin em/en dashes), pasados por la skill humanizer
-- [ ] **COPY-02**: Mensajes de error, cuota y verificación claros y accionables (qué pasó, qué hacer)
+- [x] **COPY-01**: Todos los textos de UI reescritos en español neutro sin voceo, humanizados (sin tells de IA, sin em/en dashes), pasados por la skill humanizer
+- [x] **COPY-02**: Mensajes de error, cuota y verificación claros y accionables (qué pasó, qué hacer)
 - [ ] **COPY-03**: Copy de recomendaciones de issues revisado para tono consistente y humano
 
 ### Motion (MOTION)
 
 - [x] **MOTION-01**: Animaciones sutiles y profesionales (score que cuenta hacia arriba, reveal suave de secciones, transiciones de estado, hover)
-- [ ] **MOTION-02**: Progreso de auditoría con feedback vivo (barra/indicador animado por fase)
+- [x] **MOTION-02**: Progreso de auditoría con feedback vivo (barra/indicador animado por fase)
 - [x] **MOTION-03**: Todo el motion respeta `prefers-reduced-motion` (se desactiva/reduce)
 
 ### Accesibilidad y responsive (A11Y)
@@ -96,15 +96,15 @@
 | COMP-08 | Phase 9 | Complete |
 | SCREEN-01 | Phase 10 | Pending |
 | SCREEN-02 | Phase 10 | Pending |
-| SCREEN-03 | Phase 10 | Pending |
+| SCREEN-03 | Phase 10 | Complete |
 | SCREEN-04 | Phase 10 | Pending |
 | SCREEN-05 | Phase 10 | Pending |
 | SCREEN-06 | Phase 10 | Pending |
-| COPY-01 | Phase 10 | Pending |
-| COPY-02 | Phase 10 | Pending |
+| COPY-01 | Phase 10 | Complete |
+| COPY-02 | Phase 10 | Complete |
 | COPY-03 | Phase 10 | Pending |
 | MOTION-01 | Phase 10 | Complete |
-| MOTION-02 | Phase 10 | Pending |
+| MOTION-02 | Phase 10 | Complete |
 | MOTION-03 | Phase 10 | Complete |
 | A11Y-01 | Phase 10 | Pending |
 | A11Y-02 | Phase 10 | Pending |
