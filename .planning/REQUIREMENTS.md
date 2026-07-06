@@ -36,9 +36,9 @@
 ### Pantallas (SCREEN)
 
 - [ ] **SCREEN-01**: Home elevado: hero + flujo email→verificar→URL claro, jerárquico y profesional
-- [ ] **SCREEN-02**: Página de verificación de email pulida (éxito/error/expirado)
+- [x] **SCREEN-02**: Página de verificación de email pulida (éxito/error/expirado)
 - [x] **SCREEN-03**: Progreso de auditoría con indicador de fase legible (rastreando / analizando / midiendo rendimiento) sin sensación de colgado
-- [ ] **SCREEN-04**: Reporte `/audits/[id]` rediseñado (hero score, categorías, issues prioritarios, detalle problemas/correctos, rendimiento, diff) espejo mejorado del reporte de referencia
+- [x] **SCREEN-04**: Reporte `/audits/[id]` rediseñado (hero score, categorías, issues prioritarios, detalle problemas/correctos, rendimiento, diff) espejo mejorado del reporte de referencia
 - [ ] **SCREEN-05**: Páginas rastreadas + grafo de entidades con visual limpio y navegable
 - [x] **SCREEN-06**: Historial por email presentado como lista de auditorías con score, fecha y acceso al reporte
 
@@ -46,7 +46,7 @@
 
 - [x] **COPY-01**: Todos los textos de UI reescritos en español neutro sin voceo, humanizados (sin tells de IA, sin em/en dashes), pasados por la skill humanizer
 - [x] **COPY-02**: Mensajes de error, cuota y verificación claros y accionables (qué pasó, qué hacer)
-- [ ] **COPY-03**: Copy de recomendaciones de issues revisado para tono consistente y humano
+- [x] **COPY-03**: Copy de recomendaciones de issues revisado para tono consistente y humano
 
 ### Motion (MOTION)
 
@@ -95,14 +95,14 @@
 | COMP-07 | Phase 9 | Complete |
 | COMP-08 | Phase 9 | Complete |
 | SCREEN-01 | Phase 10 | Pending |
-| SCREEN-02 | Phase 10 | Pending |
+| SCREEN-02 | Phase 10 | Complete |
 | SCREEN-03 | Phase 10 | Complete |
-| SCREEN-04 | Phase 10 | Pending |
+| SCREEN-04 | Phase 10 | Complete |
 | SCREEN-05 | Phase 10 | Pending |
 | SCREEN-06 | Phase 10 | Complete |
 | COPY-01 | Phase 10 | Complete |
 | COPY-02 | Phase 10 | Complete |
-| COPY-03 | Phase 10 | Pending |
+| COPY-03 | Phase 10 | Complete |
 | MOTION-01 | Phase 10 | Complete |
 | MOTION-02 | Phase 10 | Complete |
 | MOTION-03 | Phase 10 | Complete |
