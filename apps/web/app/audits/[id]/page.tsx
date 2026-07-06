@@ -1,7 +1,25 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@auditor/db";
 import type { Category, ScoreStatus, CategoryScoreResult } from "@auditor/scoring";
+import { ScoreGauge } from "../../components/ui/ScoreGauge";
+import { CategoryCard } from "../../components/ui/CategoryCard";
+import { IssuesTable, type IssuesTableColumn } from "../../components/ui/IssuesTable";
+import {
+  CategoryAccordion,
+  AccordionSubgroup,
+  IssueDetail,
+} from "../../components/ui/CategoryAccordion";
+import { Badge, SeverityBadge, DiffBadge } from "../../components/ui/Badge";
+import { EmptyState, ErrorState } from "../../components/ui/EmptyState";
+import {
+  CATEGORY_LABEL,
+  STATUS_LABEL,
+  STRATEGY_LABEL,
+} from "../../components/ui/labels";
+import { issueUrl, shortUrl } from "../../components/ui/url";
 import { AuditProgress } from "./AuditProgress";
 import styles from "./report.module.css";
 
@@ -11,54 +29,15 @@ interface PageProps {
 
 const CATEGORY_ORDER: Category[] = ["tech", "perf", "onpage", "schema", "aeo"];
 
-const CATEGORY_LABEL: Record<Category, string> = {
-  tech: "SEO Técnico",
-  perf: "Rendimiento / CWV",
-  onpage: "On-Page",
-  schema: "Datos Estructurados",
-  aeo: "AEO (Visibilidad en IA)",
+/** Estado de score → variante de Badge (reusa el eje de severidad, DS-02). */
+const STATUS_BADGE_VARIANT: Record<ScoreStatus, "ok" | "warning" | "critical"> = {
+  good: "ok",
+  needs_improvement: "warning",
+  critical: "critical",
 };
 
-const STATUS_LABEL: Record<ScoreStatus, string> = {
-  good: "Bueno",
-  needs_improvement: "Necesita mejora",
-  critical: "Crítico",
-};
-
-const STATUS_CLASS: Record<ScoreStatus, string> = {
-  good: styles.good!,
-  needs_improvement: styles.needs_improvement!,
-  critical: styles.critical!,
-};
-
-const SEVERITY_LABEL: Record<string, string> = {
-  critical: "Crítico",
-  warning: "Advertencia",
-  ok: "Correcto",
-};
-
-const SEVERITY_BADGE_CLASS: Record<string, string> = {
-  critical: styles.severityCritical!,
-  warning: styles.severityWarning!,
-  ok: styles.severityOk!,
-};
-
-const DIFF_LABEL: Record<string, string> = {
-  new: "Nuevo",
-  persistent: "Persistente",
-  resolved: "Resuelto",
-};
-
-const DIFF_BADGE_CLASS: Record<string, string> = {
-  new: styles.diffNew!,
-  persistent: styles.diffPersistent!,
-  resolved: styles.diffResolved!,
-};
-
-const STRATEGY_LABEL: Record<string, string> = {
-  mobile: "Móvil",
-  desktop: "Desktop",
-};
+type Severity = "critical" | "warning" | "ok";
+type Diff = "new" | "persistent" | "resolved";
 
 /** Shape persisted at `Audit.scores` by the worker (Phase 6, SCORE-01..05 + DIFF-01/02). */
 interface AuditScores {
@@ -112,26 +91,16 @@ function formatPerfNumber(value: number | null, unit: string): string {
   return `${value}${unit}`;
 }
 
-/**
- * The URL an issue is about. Page-level checks put the page URL in `source`;
- * some checks append " (enlazado desde X)" — keep just the leading URL. Falls
- * back to `scope`. Returned as a compact path for the table.
- */
-function issueUrl(issue: { source: string | null; scope: string | null }): string | null {
-  const raw = issue.source ?? issue.scope ?? null;
-  if (!raw) return null;
-  const firstToken = raw.split(" ")[0] ?? raw;
-  return firstToken;
-}
-
-function shortUrl(url: string | null): string {
-  if (!url) return "—";
-  try {
-    const u = new URL(url);
-    return (u.pathname + u.search) || "/";
-  } catch {
-    return url.length > 48 ? `${url.slice(0, 48)}…` : url;
+/** Renderiza la celda "Página / URL": enlace real si es http(s), texto si no. */
+function urlValue(url: string | null): ReactNode {
+  if (url && /^https?:\/\//i.test(url)) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer">
+        {url}
+      </a>
+    );
   }
+  return url ?? "—";
 }
 
 export default async function AuditReportPage({ params }: PageProps) {
@@ -149,7 +118,9 @@ export default async function AuditReportPage({ params }: PageProps) {
       <main className={styles.page}>
         <div className={styles.container}>
           <p className={styles.breadcrumb}>
-            <Link href="/">&larr; Inicio</Link>
+            <Link href="/">
+              <ArrowLeft size={16} aria-hidden="true" /> Inicio
+            </Link>
           </p>
           <div className={styles.header}>
             <div>
@@ -200,12 +171,47 @@ export default async function AuditReportPage({ params }: PageProps) {
   }
 
   const overallStatus = scores?.status ?? "critical";
+  const overall = scores?.overall ?? null;
+
+  // --- Issues prioritarios → filas de IssuesTable (orden por severidad) ---
+  const issueColumns: IssuesTableColumn[] = [
+    { key: "cat", header: "Categoría" },
+    { key: "issue", header: "Issue" },
+    { key: "page", header: "Página", sticky: true },
+    { key: "sev", header: "Severidad" },
+    { key: "val", header: "Valor medido", mono: true },
+    { key: "state", header: "Estado" },
+  ];
+
+  const issueRows: ReactNode[][] = priorityIssues
+    .slice()
+    .sort(
+      (a, b) =>
+        (SEVERITY_SORT_WEIGHT[a.severity] ?? 99) - (SEVERITY_SORT_WEIGHT[b.severity] ?? 99)
+    )
+    .map((issue) => {
+      const url = issueUrl(issue);
+      const pageCell: ReactNode =
+        url && /^https?:\/\//i.test(url) ? url : shortUrl(url);
+      return [
+        <span className={styles.categoryTag}>
+          {CATEGORY_LABEL[issue.category as Category] ?? issue.category}
+        </span>,
+        issue.title,
+        pageCell,
+        <SeverityBadge severity={issue.severity as Severity} />,
+        issue.measuredValue ?? "—",
+        issue.diffStatus ? <DiffBadge diff={issue.diffStatus as Diff} /> : "—",
+      ];
+    });
 
   return (
     <main className={styles.page}>
       <div className={styles.container}>
         <p className={styles.breadcrumb}>
-          <Link href="/">&larr; Inicio</Link>
+          <Link href="/">
+            <ArrowLeft size={16} aria-hidden="true" /> Inicio
+          </Link>
         </p>
 
         <div className={styles.header}>
@@ -216,26 +222,34 @@ export default async function AuditReportPage({ params }: PageProps) {
             </p>
           </div>
           <Link href={`/audits/${auditId}/pages`} className={styles.linkOut}>
-            Ver páginas y grafo de entidades &rarr;
+            Ver páginas y grafo de entidades
           </Link>
         </div>
 
         {/* Score general */}
         <section className={styles.section}>
-          <div className={`${styles.hero} ${STATUS_CLASS[overallStatus]}`}>
-            <div className={styles.scoreCircle}>
-              <span className={styles.scoreCircleNumber}>{scores?.overall ?? "—"}</span>
-              <span className={styles.scoreCircleMax}>/ 100</span>
+          <div className={styles.hero}>
+            <div className={styles.heroGauge}>
+              <ScoreGauge
+                size="lg"
+                value={overall}
+                status={scores ? overallStatus : null}
+                aria-label={
+                  overall !== null
+                    ? `Score general ${overall} de 100, ${STATUS_LABEL[overallStatus]}`
+                    : "Score general sin datos"
+                }
+              />
             </div>
             <div className={styles.heroBody}>
-              <h2>Score general</h2>
-              <p>
-                Promedio ponderado de SEO Técnico, Rendimiento, On-Page, Datos Estructurados y AEO,
-                calculado a partir de los hallazgos de esta auditoría.
+              <h2 className={styles.heroTitle}>Score general</h2>
+              <p className={styles.heroText}>
+                Promedio ponderado de SEO técnico, rendimiento, on-page, datos estructurados y
+                AEO, calculado con los hallazgos de esta auditoría.
               </p>
-              <span className={`${styles.statusBadge} ${STATUS_CLASS[overallStatus]}`}>
+              <Badge variant={STATUS_BADGE_VARIANT[overallStatus]}>
                 {STATUS_LABEL[overallStatus]}
-              </span>
+              </Badge>
             </div>
           </div>
         </section>
@@ -248,45 +262,50 @@ export default async function AuditReportPage({ params }: PageProps) {
               const result = scores?.byCategory[category];
               const status = result?.status ?? null;
               return (
-                <div key={category} className={styles.categoryCard}>
-                  <p className={styles.categoryCardLabel}>{CATEGORY_LABEL[category]}</p>
-                  <p className={`${styles.categoryCardScore} ${status ? STATUS_CLASS[status] : ""}`}>
-                    {result ? result.score : "—"}
-                  </p>
-                  <p className={`${styles.categoryCardStatus} ${status ? STATUS_CLASS[status] : ""}`}>
-                    {status ? STATUS_LABEL[status] : "sin datos"}
-                  </p>
-                </div>
+                <CategoryCard
+                  key={category}
+                  label={CATEGORY_LABEL[category]}
+                  score={result ? result.score : null}
+                  status={status}
+                  statusLabel={
+                    status ? STATUS_LABEL[status] : result ? undefined : "sin datos"
+                  }
+                />
               );
             })}
           </div>
         </section>
 
-        {/* Diff vs auditoría anterior */}
+        {/* Cambios desde la auditoría anterior */}
         {scores?.diff.previousAuditId && (
           <section className={styles.section}>
             <h3 className={styles.sectionTitle}>Cambios desde la auditoría anterior</h3>
             <div className={styles.diffSummary}>
-              <div className={styles.diffSummaryItem}>
-                <strong>{scores.diff.newCount}</strong>
-                Nuevos
+              <div className={styles.diffItem}>
+                <DiffBadge diff="new" />
+                <span className={styles.diffCount}>{scores.diff.newCount}</span>
+                <span className={styles.diffItemLabel}>Nuevos</span>
               </div>
-              <div className={styles.diffSummaryItem}>
-                <strong>{scores.diff.persistentCount}</strong>
-                Persistentes
+              <div className={styles.diffItem}>
+                <DiffBadge diff="persistent" />
+                <span className={styles.diffCount}>{scores.diff.persistentCount}</span>
+                <span className={styles.diffItemLabel}>Persistentes</span>
               </div>
-              <div className={styles.diffSummaryItem}>
-                <strong>{scores.diff.resolvedCount}</strong>
-                Resueltos
+              <div className={styles.diffItem}>
+                <DiffBadge diff="resolved" />
+                <span className={styles.diffCount}>{scores.diff.resolvedCount}</span>
+                <span className={styles.diffItemLabel}>Resueltos</span>
               </div>
             </div>
             {resolvedIssues.length > 0 && (
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <ul className={styles.resolvedList}>
                 {resolvedIssues.map((issue, i) => (
-                  <li key={`${issue.checkId}-${i}`} style={{ fontSize: 13, padding: "4px 0" }}>
-                    <span className={`${styles.badge} ${styles.diffResolved}`}>Resuelto</span>{" "}
-                    <span className={styles.categoryTag}>[{CATEGORY_LABEL[issue.category as Category] ?? issue.category}]</span>{" "}
-                    {issue.title}
+                  <li key={`${issue.checkId}-${i}`} className={styles.resolvedItem}>
+                    <DiffBadge diff="resolved" />
+                    <span className={styles.categoryTag}>
+                      {CATEGORY_LABEL[issue.category as Category] ?? issue.category}
+                    </span>
+                    <span>{issue.title}</span>
                   </li>
                 ))}
               </ul>
@@ -297,84 +316,36 @@ export default async function AuditReportPage({ params }: PageProps) {
         {/* Issues prioritarios */}
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Issues prioritarios</h3>
-          {priorityIssues.length === 0 ? (
-            <div className={styles.emptyState}>Sin issues críticos ni de advertencia. Buen trabajo.</div>
-          ) : (
-            <>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Categoría</th>
-                    <th>Issue</th>
-                    <th>Página</th>
-                    <th>Severidad</th>
-                    <th>Valor medido</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {priorityIssues
-                    .slice()
-                    .sort(
-                      (a, b) =>
-                        (SEVERITY_SORT_WEIGHT[a.severity] ?? 99) - (SEVERITY_SORT_WEIGHT[b.severity] ?? 99)
-                    )
-                    .map((issue) => {
-                      const url = issueUrl(issue);
-                      return (
-                        <tr key={issue.id}>
-                          <td className={styles.categoryTag}>
-                            {CATEGORY_LABEL[issue.category as Category] ?? issue.category}
-                          </td>
-                          <td>{issue.title}</td>
-                          <td>
-                            {url && url.startsWith("http") ? (
-                              <a href={url} target="_blank" rel="noreferrer" title={url}>
-                                {shortUrl(url)}
-                              </a>
-                            ) : (
-                              <span title={url ?? undefined}>{shortUrl(url)}</span>
-                            )}
-                          </td>
-                          <td>
-                            <span className={`${styles.badge} ${SEVERITY_BADGE_CLASS[issue.severity]}`}>
-                              {SEVERITY_LABEL[issue.severity]}
-                            </span>
-                          </td>
-                          <td>{issue.measuredValue ?? "—"}</td>
-                          <td>
-                            {issue.diffStatus ? (
-                              <span className={`${styles.badge} ${DIFF_BADGE_CLASS[issue.diffStatus]}`}>
-                                {DIFF_LABEL[issue.diffStatus]}
-                              </span>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-              {totalPriorityCandidates > priorityIssues.length && (
-                <p className={styles.tableNote}>
-                  Mostrando los {priorityIssues.length} de {totalPriorityCandidates} issues críticos/de
-                  advertencia más relevantes.
-                </p>
-              )}
-            </>
-          )}
+          <IssuesTable
+            columns={issueColumns}
+            rows={issueRows}
+            caption="Issues prioritarios"
+            emptyLabel="Sin issues críticos ni de advertencia. Buen trabajo."
+            note={
+              totalPriorityCandidates > issueRows.length
+                ? `Mostrando los ${issueRows.length} de ${totalPriorityCandidates} issues críticos y de advertencia más relevantes.`
+                : undefined
+            }
+          />
         </section>
 
         {/* Resumen de rendimiento */}
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Resumen de rendimiento</h3>
           {!perf || perf.sampledPages === 0 ? (
-            <div className={styles.emptyState}>
-              {perf?.error
-                ? `No se pudieron obtener métricas de rendimiento: ${perf.error}`
-                : "Sin muestra de rendimiento para esta auditoría."}
-            </div>
+            perf?.error ? (
+              <ErrorState
+                title={`No pudimos obtener métricas de rendimiento: ${perf.error}.`}
+                description=""
+                titleLevel={3}
+              />
+            ) : (
+              <EmptyState
+                title="Esta auditoría no tiene muestra de rendimiento."
+                description=""
+                titleLevel={3}
+              />
+            )
           ) : (
             <>
               <div className={styles.perfGrid}>
@@ -382,26 +353,36 @@ export default async function AuditReportPage({ params }: PageProps) {
                   const s = perf[strategy];
                   return (
                     <div key={strategy} className={styles.perfCard}>
-                      <p className={styles.perfCardTitle}>{STRATEGY_LABEL[strategy]}</p>
+                      <h4 className={styles.perfCardTitle}>{STRATEGY_LABEL[strategy]}</h4>
                       <div className={styles.perfMetricRow}>
                         <span className={styles.perfMetricLabel}>Performance Score</span>
-                        <strong>{s.avgScore ?? "no disponible"}</strong>
+                        <span className={styles.perfMetricValue}>
+                          {s.avgScore ?? "no disponible"}
+                        </span>
                       </div>
                       <div className={styles.perfMetricRow}>
                         <span className={styles.perfMetricLabel}>LCP</span>
-                        <span>{formatPerfNumber(s.avgLcpMs, "ms")}</span>
+                        <span className={styles.perfMetricValue}>
+                          {formatPerfNumber(s.avgLcpMs, "ms")}
+                        </span>
                       </div>
                       <div className={styles.perfMetricRow}>
                         <span className={styles.perfMetricLabel}>CLS</span>
-                        <span>{s.avgCls ?? "no disponible"}</span>
+                        <span className={styles.perfMetricValue}>
+                          {s.avgCls ?? "no disponible"}
+                        </span>
                       </div>
                       <div className={styles.perfMetricRow}>
                         <span className={styles.perfMetricLabel}>INP</span>
-                        <span>{formatPerfNumber(s.avgInpMs, "ms")}</span>
+                        <span className={styles.perfMetricValue}>
+                          {formatPerfNumber(s.avgInpMs, "ms")}
+                        </span>
                       </div>
                       <div className={styles.perfMetricRow}>
                         <span className={styles.perfMetricLabel}>TTFB</span>
-                        <span>{formatPerfNumber(s.avgTtfbMs, "ms")}</span>
+                        <span className={styles.perfMetricValue}>
+                          {formatPerfNumber(s.avgTtfbMs, "ms")}
+                        </span>
                       </div>
                     </div>
                   );
@@ -415,97 +396,61 @@ export default async function AuditReportPage({ params }: PageProps) {
           )}
         </section>
 
-        {/* Detalle por categoría — separado en Problemas vs Correcto */}
+        {/* Detalle por categoría */}
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Detalle por categoría</h3>
           {CATEGORY_ORDER.map((category) => {
             const issues = issuesByCategory.get(category) ?? [];
             if (issues.length === 0) return null;
-            const problems = issues.filter((i) => i.severity === "critical" || i.severity === "warning");
+            const problems = issues.filter(
+              (i) => i.severity === "critical" || i.severity === "warning"
+            );
             const passing = issues.filter((i) => i.severity === "ok");
 
             const renderIssue = (issue: (typeof issues)[number]) => {
               const url = issueUrl(issue);
               return (
-                <div key={issue.id} className={styles.issueDetail}>
-                  <div className={styles.issueHeader}>
-                    <span className={styles.issueTitle}>
-                      [{issue.checkId}] {issue.title}
-                    </span>
-                    <span className={`${styles.badge} ${SEVERITY_BADGE_CLASS[issue.severity]}`}>
-                      {SEVERITY_LABEL[issue.severity]}
-                    </span>
-                    {issue.diffStatus && (
-                      <span className={`${styles.badge} ${DIFF_BADGE_CLASS[issue.diffStatus]}`}>
-                        {DIFF_LABEL[issue.diffStatus]}
-                      </span>
-                    )}
-                  </div>
-                  <dl className={styles.issueFields}>
-                    <div className={styles.issueField}>
-                      <dt>Página / URL</dt>
-                      <dd>
-                        {url && url.startsWith("http") ? (
-                          <a href={url} target="_blank" rel="noreferrer">
-                            {url}
-                          </a>
-                        ) : (
-                          url ?? "—"
-                        )}
-                      </dd>
-                    </div>
-                    <div className={styles.issueField}>
-                      <dt>Valor medido</dt>
-                      <dd>{issue.measuredValue ?? "—"}</dd>
-                    </div>
-                    <div className={styles.issueField}>
-                      <dt>Criterio</dt>
-                      <dd>{issue.criterion ?? "—"}</dd>
-                    </div>
-                    <div className={styles.issueField}>
-                      <dt>Recomendación</dt>
-                      <dd>{issue.recommendation ?? "—"}</dd>
-                    </div>
-                  </dl>
-                </div>
+                <IssueDetail
+                  key={issue.id}
+                  checkId={issue.checkId}
+                  title={issue.title}
+                  badges={
+                    <>
+                      <SeverityBadge severity={issue.severity as Severity} />
+                      {issue.diffStatus ? (
+                        <DiffBadge diff={issue.diffStatus as Diff} />
+                      ) : null}
+                    </>
+                  }
+                  fields={[
+                    { label: "Página / URL", value: urlValue(url) },
+                    { label: "Valor medido", value: issue.measuredValue ?? "—" },
+                    { label: "Criterio", value: issue.criterion ?? "—" },
+                    { label: "Recomendación", value: issue.recommendation ?? "—" },
+                  ]}
+                />
               );
             };
 
             return (
-              <details key={category} className={styles.categoryGroup}>
-                <summary className={styles.categoryGroupSummary}>
-                  <span>{CATEGORY_LABEL[category]}</span>
-                  <span className={styles.categoryGroupCount}>
-                    {problems.length} problema(s) · {passing.length} correcto(s)
-                  </span>
-                </summary>
-
-                <h4 className={styles.subGroupTitle}>
-                  <span className={`${styles.badge} ${styles.severityCritical}`}>Problemas</span>{" "}
-                  {problems.length}
-                </h4>
-                {problems.length === 0 ? (
-                  <p className={styles.subGroupEmpty}>Sin problemas en esta categoría.</p>
-                ) : (
-                  problems.map(renderIssue)
-                )}
-
-                <h4 className={styles.subGroupTitle}>
-                  <span className={`${styles.badge} ${styles.severityOk}`}>Correcto</span>{" "}
-                  {passing.length}
-                </h4>
-                {passing.length === 0 ? (
-                  <p className={styles.subGroupEmpty}>Sin checks marcados como correctos.</p>
-                ) : (
-                  passing.map(renderIssue)
-                )}
-              </details>
+              <CategoryAccordion
+                key={category}
+                title={CATEGORY_LABEL[category]}
+                count={`${problems.length} problema(s) · ${passing.length} correcto(s)`}
+              >
+                <AccordionSubgroup kind="problems" count={problems.length}>
+                  {problems.map(renderIssue)}
+                </AccordionSubgroup>
+                <AccordionSubgroup kind="correct" count={passing.length}>
+                  {passing.map(renderIssue)}
+                </AccordionSubgroup>
+              </CategoryAccordion>
             );
           })}
         </section>
 
         <p className={styles.footerLinks}>
-          <Link href={`/audits/${auditId}/pages`}>Ver páginas rastreadas y grafo de entidades &rarr;</Link>
+          <Link href={`/audits/${auditId}/pages`}>Ver páginas rastreadas y grafo de entidades</Link>
         </p>
       </div>
     </main>

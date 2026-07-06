@@ -82,8 +82,8 @@ export function AccordionSubgroup({
       ) : (
         <p className={styles.subgroupEmpty}>
           {isProblems
-            ? "Sin problemas en esta categoria."
-            : "Sin checks correctos."}
+            ? "Sin problemas en esta categoría."
+            : "Sin checks marcados como correctos."}
         </p>
       )}
     </section>
