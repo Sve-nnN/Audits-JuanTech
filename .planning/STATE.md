@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 09-01-PLAN.md (fundación de librería de componentes — lucide-react + labels.ts + url.ts)
-last_updated: "2026-07-06T06:13:39.373Z"
-last_activity: 2026-07-06 — Plan 09-01 ejecutado (lucide-react + módulos compartidos labels.ts/url.ts)
+status: in_progress
+stopped_at: Completed 10-01-PLAN.md (fundación de motion transversal — useCountUp + useReveal + tokens/globals de motion)
+last_updated: "2026-07-06T15:50:47.612Z"
+last_activity: 2026-07-06 — Plan 10-01 ejecutado (primitivas de motion: hooks + tokens + red de seguridad reduced-motion)
 progress:
   total_phases: 10
   completed_phases: 9
-  total_plans: 18
-  completed_plans: 18
-  percent: 90
+  total_plans: 26
+  completed_plans: 19
+  percent: 73
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 
 ## Current Position
 
-Phase: Phase 9 (Librería de componentes) — 6/6 planes ejecutados (listo para verificación)
-Plan: 09-06 (IssuesTable — COMP-04) completado. Waves 1-4 completas: fundación (09-01), Badge/Field, Button, EmptyState/Accordion (09-05) e IssuesTable (09-06).
-Status: IssuesTable (COMP-04) construido — tabla real responsive por scroll horizontal con región enfocable por teclado, columna de URL sticky/clickeable segura (solo http/https, rel=noreferrer, shortUrl display) y estado vacío vía EmptyState (CheckCircle2/--success). Cierra la librería de componentes de la Fase 9; solo tokens, cero hex, sin voceo. Pendiente: verificación de fase.
-Last activity: 2026-07-06 — Plan 09-01 ejecutado (lucide-react + módulos compartidos labels.ts/url.ts)
+Phase: Phase 10 (Pantallas rediseñadas, copy, motion, a11y) — Wave 1 en curso
+Plan: 10-01 (fundación de motion transversal) completado. Wave 1 (foundation) lista; Wave 2 (pantallas) puede consumir las primitivas.
+Status: Primitivas de motion entregadas — hooks useCountUp (número + arco del gauge vía --gauge-offset, WAAPI) y useReveal (+Reveal wrapper, IntersectionObserver de disparo único), tokens --motion-*/--ease-* en tokens.css, y en globals.css @property --gauge-offset, reglas base [data-reveal] y red de seguridad global prefers-reduced-motion. CSS + WAAPI, cero librerías, CSP-safe. typecheck + build verdes.
+Last activity: 2026-07-06 — Plan 10-01 ejecutado (fundación de motion transversal)
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Last activity: 2026-07-06 — Plan 09-01 ejecutado (lucide-react + módulos comp
 | Phase 8 P2 | 3 min | 2 tasks | 1 file |
 | Phase 8 P1 | 4 min | 3 tasks | 4 files |
 | Phase 09 P05 | 8min | 2 tasks | 4 files |
+| Phase 10 P01 | 8 min | 3 tasks | 4 files |
 | Phase 09 P06 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
@@ -101,6 +102,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06T06:10:21.557Z
+Last session: 2026-07-06T15:50:47.609Z
 Stopped at: Completed 09-01-PLAN.md (fundación de librería de componentes — lucide-react + labels.ts + url.ts)
 Resume file: None

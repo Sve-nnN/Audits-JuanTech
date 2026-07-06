@@ -50,9 +50,9 @@
 
 ### Motion (MOTION)
 
-- [ ] **MOTION-01**: Animaciones sutiles y profesionales (score que cuenta hacia arriba, reveal suave de secciones, transiciones de estado, hover)
+- [x] **MOTION-01**: Animaciones sutiles y profesionales (score que cuenta hacia arriba, reveal suave de secciones, transiciones de estado, hover)
 - [ ] **MOTION-02**: Progreso de auditoría con feedback vivo (barra/indicador animado por fase)
-- [ ] **MOTION-03**: Todo el motion respeta `prefers-reduced-motion` (se desactiva/reduce)
+- [x] **MOTION-03**: Todo el motion respeta `prefers-reduced-motion` (se desactiva/reduce)
 
 ### Accesibilidad y responsive (A11Y)
 
@@ -103,9 +103,9 @@
 | COPY-01 | Phase 10 | Pending |
 | COPY-02 | Phase 10 | Pending |
 | COPY-03 | Phase 10 | Pending |
-| MOTION-01 | Phase 10 | Pending |
+| MOTION-01 | Phase 10 | Complete |
 | MOTION-02 | Phase 10 | Pending |
-| MOTION-03 | Phase 10 | Pending |
+| MOTION-03 | Phase 10 | Complete |
 | A11Y-01 | Phase 10 | Pending |
 | A11Y-02 | Phase 10 | Pending |
 | A11Y-03 | Phase 10 | Pending |

@@ -203,7 +203,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Plans**: 8 plans
 
-- [ ] 10-01-PLAN.md — Motion transversal: tokens + globals reduced-motion + at-property + hooks useCountUp/useReveal (MOTION-01/03)
+- [x] 10-01-PLAN.md — Motion transversal: tokens + globals reduced-motion + at-property + hooks useCountUp/useReveal (MOTION-01/03)
 - [ ] 10-02-PLAN.md — SCREEN-01 Home: hero sin dead-space + form Fase 9 + copy neutro + reveal
 - [ ] 10-03-PLAN.md — SCREEN-02 Verify: 4 estados + ErrorState + verify.module.css propio
 - [ ] 10-04-PLAN.md — SCREEN-03 Progreso: barra de 3 fases (MOTION-02) + tokenizar DS-01 + progress.module.css
@@ -230,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 1/1 | Complete   | 2026-07-06 |
 | 8. Fundamentos de marca — fuentes y design system | 5/5 | Complete   | 2026-07-06 |
 | 9. Librería de componentes | 6/6 | Complete   | 2026-07-06 |
-| 10. Pantallas rediseñadas, copy, motion y accesibilidad | 0/8 | Planned | - |
+| 10. Pantallas rediseñadas, copy, motion y accesibilidad | 1/8 | In Progress|  |
 
 ---
 *Roadmap created: 2026-07-05*
