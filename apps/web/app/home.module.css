@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 20px;
+  padding: var(--space-8) var(--space-5);
 }
 
 .card {
@@ -11,7 +11,7 @@
   max-width: 480px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 36px;
   box-shadow: var(--shadow-sm);
 }
@@ -19,24 +19,24 @@
 .title {
   font-size: 24px;
   font-weight: 800;
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .subtitle {
   font-size: 14px;
   color: var(--text-muted);
-  margin: 0 0 24px;
+  margin: 0 0 var(--space-6);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .input {
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   font-size: 15px;
   background: transparent;
@@ -50,7 +50,7 @@
 
 .button {
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: none;
   background: var(--accent);
   color: var(--accent-foreground);
@@ -85,7 +85,7 @@
 .hint {
   font-size: 13px;
   color: var(--text-secondary);
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   background: var(--surface-hover);
   border-radius: 8px;
   padding: 10px 12px;
