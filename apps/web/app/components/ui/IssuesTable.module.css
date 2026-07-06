@@ -74,6 +74,65 @@
   border-bottom: none;
 }
 
+/* Hover de fila (instantáneo, seguro para reduced-motion). */
+.table tbody tr:hover td {
+  background: var(--surface-hover);
+}
+
+/*
+ * Columna de URL/Página fijada a la izquierda al hacer scroll horizontal.
+ * El bg debe coincidir con el de la fila para que el contenido inferior no
+ * se transparente; el box-shadow marca el borde (seam) de la columna pegada.
+ */
+.stickyCol {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  box-shadow: 1px 0 0 var(--border);
+}
+
+/* El th sticky de la columna URL cruza ambos ejes: por encima del resto. */
+.table th.stickyCol {
+  z-index: 3;
+  background: var(--bg);
+}
+
+/* El bg del sticky sigue al hover de la fila para no quedar desfasado. */
+.table tbody tr:hover td.stickyCol {
+  background: var(--surface-hover);
+}
+
+/* Enlace clickeable de la celda URL. */
+.link {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Valor de scope no-URL (texto plano, de-emphasis). */
+.plain {
+  color: var(--text-secondary);
+}
+
+/*
+ * Estado vacío: remapea --text-muted a --success solo en este subárbol para
+ * que el chip del EmptyState (que lee var(--text-muted)) muestre el ícono en
+ * color de éxito, sin tocar el componente compartido ni introducir hex.
+ */
+.empty {
+  --text-muted: var(--success);
+}
+
 /* Columnas de valores medidos: Geist Mono + cifras tabulares. */
 .mono {
   font-family: var(--font-geist-mono), ui-monospace, monospace;

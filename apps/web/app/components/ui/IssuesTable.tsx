@@ -1,6 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { CheckCircle2 } from "lucide-react";
+import { EmptyState } from "./EmptyState";
+import { shortUrl } from "./url";
 import styles from "./IssuesTable.module.css";
 
 /**
@@ -36,8 +39,56 @@ export interface IssuesTableProps {
  *   - `<table>` real con `<caption>`, `<thead>` y `<th scope="col">`.
  *   - Header pegajoso en scroll vertical (`position:sticky; top:0`).
  *   - Ningún contenido se trunca sin un `title` que exponga el valor completo.
+ *
+ * Seguridad (T-09-06-01): una celda string solo se vuelve `<a href>` cuando
+ * empieza con `http`/`https`. Cualquier otro esquema (javascript:, data:) se
+ * renderiza como texto plano; React escapa el contenido por defecto.
  */
-export function IssuesTable({ columns, rows, caption, note }: IssuesTableProps) {
+function renderCell(value: ReactNode, column: IssuesTableColumn): ReactNode {
+  if (typeof value === "string") {
+    if (value.startsWith("http")) {
+      return (
+        <a
+          href={value}
+          target="_blank"
+          rel="noreferrer"
+          title={value}
+          className={styles.link}
+        >
+          {shortUrl(value)}
+        </a>
+      );
+    }
+    if (column.sticky) {
+      return (
+        <span className={styles.plain} title={value}>
+          {value}
+        </span>
+      );
+    }
+  }
+  return value;
+}
+
+export function IssuesTable({
+  columns,
+  rows,
+  caption,
+  note,
+  emptyLabel,
+}: IssuesTableProps) {
+  if (rows.length === 0) {
+    return (
+      <div className={styles.empty}>
+        <EmptyState
+          variant="empty"
+          icon={CheckCircle2}
+          title={emptyLabel ?? "Sin issues críticos ni de advertencia."}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.wrapper}>
       <div
@@ -55,6 +106,7 @@ export function IssuesTable({ columns, rows, caption, note }: IssuesTableProps) 
                   key={col.key}
                   scope="col"
                   className={[
+                    col.sticky ? styles.stickyCol : null,
                     col.align === "right" ? styles.alignRight : null,
                     col.mono ? styles.mono : null,
                   ]
@@ -73,13 +125,14 @@ export function IssuesTable({ columns, rows, caption, note }: IssuesTableProps) 
                   <td
                     key={col.key}
                     className={[
+                      col.sticky ? styles.stickyCol : null,
                       col.align === "right" ? styles.alignRight : null,
                       col.mono ? styles.mono : null,
                     ]
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    {row[colIndex]}
+                    {renderCell(row[colIndex], col)}
                   </td>
                 ))}
               </tr>
