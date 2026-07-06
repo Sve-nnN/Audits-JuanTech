@@ -1,16 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: Overhaul de UI/UX y marca
+milestone_name: milestone
 status: planning
-last_updated: "2026-07-05T00:00:00.000Z"
-last_activity: 2026-07-05
+stopped_at: ROADMAP.md v1.1 (Phases 8-10) creado y anexado; REQUIREMENTS.md v1.1 traceability actualizado (31/31 mapeados); STATE.md actualizado
+last_updated: "2026-07-06T04:19:12.819Z"
+last_activity: 2026-07-05 — Roadmap v1.1 creado (Phases 8-10 anexadas)
 progress:
   total_phases: 10
   completed_phases: 7
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 12
+  completed_plans: 8
+  percent: 67
 ---
 
 # Project State
@@ -24,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 
 ## Current Position
 
-Phase: Phase 8 (Fundamentos de marca — fuentes y design system) — not started
-Plan: —
-Status: Roadmap creado, listo para planning
-Last activity: 2026-07-05 — Roadmap v1.1 creado (Phases 8-10 anexadas)
+Phase: Phase 8 (Fundamentos de marca — fuentes y design system) — in progress
+Plan: 08-02 completado (tokens.css)
+Status: tokens.css creado (primitivos + semánticos dark + override light); pendiente 08-03 (import a globals.css)
+Last activity: 2026-07-06 — Plan 08-02 ejecutado (design tokens)
 
 ## Performance Metrics
 
@@ -51,6 +52,7 @@ Last activity: 2026-07-05 — Roadmap v1.1 creado (Phases 8-10 anexadas)
 *Updated after each plan completion*
 | Phase 3 P3 | 60 | 5 tasks | 30 files |
 | Phase 7 P1 | 90 min | 5 tasks | 29 files |
+| Phase 8 P2 | 3 min | 2 tasks | 1 file |
 
 ## Accumulated Context
 
@@ -91,6 +93,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-05T00:00:00.000Z
-Stopped at: ROADMAP.md v1.1 (Phases 8-10) creado y anexado; REQUIREMENTS.md v1.1 traceability actualizado (31/31 mapeados); STATE.md actualizado
+Last session: 2026-07-06T04:19:12.815Z
+Stopped at: Completed 08-02-PLAN.md (tokens.css con primitivos + semánticos dark + override light)
 Resume file: None
