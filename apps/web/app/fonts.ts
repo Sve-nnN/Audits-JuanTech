@@ -26,7 +26,10 @@ export const array = localFont({
   ],
   variable: "--font-array",
   display: "swap",
-  fallback: ["Khand", "system-ui", "sans-serif"],
+  // Fallbacks son nombres de familia CSS reales; no pueden referenciar otra
+  // fuente de next/font (Khand emite un nombre hasheado, no "Khand"). Usamos
+  // faces del sistema resolubles durante la ventana de swap.
+  fallback: ["Arial Narrow", "system-ui", "sans-serif"],
 });
 
 // Khand — headings / UI. Pesos 400/500/600/700 (self-hosted por next/font/google en build).
