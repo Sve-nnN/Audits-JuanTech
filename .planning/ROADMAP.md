@@ -152,7 +152,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. El usuario puede alternar entre modo claro y oscuro, la preferencia persiste (localStorage) entre sesiones y no hay flash de tema incorrecto al cargar.
   5. Todas las pantallas comparten el mismo layout base (contenedor, grid, header/footer).
 
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 08-01-PLAN.md — Fuentes de marca + dependencias (geist/next-themes, fonts.ts, Array woff2)
+- [ ] 08-02-PLAN.md — Design tokens (tokens.css: primitivos + semánticos dark/light)
+- [ ] 08-03-PLAN.md — Theming next-themes: providers, ThemeToggle, globals + layout wiring
+- [ ] 08-04-PLAN.md — Layout base shell (header/footer/container/grid) montado en layout
+- [ ] 08-05-PLAN.md — Migración de CSS Modules v1.0 (home/report) a tokens, sin regresión
 **UI hint**: yes
 
 ### Phase 9: Librería de componentes
@@ -203,7 +208,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Rendimiento / Core Web Vitals | 1/1 | Complete ✅ | 2026-07-05 |
 | 6. Scoring, comparación de corridas y reporte | 1/1 | Complete ✅ | 2026-07-05 |
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 1/1 | Complete   | 2026-07-06 |
-| 8. Fundamentos de marca — fuentes y design system | 0/? | Not started | - |
+| 8. Fundamentos de marca — fuentes y design system | 0/5 | Planned | - |
 | 9. Librería de componentes | 0/? | Not started | - |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | 0/? | Not started | - |
 
@@ -211,3 +216,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Roadmap created: 2026-07-05*
 *Granularity: standard (7 phases v1.0 + 3 phases v1.1 = 10 phases)*
 *v1.1 phases (8-10) appended: 2026-07-06*
+*Phase 8 planned: 2026-07-06 (5 plans, 3 waves)*
