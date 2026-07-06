@@ -1,4 +1,5 @@
 import type { EntityGraph } from "@auditor/checks";
+import styles from "./EntityGraphSvg.module.css";
 
 interface EntityGraphSvgProps {
   graph: EntityGraph;
@@ -9,22 +10,26 @@ const HEIGHT = 480;
 const RADIUS = 170;
 const NODE_RADIUS = 34;
 
-const TYPE_COLORS: Record<string, string> = {
-  Organization: "#2563eb",
-  Person: "#7c3aed",
-  WebSite: "#0891b2",
-  WebPage: "#0891b2",
-  FAQPage: "#16a34a",
-  Article: "#ea580c",
-  BlogPosting: "#ea580c",
-  ProfessionalService: "#db2777",
-  Product: "#ca8a04",
-  BreadcrumbList: "#64748b",
-  External: "#94a3b8",
+/**
+ * @type → clase de color token-backed. La clase setea `color` a un token
+ * semántico y el círculo del nodo usa `fill: currentColor` (DS-01, sin hex).
+ */
+const TYPE_CLASS: Record<string, string | undefined> = {
+  Organization: styles.typeAccent,
+  ProfessionalService: styles.typeAccent,
+  Product: styles.typeAccent,
+  Person: styles.typePerson,
+  WebSite: styles.typeSecondary,
+  WebPage: styles.typeSecondary,
+  FAQPage: styles.typeSuccess,
+  Article: styles.typeWarning,
+  BlogPosting: styles.typeWarning,
+  BreadcrumbList: styles.typeMuted,
+  External: styles.typeMuted,
 };
 
-function colorForType(type: string): string {
-  return TYPE_COLORS[type] ?? "#475569";
+function classForType(type: string): string {
+  return TYPE_CLASS[type] ?? styles.typeMuted!;
 }
 
 function truncate(label: string, max = 22): string {
@@ -52,8 +57,8 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
 
   if (nodes.length === 0) {
     return (
-      <svg width={WIDTH} height={120} viewBox={`0 0 ${WIDTH} 120`} role="img" aria-label="Sin grafo de entidades">
-        <text x={WIDTH / 2} y={60} textAnchor="middle" fill="#64748b" fontFamily="system-ui, sans-serif" fontSize={14}>
+      <svg className={styles.canvas} width={WIDTH} height={120} viewBox={`0 0 ${WIDTH} 120`} role="img" aria-label="Sin grafo de entidades">
+        <text className={styles.emptyText} x={WIDTH / 2} y={60} textAnchor="middle" fontSize={14}>
           Sin datos estructurados en esta página.
         </text>
       </svg>
@@ -61,10 +66,10 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
   }
 
   return (
-    <svg width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Grafo de entidades">
+    <svg className={styles.canvas} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Grafo de entidades">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+          <path className={styles.arrow} d="M 0 0 L 10 5 L 0 10 z" />
         </marker>
       </defs>
 
@@ -77,16 +82,16 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
         return (
           <g key={`edge-${i}`}>
             <line
+              className={styles.edgeLine}
               x1={from.x}
               y1={from.y}
               x2={to.x}
               y2={to.y}
-              stroke="#cbd5e1"
               strokeWidth={1.5}
               markerEnd="url(#arrow)"
             />
-            <rect x={midX - edge.rel.length * 3} y={midY - 8} width={edge.rel.length * 6} height={14} fill="white" opacity={0.85} />
-            <text x={midX} y={midY + 3} textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize={9} fill="#64748b">
+            <rect className={styles.edgeChip} x={midX - edge.rel.length * 3} y={midY - 8} width={edge.rel.length * 6} height={14} opacity={0.85} />
+            <text className={styles.edgeLabel} x={midX} y={midY + 3} textAnchor="middle" fontSize={9}>
               {edge.rel}
             </text>
           </g>
@@ -97,20 +102,18 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
         const pos = positions.get(node.id);
         if (!pos) return null;
         return (
-          <g key={node.id}>
-            <circle cx={pos.x} cy={pos.y} r={NODE_RADIUS} fill={colorForType(node.type)} opacity={0.9} />
+          <g key={node.id} className={classForType(node.type)}>
+            <circle className={styles.nodeCircle} cx={pos.x} cy={pos.y} r={NODE_RADIUS} opacity={0.9} />
             <text
+              className={styles.nodeType}
               x={pos.x}
               y={pos.y - 4}
               textAnchor="middle"
-              fontFamily="system-ui, sans-serif"
               fontSize={10}
-              fontWeight={600}
-              fill="white"
             >
               {node.type}
             </text>
-            <text x={pos.x} y={pos.y + 44} textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize={10} fill="#1e293b">
+            <text className={styles.nodeCaption} x={pos.x} y={pos.y + 44} textAnchor="middle" fontSize={10}>
               {truncate(node.label)}
             </text>
           </g>

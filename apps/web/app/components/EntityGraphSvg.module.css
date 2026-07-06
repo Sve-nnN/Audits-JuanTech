@@ -1,0 +1,91 @@
+/*
+ * EntityGraphSvg.module.css — restyle a tokens del grafo de entidades (DS-01).
+ * Solo tokens semánticos, CSP-safe, sin hex crudo. La lógica de layout vive en
+ * el componente; aquí solo color/tipografía/escala responsive y el fade opcional.
+ */
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: var(--container-narrow); /* 720px = viewBox width, escala sin overflow */
+  margin-inline: auto;
+  background: transparent; /* hereda --surface del card contenedor */
+  animation: graphFade var(--motion-base) var(--ease-out) both;
+}
+
+@keyframes graphFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- Aristas ---------- */
+
+.edgeLine {
+  stroke: var(--border);
+}
+
+.arrow {
+  fill: var(--text-muted);
+}
+
+.edgeChip {
+  fill: var(--surface);
+}
+
+.edgeLabel {
+  fill: var(--text-secondary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* ---------- Nodos ---------- */
+
+.nodeCircle {
+  fill: currentColor; /* color viene de la clase de tipo */
+}
+
+.nodeType {
+  fill: var(--accent-foreground);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-weight: 600;
+}
+
+.nodeCaption {
+  fill: var(--text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.emptyText {
+  fill: var(--text-secondary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* ---------- Paleta por @type (setea currentColor del nodo) ---------- */
+
+.typeAccent {
+  color: var(--accent-text);
+}
+
+.typePerson {
+  color: var(--accent);
+}
+
+.typeSecondary {
+  color: var(--text-secondary);
+}
+
+.typeSuccess {
+  color: var(--success);
+}
+
+.typeWarning {
+  color: var(--warning);
+}
+
+.typeMuted {
+  color: var(--text-muted);
+}
