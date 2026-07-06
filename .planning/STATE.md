@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: 08-03 ejecutado — theming claro/oscuro (next-themes) sin FOUC + ThemeToggle; globals.css/layout.tsx cableados a tokens y fuentes de marca
-stopped_at: Completed 08-03-PLAN.md (theming next-themes + wiring de tokens/fuentes)
-last_updated: "2026-07-06T05:00:00.000Z"
-last_activity: 2026-07-06 — Plan 08-03 ejecutado (theming next-themes, globals/layout cableados)
+status: verifying
+stopped_at: Completed 08-05-PLAN.md (migración de CSS Modules a tokens + Geist Mono en métricas)
+last_updated: "2026-07-05T00:00:00.000Z"
+last_activity: 2026-07-05 — Plan 08-05 ejecutado (home/report.module.css migrados a tokens; scores/valores en Geist Mono)
 progress:
   total_phases: 10
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 12
-  completed_plans: 11
-  percent: 75
+  completed_plans: 12
+  percent: 80
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 ## Current Position
 
 Phase: Phase 8 (Fundamentos de marca — fuentes y design system) — in progress
-Plan: 08-01 (fonts.ts), 08-02 (tokens.css) y 08-03 (theming + wiring) completados
-Status: theming claro/oscuro con next-themes (dark-first, persistente, sin FOUC) + ThemeToggle accesible; globals.css usa tokens y Geist Sans, layout.tsx monta las 4 font vars + Providers. Pendiente verificación visual humana al cierre de fase.
-Last activity: 2026-07-06 — Plan 08-03 ejecutado (theming next-themes, globals/layout cableados)
+Plan: 08-01 (fonts.ts), 08-02 (tokens.css), 08-03 (theming + wiring), 08-04 (shell de layout) y 08-05 (migración de CSS Modules a tokens) completados
+Status: home.module.css y report.module.css migrados a tokens semánticos globales (0 hex crudo, 0 @media prefers-color-scheme); scores y valores medidos del reporte en Geist Mono con numerales tabulares. DS-01 y FONT-04 (rol código/métricas) cerrados en CSS Modules. Pendiente verificación visual humana de no-regresión al cierre de fase.
+Last activity: 2026-07-05 — Plan 08-05 ejecutado (home/report.module.css a tokens + Geist Mono en métricas)
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Last activity: 2026-07-06 — Plan 08-03 ejecutado (theming next-themes, globals
 *Updated after each plan completion*
 | Phase 3 P3 | 60 | 5 tasks | 30 files |
 | Phase 7 P1 | 90 min | 5 tasks | 29 files |
+| Phase 8 P4 | 8 min | 2 tasks | 4 files |
 | Phase 8 P3 | 8 min | 2 tasks | 5 files |
 | Phase 8 P2 | 3 min | 2 tasks | 1 file |
 | Phase 8 P1 | 4 min | 3 tasks | 4 files |
@@ -95,6 +96,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06T05:00:00.000Z
+Last session: 2026-07-06T04:33:15.653Z
 Stopped at: Completed 08-03-PLAN.md (theming next-themes + wiring de tokens/fuentes)
 Resume file: None
