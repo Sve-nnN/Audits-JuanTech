@@ -8,6 +8,21 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
+## Current Milestone: v1.1 — Overhaul de UI/UX y marca
+
+**Goal:** Elevar toda la interfaz del auditor a nivel profesional (design system coherente, tipografía y estética alineadas a juan-tech.com) y humanizar todos los textos, sin tocar la lógica de auditoría de v1.0.
+
+**Target features:**
+- Design system propio (tokens de color, tipografía, espaciado, radios, sombras, estados) en modo claro y oscuro con toggle.
+- Fuentes de marca alineadas a juan-tech.com: **Array** (display, self-hosted Fontshare), **Khand** (títulos/UI), **Geist Sans** (body) y **Geist Mono** (código).
+- Todas las pantallas elevadas: home, verificación de email, progreso de auditoría, reporte, páginas + grafo de entidades, historial.
+- Componentes reutilizables pulidos: score gauge, cards por categoría, badges de severidad/diff, tabla de issues, acordeones, botones, inputs, estados vacíos y skeletons de carga.
+- Motion sutil y profesional (score que cuenta, progreso vivo, transiciones, hover) respetando `prefers-reduced-motion`.
+- Todos los textos humanizados en español neutro sin voceo (skill humanizer).
+- Responsive y accesible (contraste, foco, roles) en todas las vistas.
+
+**Key context:** UI-only. No cambia el pipeline crawl/checks/PSI/scoring/email de v1.0. Fuentes: mismo stack que juan-tech.com. Skills a aplicar: gsd-ui-phase (contrato de diseño), web-animation-design (motion), humanizer (copy). Español neutro, sin voceo (regla dura del usuario).
+
 ## Requirements
 
 ### Validated
