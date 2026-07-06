@@ -10,9 +10,10 @@ import { ThemeProvider } from "next-themes";
  * system (DS-03):
  *   - attribute="data-theme": el tema se aplica como [data-theme="..."] en <html>,
  *     coincidiendo con los overrides de tokens.css ([data-theme="light"]).
- *   - defaultTheme="dark": la marca es dark-first; sin preferencia guardada ni de
- *     sistema, la app arranca en oscuro.
- *   - enableSystem: respeta prefers-color-scheme como valor inicial.
+ *   - defaultTheme="system" + enableSystem: en la primera visita, sin preferencia
+ *     guardada, se respeta prefers-color-scheme del sistema como valor inicial. Si
+ *     el sistema no resuelve preferencia, el :root dark-first de tokens.css deja la
+ *     app en oscuro (la marca sigue siendo dark-first como fallback efectivo).
  *   - disableTransitionOnChange: evita transiciones de color al alternar tema.
  *
  * La persistencia en localStorage es el comportamiento por defecto de next-themes.
@@ -23,7 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider
       attribute="data-theme"
-      defaultTheme="dark"
+      defaultTheme="system"
       enableSystem
       disableTransitionOnChange
     >
