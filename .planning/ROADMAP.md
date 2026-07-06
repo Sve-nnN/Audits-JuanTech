@@ -176,7 +176,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. La tabla de issues es responsive (colapsa o scrollea en móvil) y su columna de URL es clickeable.
   5. El acordeón de detalle por categoría, los botones/inputs/formularios con sus estados (hover/focus/disabled/error), los estados vacíos/de error con copy e ícono, y los skeletons de carga están implementados y listos para usarse en cualquier pantalla.
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+- [ ] 09-01-PLAN.md — Fundación: verificar/instalar lucide-react + extraer labels.ts y url.ts compartidos
+- [ ] 09-02-PLAN.md — ScoreGauge (COMP-01) + CategoryCard (COMP-02): score-state visual pair
+- [ ] 09-03-PLAN.md — Badge severidad/diff (COMP-03) + Skeleton con shimmer accesible (COMP-08)
+- [ ] 09-04-PLAN.md — Button + Input + Field con estados accesibles (COMP-06)
+- [ ] 09-05-PLAN.md — EmptyState/ErrorState (COMP-07) + CategoryAccordion (COMP-05)
+- [ ] 09-06-PLAN.md — IssuesTable responsive con URL sticky/clickeable + estado vacío (COMP-04)
+
 **UI hint**: yes
 
 ### Phase 10: Pantallas rediseñadas, copy, motion y accesibilidad
@@ -211,7 +219,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Scoring, comparación de corridas y reporte | 1/1 | Complete ✅ | 2026-07-05 |
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 1/1 | Complete   | 2026-07-06 |
 | 8. Fundamentos de marca — fuentes y design system | 5/5 | Complete   | 2026-07-06 |
-| 9. Librería de componentes | 0/? | Not started | - |
+| 9. Librería de componentes | 0/6 | In progress | - |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | 0/? | Not started | - |
 
 ---
@@ -219,3 +227,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Granularity: standard (7 phases v1.0 + 3 phases v1.1 = 10 phases)*
 *v1.1 phases (8-10) appended: 2026-07-06*
 *Phase 8 planned: 2026-07-06 (5 plans, 3 waves)*
+*Phase 9 planned: 2026-07-06 (6 plans, 4 waves)*
