@@ -1,8 +1,222 @@
-.page {
-  min-height: 100vh;
+/*
+ * home.module.css
+ *
+ * Home (SCREEN-01) usa las clases nuevas de este archivo (.home/.shell/.hero/
+ * .flowCard/…). El módulo lo comparte también History (../home.module.css),
+ * que consume las clases legacy (.page/.card/.input/.button/.title/.subtitle/
+ * .form/.error/.footnote/.table). Esas clases se conservan tal cual salvo el
+ * fix de dead-space en .page (se elimina el centrado vertical al alto del
+ * viewport, que era la regresión reportada por Juan). Solo tokens, cero hex.
+ */
+
+/* ============================================================
+ * SCREEN-01 · Home re-skineado (Fase 10)
+ * ============================================================ */
+
+.home {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-12) var(--space-5);
+}
+
+@media (min-width: 640px) {
+  .home {
+    padding: var(--space-16) var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Padding vertical capado en --space-20 (dead-space fix): el ritmo viene de
+   * los tokens de spacing, nunca del centrado al alto del viewport. */
+  .home {
+    padding: var(--space-20) var(--space-8);
+  }
+}
+
+.shell {
+  width: 100%;
+  max-width: var(--container-narrow);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* --- Hero --- */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.heroTitle {
+  margin: 0;
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-4xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-tight);
+  color: var(--text);
+}
+
+.heroSubtitle {
+  margin: 0;
+  max-width: 60ch;
+  font-size: var(--font-size-base);
+  line-height: var(--lh-body);
+  /* AA: subtitle en --text-secondary, nunca --text-muted. */
+  color: var(--text-secondary);
+}
+
+/* --- Card de flujo (máquina de 3 pasos) --- */
+.flowCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-6);
+}
+
+@media (min-width: 640px) {
+  .flowCard {
+    padding: var(--space-8);
+  }
+}
+
+/* Cross-fade del cuerpo del paso al cambiar de Step (opacity, sin salto de
+ * layout). El remount por key={step} reproduce la animación. */
+.stepBody {
+  animation: stepFade var(--motion-base) var(--ease-standard);
+}
+
+@keyframes stepFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- Formulario del paso --- */
+.homeForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formError {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  border: 1px solid var(--critical);
+  color: var(--critical);
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+}
+
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* --- Paso check-email --- */
+.checkPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.checkIcon {
+  color: var(--accent-text);
+}
+
+.checkTitle {
+  margin: 0;
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-xl);
+  font-weight: var(--weight-medium);
+  line-height: var(--lh-heading);
+  color: var(--text);
+}
+
+.checkTitle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.checkBody {
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: var(--lh-body);
+  color: var(--text);
+}
+
+.devNote {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.devLink {
+  color: var(--accent-text);
+}
+
+/* --- Paso url --- */
+.confirmedLine {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+}
+
+.confirmedIcon {
+  flex-shrink: 0;
+  color: var(--success);
+}
+
+/* --- Strip de chips "qué revisamos" --- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  display: inline-flex;
+}
+
+/* --- Footnote (AA: --text-secondary, no --text-muted) --- */
+.foot {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+}
+
+.footLink {
+  color: var(--accent-text);
+}
+
+/* ============================================================
+ * LEGACY · consumido por History (../home.module.css)
+ * No modificar salvo el dead-space fix de .page.
+ * ============================================================ */
+
+.page {
+  /* Dead-space fix: sin centrado al alto del viewport; top-aligned. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: var(--space-8) var(--space-5);
 }
 
