@@ -1,7 +1,8 @@
 ---
 phase: 10
 slug: pantallas-redise-adas-copy-motion-y-accesibilidad
-status: draft
+status: approved
+reviewed_at: 2026-07-06
 shadcn_initialized: false
 preset: none
 created: 2026-07-06
