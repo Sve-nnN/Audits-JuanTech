@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ScoreStatus } from "@auditor/scoring";
+import { STATUS_LABEL } from "./labels";
 import styles from "./CategoryCard.module.css";
 
 interface CategoryCardProps {
@@ -55,13 +56,17 @@ export function CategoryCard({
   const hasValue = score !== null && score !== undefined;
   const statusClass = status ? STATUS_CLASS[status] : styles.unknown;
 
+  // Con status no-null pero sin statusLabel, derivamos la palabra del estado
+  // desde el mapa compartido STATUS_LABEL para que el color nunca sea la única
+  // señal (contrato "color is never the only signal").
+  const resolvedStatusLabel =
+    statusLabel ?? (status ? STATUS_LABEL[status] : hasValue ? "" : "sin datos");
+
   const content = (
     <>
       <p className={styles.label}>{label}</p>
       <p className={`${styles.score} ${statusClass}`}>{hasValue ? score : "—"}</p>
-      <p className={`${styles.status} ${statusClass}`}>
-        {statusLabel ?? (hasValue ? "" : "sin datos")}
-      </p>
+      <p className={`${styles.status} ${statusClass}`}>{resolvedStatusLabel}</p>
     </>
   );
 
