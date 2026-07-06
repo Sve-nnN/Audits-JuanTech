@@ -19,7 +19,7 @@
 
 - [x] **DS-01**: Tokens de diseño centralizados (color, tipografía, espaciado, radios, sombras, z-index) como CSS variables
 - [x] **DS-02**: Paleta de marca alineada a juan-tech.com, con escala de severidad (crítico/advertencia/ok) y estados (good/needs_improvement/critical) coherente
-- [ ] **DS-03**: Modo claro y oscuro: respeta `prefers-color-scheme` + toggle persistente (localStorage), sin flash de tema incorrecto
+- [x] **DS-03**: Modo claro y oscuro: respeta `prefers-color-scheme` + toggle persistente (localStorage), sin flash de tema incorrecto
 - [ ] **DS-04**: Layout base consistente (contenedor, grid, header/footer) reutilizado por todas las pantallas
 
 ### Componentes (COMP)
@@ -84,7 +84,7 @@
 | FONT-04 | Phase 8 (base: body Geist Sans, nav Khand, Mono en métricas del reporte), 9 (roles en componentes), 10 (headings de pantalla=Khand, display=Array) | Complete |
 | DS-01 | Phase 8 (tokens + migración globals/home/report), 10 (tokenizar hex inline/SVG en SCREEN-03/05) | Complete |
 | DS-02 | Phase 8 | Complete |
-| DS-03 | Phase 8 | Pending |
+| DS-03 | Phase 8 | Complete |
 | DS-04 | Phase 8 | Pending |
 | COMP-01 | Phase 9 | Pending |
 | COMP-02 | Phase 9 | Pending |

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: fonts.ts creado (4 tipografías con CSS vars + swap, geist + next-themes instalados); pendiente 08-03 (wiring a layout.tsx)
-stopped_at: Completed 08-01-PLAN.md (módulo central de fuentes de marca)
-last_updated: "2026-07-06T04:22:00.000Z"
-last_activity: 2026-07-06 — Plan 08-01 ejecutado (fundamentos de tipografía)
+status: 08-03 ejecutado — theming claro/oscuro (next-themes) sin FOUC + ThemeToggle; globals.css/layout.tsx cableados a tokens y fuentes de marca
+stopped_at: Completed 08-03-PLAN.md (theming next-themes + wiring de tokens/fuentes)
+last_updated: "2026-07-06T05:00:00.000Z"
+last_activity: 2026-07-06 — Plan 08-03 ejecutado (theming next-themes, globals/layout cableados)
 progress:
   total_phases: 10
   completed_phases: 7
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 75
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 ## Current Position
 
 Phase: Phase 8 (Fundamentos de marca — fuentes y design system) — in progress
-Plan: 08-01 completado (fonts.ts); 08-02 completado (tokens.css)
-Status: fonts.ts creado (4 tipografías con CSS vars + swap, geist + next-themes instalados); pendiente 08-03 (wiring a layout.tsx)
-Last activity: 2026-07-06 — Plan 08-01 ejecutado (fundamentos de tipografía)
+Plan: 08-01 (fonts.ts), 08-02 (tokens.css) y 08-03 (theming + wiring) completados
+Status: theming claro/oscuro con next-themes (dark-first, persistente, sin FOUC) + ThemeToggle accesible; globals.css usa tokens y Geist Sans, layout.tsx monta las 4 font vars + Providers. Pendiente verificación visual humana al cierre de fase.
+Last activity: 2026-07-06 — Plan 08-03 ejecutado (theming next-themes, globals/layout cableados)
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Last activity: 2026-07-06 — Plan 08-01 ejecutado (fundamentos de tipografía)
 *Updated after each plan completion*
 | Phase 3 P3 | 60 | 5 tasks | 30 files |
 | Phase 7 P1 | 90 min | 5 tasks | 29 files |
+| Phase 8 P3 | 8 min | 2 tasks | 5 files |
 | Phase 8 P2 | 3 min | 2 tasks | 1 file |
 | Phase 8 P1 | 4 min | 3 tasks | 4 files |
 
@@ -94,6 +95,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06T04:22:00.000Z
-Stopped at: Completed 08-01-PLAN.md (módulo central de fuentes de marca)
+Last session: 2026-07-06T05:00:00.000Z
+Stopped at: Completed 08-03-PLAN.md (theming next-themes + wiring de tokens/fuentes)
 Resume file: None

@@ -156,7 +156,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] 08-01-PLAN.md — Fuentes de marca + dependencias (geist/next-themes, fonts.ts, Array woff2)
 - [x] 08-02-PLAN.md — Design tokens (tokens.css: primitivos + semánticos dark/light)
-- [ ] 08-03-PLAN.md — Theming next-themes: providers, ThemeToggle, globals + layout wiring
+- [x] 08-03-PLAN.md — Theming next-themes: providers, ThemeToggle, globals + layout wiring
 - [ ] 08-04-PLAN.md — Layout base shell (header/footer/container/grid) montado en layout
 - [ ] 08-05-PLAN.md — Migración de CSS Modules v1.0 (home/report) a tokens, sin regresión
 
@@ -210,7 +210,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Rendimiento / Core Web Vitals | 1/1 | Complete ✅ | 2026-07-05 |
 | 6. Scoring, comparación de corridas y reporte | 1/1 | Complete ✅ | 2026-07-05 |
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 1/1 | Complete   | 2026-07-06 |
-| 8. Fundamentos de marca — fuentes y design system | 2/5 | In Progress|  |
+| 8. Fundamentos de marca — fuentes y design system | 3/5 | In Progress|  |
 | 9. Librería de componentes | 0/? | Not started | - |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | 0/? | Not started | - |
 
