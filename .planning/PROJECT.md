@@ -14,25 +14,25 @@ Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa 
 
 <!-- Shipped and confirmed valuable. -->
 
-(None yet — ship to validate)
+- ✓ Crawler sitemap + fallback link-crawl, respeta robots.txt, rate-limit, 500 URLs — v1 (verificado juan-tech.com)
+- ✓ SEO técnico: robots/sitemap/HTTP/canonical/indexabilidad/redirects/404 internos/viewport/duplicados+SimHash/huérfanas/hreflang/mixed content/enlaces+recursos rotos — v1
+- ✓ On-page: title/meta/H1/alt/OG/longitud/lang — v1
+- ✓ Datos estructurados: presencia+validez JSON-LD, validación schema.org (Classy Schema), grafo de entidades — v1
+- ✓ Rendimiento/CWV vía PageSpeed Insights (score/LCP/CLS/INP/TTFB móvil+desktop), muestreado+cacheado — v1
+- ✓ AEO: crawlers IA, llms.txt, datos estructurados IA, formato de contenido — v1
+- ✓ Score general + por categoría con estados (health-ratio size-independent) — v1
+- ✓ Reporte web con issues priorizados (valor medido/fuente/criterio/recomendación) — v1
+- ✓ Email + double opt-in + normalización antes de auditar — v1
+- ✓ Almacenamiento email↔auditorías + historial — v1
+- ✓ Cuota free 1/semana/email + 500 URLs — v1
+- ✓ Comparación entre corridas (diff nuevos/persistentes/resueltos por fingerprint) — v1
+- ✓ Crawls largos en worker de fondo con cola BullMQ (sin bloquear/sin timeouts, lock robusto) — v1
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Crawler que descubre URLs desde sitemap.xml (con fallback a crawl por enlaces) y rastrea cada página
-- [ ] Detección de errores SEO técnico (robots.txt, sitemap, HTTP status, canonical, indexabilidad, redirects, páginas 404 internas, viewport, contenido duplicado/near-duplicate, profundidad de clic/huérfanas, hreflang, mixed content, enlaces externos rotos, recursos rotos)
-- [ ] Detección on-page (title, meta description, H1, alt text, Open Graph, longitud de contenido, atributo lang, calidad de keyword)
-- [ ] Validación de datos estructurados (presencia y validez de JSON-LD, impacto por tipo de schema)
-- [ ] Rendimiento / Core Web Vitals vía Lighthouse/unlighthouse + PageSpeed Insights (Performance Score, LCP, CLS, INP, TTFB) móvil y desktop
-- [ ] Visibilidad en IA (AEO): control de acceso de crawlers de IA, llms.txt, datos estructurados orientados a IA, formato de contenido
-- [ ] Score general (0-100) y scores por categoría con estados (Bueno / Necesita mejora / Crítico)
-- [ ] Reporte de auditoría con issues priorizados, valor medido, fuente, criterio y recomendación por issue
-- [ ] Captura de email + verificación (double opt-in) antes de dar acceso a auditar
-- [ ] Almacenamiento de emails verificados y su asociación con auditorías (website, stats, fecha, si se arreglaron errores)
-- [ ] Cuota gratuita: 1 auditoría por semana por email, límite de 500 URLs rastreadas
-- [ ] Persistencia de auditorías para poder comparar corridas (detectar si los errores se arreglaron entre auditorías)
-- [ ] Ejecución de crawls largos en worker de fondo con cola (sin bloquear la request / sin timeouts)
+(v1 completo — próximo milestone: deploy a producción + v2 monetización)
 
 ### Out of Scope
 
