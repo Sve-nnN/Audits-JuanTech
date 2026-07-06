@@ -1,6 +1,6 @@
 import { CONSENT_TEXT } from "@auditor/email";
 import { VerifyClient } from "./VerifyClient";
-import styles from "../home.module.css";
+import styles from "./verify.module.css";
 
 interface PageProps {
   searchParams: Promise<{ token?: string }>;
@@ -11,8 +11,8 @@ export default async function VerifyPage({ searchParams }: PageProps) {
 
   return (
     <main className={styles.page}>
-      <div className={styles.card}>
-        <h1 className={styles.title}>Confirmá tu email</h1>
+      <h1 className={styles.srTitle}>Verificación de correo</h1>
+      <div className={styles.panel}>
         <VerifyClient token={token ?? null} consentText={CONSENT_TEXT} />
       </div>
     </main>
