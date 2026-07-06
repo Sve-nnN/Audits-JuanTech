@@ -56,7 +56,7 @@ export default async function HistoryPage({ searchParams }: PageProps) {
   const notFound = hasSearched && audits.length === 0;
 
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <div className={styles.container}>
         <h1 className={styles.title}>Historial de auditorías</h1>
         <p className={styles.subtitle}>
@@ -164,6 +164,6 @@ export default async function HistoryPage({ searchParams }: PageProps) {
           </Link>
         </p>
       </div>
-    </main>
+    </div>
   );
 }

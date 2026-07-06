@@ -146,7 +146,7 @@ export function HomeClient({ initialEmail }: HomeClientProps) {
   const formError = error?.scope === "form" ? error.message : null;
 
   return (
-    <main className={styles.home}>
+    <div className={styles.home}>
       <div className={styles.shell}>
         <header ref={heroRef} data-reveal="" className={styles.hero}>
           <h1 className={styles.heroTitle}>Audita tu sitio en minutos</h1>
@@ -283,6 +283,6 @@ export function HomeClient({ initialEmail }: HomeClientProps) {
           </Link>
         </p>
       </div>
-    </main>
+    </div>
   );
 }

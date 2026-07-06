@@ -48,7 +48,7 @@ export default async function PageDetailPage({ params }: PageProps) {
   const finalUrl = page.finalUrl ?? page.url;
 
   return (
-    <main className={styles.main}>
+    <div className={styles.main}>
       <p className={styles.breadcrumb}>
         <Link href={`/audits/${auditId}/pages`}>&larr; Volver a páginas</Link>
       </p>
@@ -99,6 +99,6 @@ export default async function PageDetailPage({ params }: PageProps) {
           </ul>
         )}
       </section>
-    </main>
+    </div>
   );
 }

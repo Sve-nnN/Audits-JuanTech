@@ -25,7 +25,7 @@ export default async function AuditPagesPage({ params }: PageProps) {
   });
 
   return (
-    <main className={styles.main}>
+    <div className={styles.main}>
       <p className={styles.breadcrumb}>
         <Link href="/">&larr; Inicio</Link>
       </p>
@@ -66,6 +66,6 @@ export default async function AuditPagesPage({ params }: PageProps) {
           })}
         </ul>
       )}
-    </main>
+    </div>
   );
 }

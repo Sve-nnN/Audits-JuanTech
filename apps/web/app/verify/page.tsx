@@ -10,11 +10,11 @@ export default async function VerifyPage({ searchParams }: PageProps) {
   const { token } = await searchParams;
 
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <h1 className={styles.srTitle}>Verificación de correo</h1>
       <div className={styles.panel}>
         <VerifyClient token={token ?? null} consentText={CONSENT_TEXT} />
       </div>
-    </main>
+    </div>
   );
 }

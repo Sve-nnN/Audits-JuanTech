@@ -117,7 +117,7 @@ export default async function AuditReportPage({ params }: PageProps) {
 
   if (audit.status !== "done") {
     return (
-      <main className={styles.page}>
+      <div className={styles.page}>
         <div className={styles.container}>
           <p className={styles.breadcrumb}>
             <Link href="/">
@@ -132,7 +132,7 @@ export default async function AuditReportPage({ params }: PageProps) {
           </div>
           <AuditProgress auditId={auditId} />
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -208,7 +208,7 @@ export default async function AuditReportPage({ params }: PageProps) {
     });
 
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <div className={styles.container}>
         <p className={styles.breadcrumb}>
           <Link href="/">
@@ -462,6 +462,6 @@ export default async function AuditReportPage({ params }: PageProps) {
           <Link href={`/audits/${auditId}/pages`}>Ver páginas rastreadas y grafo de entidades</Link>
         </p>
       </div>
-    </main>
+    </div>
   );
 }
