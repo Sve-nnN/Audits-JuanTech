@@ -1,0 +1,205 @@
+/*
+ * history.module.css — pantalla Historial por correo (SCREEN-06).
+ * Desacopla history/ de home.module.css: estilos propios, top-aligned padded
+ * (SIN centrado a 100vh), tabla token-styled y form Fase 9. Solo tokens
+ * semánticos (DS-01), cero hex crudo. Clases camelCase.
+ */
+
+/* Lienzo de página: ritmo por padding, nunca por min-height:100vh. */
+.page {
+  width: 100%;
+  padding: var(--space-12) var(--space-5);
+}
+
+@media (min-width: 640px) {
+  .page {
+    padding-top: var(--space-16);
+    padding-bottom: var(--space-16);
+  }
+}
+
+/* Columna angosta centrada horizontalmente. */
+.container {
+  width: 100%;
+  max-width: var(--container-narrow);
+  margin-inline: auto;
+}
+
+.title {
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-4xl);
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0 0 var(--space-2);
+  color: var(--text);
+}
+
+.subtitle {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-8);
+}
+
+/* Form de búsqueda: apila en móvil, inline y bottom-aligned ≥640. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.fieldWrap {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .form {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .fieldWrap {
+    flex: 1 1 auto;
+  }
+}
+
+/* Input de correo en Geist Mono (tono de dato). */
+.searchInput {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  width: 100%;
+}
+
+/* CTA full-width en móvil, ancho automático ≥640. */
+.searchButton {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .searchButton {
+    width: auto;
+  }
+}
+
+/*
+ * Región de scroll horizontal enfocable por teclado. Borde/radio/bg viven aquí
+ * (no en la <table>) para que el redondeo recorte el scroll interno.
+ */
+.scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.scroll:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* min-width fuerza scroll horizontal en móvil en vez de aplastar columnas. */
+.table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: var(--font-size-sm);
+}
+
+/* Caption accesible, visualmente oculto. */
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.table th {
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  background: var(--bg);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  color: var(--text);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Hover de fila instantáneo (seguro para reduced-motion). */
+.table tbody tr:hover td {
+  background: var(--surface-hover);
+}
+
+/* Columnas de dato (score/fecha): Geist Mono + cifras tabulares. */
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
+  white-space: nowrap;
+}
+
+/* Enlace "Ver reporte". */
+.reportLink {
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.reportLink:hover {
+  text-decoration: underline;
+}
+
+.reportLink:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Bloque de resultados / estados vacíos. */
+.results {
+  margin-bottom: var(--space-8);
+}
+
+/* Volver al inicio. */
+.footnote {
+  margin: 0;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: var(--font-size-sm);
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.backLink:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

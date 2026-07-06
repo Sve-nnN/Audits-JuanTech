@@ -1,31 +1,47 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@auditor/db";
 import { normalizeEmail } from "@auditor/email";
 import type { ScoreStatus } from "@auditor/scoring";
-import styles from "../home.module.css";
+import { Field } from "../components/ui/Field";
+import { Input } from "../components/ui/Input";
+import { Button } from "../components/ui/Button";
+import { Badge, type BadgeVariant } from "../components/ui/Badge";
+import { EmptyState } from "../components/ui/EmptyState";
+import { STATUS_LABEL } from "../components/ui/labels";
+import { Reveal } from "../components/motion/useReveal";
+import styles from "./history.module.css";
 
 interface PageProps {
   searchParams: Promise<{ email?: string }>;
 }
 
-const STATUS_LABEL: Record<ScoreStatus, string> = {
-  good: "Bueno",
-  needs_improvement: "Necesita mejora",
-  critical: "Crítico",
+/** Mapa estado de score → variante de Badge (DS-02: good/warning/critical). */
+const STATUS_BADGE: Record<ScoreStatus, BadgeVariant> = {
+  good: "ok",
+  needs_improvement: "warning",
+  critical: "critical",
 };
 
+/** Fecha en locale "es" neutro (no rioplatense), igual que el reporte. */
 function formatDate(value: Date): string {
-  return new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short" }).format(value);
+  return new Intl.DateTimeFormat("es", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(value);
 }
 
 export default async function HistoryPage({ searchParams }: PageProps) {
+  // Data-fetching v1.0 preservado: normalizeEmail + reads Prisma + form GET.
   const { email: rawEmail } = await searchParams;
   const trimmed = rawEmail?.trim() ?? "";
   const normalized = trimmed.length > 0 ? normalizeEmail(trimmed) : null;
 
   const emailRecord =
     normalized && normalized.valid
-      ? await prisma.email.findUnique({ where: { normalizedAddress: normalized.normalizedAddress } })
+      ? await prisma.email.findUnique({
+          where: { normalizedAddress: normalized.normalizedAddress },
+        })
       : null;
 
   const audits = emailRecord
@@ -36,63 +52,116 @@ export default async function HistoryPage({ searchParams }: PageProps) {
       })
     : [];
 
+  const hasSearched = trimmed.length > 0;
+  const notFound = hasSearched && audits.length === 0;
+
   return (
     <main className={styles.page}>
-      <div className={styles.card} style={{ maxWidth: 640 }}>
+      <div className={styles.container}>
         <h1 className={styles.title}>Historial de auditorías</h1>
-        <p className={styles.subtitle}>Consultá las auditorías previas asociadas a tu email.</p>
+        <p className={styles.subtitle}>
+          Consulta las auditorías asociadas a tu correo.
+        </p>
 
         <form className={styles.form} method="get">
-          <input
-            className={styles.input}
-            name="email"
-            type="email"
-            placeholder="tu@email.com"
-            defaultValue={trimmed}
-            required
-          />
-          <button className={styles.button} type="submit">
+          <div className={styles.fieldWrap}>
+            <Field label="Correo" htmlFor="email">
+              <Input
+                type="email"
+                name="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="tu@correo.com"
+                defaultValue={trimmed}
+                className={styles.searchInput}
+                required
+              />
+            </Field>
+          </div>
+          <Button type="submit" className={styles.searchButton}>
             Buscar
-          </button>
+          </Button>
         </form>
 
-        {trimmed.length > 0 && !emailRecord && (
-          <p className={styles.error} style={{ marginTop: 16 }}>
-            No encontramos auditorías para ese email.
-          </p>
-        )}
-
-        {audits.length > 0 && (
-          <table className={styles.table} style={{ marginTop: 20 }}>
-            <thead>
-              <tr>
-                <th>Sitio</th>
-                <th>Score</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              {audits.map((audit) => {
-                const scores = audit.scores as { overall?: number; status?: ScoreStatus } | null;
-                return (
-                  <tr key={audit.id}>
-                    <td>{audit.site.domain}</td>
-                    <td>{scores?.overall ?? "—"}</td>
-                    <td>{scores?.status ? STATUS_LABEL[scores.status] : audit.status}</td>
-                    <td>{formatDate(audit.createdAt)}</td>
-                    <td>
-                      <Link href={`/audits/${audit.id}`}>Ver reporte &rarr;</Link>
-                    </td>
+        <div className={styles.results}>
+          {audits.length > 0 ? (
+            <Reveal
+              as="div"
+              className={styles.scroll}
+              tabIndex={0}
+              role="region"
+              aria-label="Historial de auditorías"
+            >
+              <table className={styles.table}>
+                <caption className={styles.caption}>
+                  Historial de auditorías
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Sitio</th>
+                    <th scope="col">Score</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Fecha</th>
+                    <th scope="col">
+                      <span className={styles.caption}>Reporte</span>
+                    </th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+                </thead>
+                <tbody>
+                  {audits.map((audit) => {
+                    const scores = audit.scores as {
+                      overall?: number;
+                      status?: ScoreStatus;
+                    } | null;
+                    const status = scores?.status;
+                    return (
+                      <tr key={audit.id}>
+                        <td>{audit.site.domain}</td>
+                        <td className={styles.mono}>{scores?.overall ?? "—"}</td>
+                        <td>
+                          {status ? (
+                            <Badge variant={STATUS_BADGE[status]}>
+                              {STATUS_LABEL[status]}
+                            </Badge>
+                          ) : (
+                            audit.status
+                          )}
+                        </td>
+                        <td className={styles.mono}>
+                          {formatDate(audit.createdAt)}
+                        </td>
+                        <td>
+                          <Link
+                            href={`/audits/${audit.id}`}
+                            className={styles.reportLink}
+                          >
+                            Ver reporte
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </Reveal>
+          ) : notFound ? (
+            <EmptyState
+              title="No encontramos auditorías para ese correo."
+              description=""
+            />
+          ) : (
+            <EmptyState
+              title="Ingresa tu correo para ver tus auditorías anteriores."
+              description=""
+            />
+          )}
+        </div>
 
         <p className={styles.footnote}>
-          <Link href="/">&larr; Volver al inicio</Link>
+          <Link href="/" className={styles.backLink}>
+            <ArrowLeft size={16} aria-hidden="true" />
+            Volver al inicio
+          </Link>
         </p>
       </div>
     </main>
