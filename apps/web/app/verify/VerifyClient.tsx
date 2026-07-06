@@ -21,10 +21,15 @@ export function VerifyClient({ token, consentText }: VerifyClientProps) {
   const [errorKind, setErrorKind] = useState<ErrorKind>("generic");
   const [email, setEmail] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const errorTitleRef = useRef<HTMLParagraphElement>(null);
 
   // Mueve el foco al heading del resultado al cambiar de estado (a11y).
+  // En error, el foco va al propio título de ErrorState (evita duplicar un
+  // heading sr-only con el mismo texto que anunciaría el lector dos veces).
   useEffect(() => {
-    if (status === "done" || status === "error") {
+    if (status === "error") {
+      errorTitleRef.current?.focus();
+    } else if (status === "done") {
       headingRef.current?.focus();
     }
   }, [status]);
@@ -110,12 +115,11 @@ export function VerifyClient({ token, consentText }: VerifyClientProps) {
 
     return (
       <div className={styles.state}>
-        <h2 ref={headingRef} tabIndex={-1} className={styles.srTitle}>
-          {title}
-        </h2>
         <ErrorState
           title={title}
           description={description}
+          titleRef={errorTitleRef}
+          titleTabIndex={-1}
           action={{ label: "Volver al inicio", href: "/" }}
         />
       </div>

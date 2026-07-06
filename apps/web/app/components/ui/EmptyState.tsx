@@ -1,5 +1,6 @@
 "use client";
 
+import type { Ref } from "react";
 import Link from "next/link";
 import { AlertTriangle, Inbox, type LucideIcon } from "lucide-react";
 import { Button } from "./Button";
@@ -34,6 +35,14 @@ interface StateMessageProps {
   titleLevel?: 2 | 3;
   /** Acción opcional (renderiza un Button). */
   action?: StateAction;
+  /**
+   * Ref opcional al heading del título. Permite que el consumidor mueva el
+   * foco al propio título del estado (gestión de foco a11y) sin duplicar un
+   * heading sr-only aparte.
+   */
+  titleRef?: Ref<HTMLParagraphElement>;
+  /** tabIndex opcional del heading (p. ej. -1 para foco programático). */
+  titleTabIndex?: number;
 }
 
 /**
@@ -77,6 +86,8 @@ export function EmptyState({
   description,
   titleLevel = 2,
   action,
+  titleRef,
+  titleTabIndex,
 }: StateMessageProps) {
   const isError = variant === "error";
   const copy = DEFAULT_COPY[variant];
@@ -153,7 +164,13 @@ export function EmptyState({
       <span className={styles.chip} aria-hidden="true">
         <Icon size={32} />
       </span>
-      <p className={styles.title} role="heading" aria-level={titleLevel}>
+      <p
+        className={styles.title}
+        role="heading"
+        aria-level={titleLevel}
+        ref={titleRef}
+        tabIndex={titleTabIndex}
+      >
         {resolvedTitle}
       </p>
       {resolvedDescription ? (
