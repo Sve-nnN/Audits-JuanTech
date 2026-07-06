@@ -8,20 +8,16 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
-## Current Milestone: v1.1 — Overhaul de UI/UX y marca
+## Current Milestone: ninguno abierto — v1.0 y v1.1 shipped
 
-**Goal:** Elevar toda la interfaz del auditor a nivel profesional (design system coherente, tipografía y estética alineadas a juan-tech.com) y humanizar todos los textos, sin tocar la lógica de auditoría de v1.0.
+**Estado:** v1.0 MVP (pipeline funcional) y v1.1 (overhaul de UI/UX y marca) están shipped (ambos 2026-07-06). No hay milestone en curso.
 
-**Target features:**
-- Design system propio (tokens de color, tipografía, espaciado, radios, sombras, estados) en modo claro y oscuro con toggle.
-- Fuentes de marca alineadas a juan-tech.com: **Array** (display, self-hosted Fontshare), **Khand** (títulos/UI), **Geist Sans** (body) y **Geist Mono** (código).
-- Todas las pantallas elevadas: home, verificación de email, progreso de auditoría, reporte, páginas + grafo de entidades, historial.
-- Componentes reutilizables pulidos: score gauge, cards por categoría, badges de severidad/diff, tabla de issues, acordeones, botones, inputs, estados vacíos y skeletons de carga.
-- Motion sutil y profesional (score que cuenta, progreso vivo, transiciones, hover) respetando `prefers-reduced-motion`.
-- Todos los textos humanizados en español neutro sin voceo (skill humanizer).
-- Responsive y accesible (contraste, foco, roles) en todas las vistas.
+**Próximo trabajo previsto** (scope por definir vía `/gsd:new-milestone`, sin roadmap todavía):
+- **Deploy a producción:** web → Vercel; worker → Railway/VPS; Resend con dominio verificado (hoy dev-mode loguea el link); revisión GDPR ligera como compuerta pre-lanzamiento.
+- **v2 monetización:** planes de pago, auditorías/URLs ilimitadas, Stripe.
+- **v2 enriquecimiento (ENRICH):** Playwright raw-vs-rendered sobre muestra, export PDF / reporte compartible con branding, SSE, Domain Rating como contexto.
 
-**Key context:** UI-only. No cambia el pipeline crawl/checks/PSI/scoring/email de v1.0. Fuentes: mismo stack que juan-tech.com. Skills a aplicar: gsd-ui-phase (contrato de diseño), web-animation-design (motion), humanizer (copy). Español neutro, sin voceo (regla dura del usuario).
+**Cierre v1.1:** design system tokenizado + 4 fuentes de marca, librería de componentes reutilizable y las 6 pantallas rediseñadas con copy humanizado, motion sutil y accesibilidad AA. UI-only: el pipeline crawl/checks/PSI/scoring/email de v1.0 quedó intacto. Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.1-ROADMAP.md`.
 
 ## Requirements
 
@@ -42,12 +38,19 @@ Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa 
 - ✓ Cuota free 1/semana/email + 500 URLs — v1
 - ✓ Comparación entre corridas (diff nuevos/persistentes/resueltos por fingerprint) — v1
 - ✓ Crawls largos en worker de fondo con cola BullMQ (sin bloquear/sin timeouts, lock robusto) — v1
+- ✓ Fuentes de marca: Array (display, self-hosted), Khand (títulos/UI), Geist Sans (body), Geist Mono (métricas), con fallbacks y font-display swap — v1.1 (FONT-01..04, Phase 8)
+- ✓ Design system tokenizado (color/tipografía/espaciado/radios/sombras/z-index) + tema claro/oscuro dark-first persistente sin FOUC + layout base compartido — v1.1 (DS-01..04, Phase 8)
+- ✓ Librería de componentes tokens-only: ScoreGauge, CategoryCard, Badge severidad/diff, IssuesTable responsive, CategoryAccordion, Button/Input/Field, EmptyState/ErrorState, Skeleton — v1.1 (COMP-01..08, Phase 9)
+- ✓ 6 pantallas rediseñadas (home, verificación, progreso, reporte, páginas + grafo, historial) ensambladas con la librería — v1.1 (SCREEN-01..06, Phase 10)
+- ✓ Copy humanizado en español neutro sin voceo (UI, errores, cuota, verificación, recomendaciones) — v1.1 (COPY-01..03, Phase 10)
+- ✓ Motion sutil (score count-up, reveals, progreso animado) que respeta prefers-reduced-motion — v1.1 (MOTION-01..03, Phase 10)
+- ✓ Responsive sin overflow horizontal + contraste AA + foco visible + roles/labels ARIA + navegación por teclado — v1.1 (A11Y-01..03, Phase 10)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-(v1 completo — próximo milestone: deploy a producción + v2 monetización)
+(v1.0 + v1.1 completos — sin milestone abierto. Próximo: deploy a producción + v2 monetización/enriquecimiento, scope por definir vía `/gsd:new-milestone`.)
 
 ### Out of Scope
 
@@ -66,6 +69,7 @@ Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa 
 - **Rendimiento:** Se usa Lighthouse (unlighthouse para crawl multi-página) + Google PageSpeed Insights API (Lighthouse + CrUX) para datos de campo.
 - **Extracción HTML:** el reporte de referencia usa Cheerio para parsear HTML crudo; JS rendering (Playwright) es deseable para comparar HTML crudo vs renderizado.
 - **Ecosistema:** entorno con Vercel disponible; Next.js App Router como default de frontend.
+- **Estado actual (post-v1.1):** monorepo pnpm+Turborepo con `apps/web` (Next.js, Vercel) y `apps/worker` (Crawlee, contenedor propio); paquetes db, queue, crawler, checks, psi, scoring, email, quota. Postgres (Neon) + Redis/BullMQ (Upstash). UI con design system tokenizado, 4 fuentes de marca y tema claro/oscuro. 140 tests verdes (pipeline). Pendiente: deploy a producción (env/keys/Resend/GDPR).
 
 ## Constraints
 
@@ -82,11 +86,16 @@ Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa 
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Frontend Next.js (Vercel) + worker/cola en contenedor propio | Crawl+Lighthouse de 500 URLs no cabe en funciones serverless cortas | — Pending |
-| Modo de trabajo GSD: YOLO | Usuario delegador, ejecuta end-to-end | — Pending |
-| Granularidad Standard (5-8 fases) | Balance entre MVP rápido y estructura | — Pending |
-| Cuota free: 1 auditoría/semana, 500 URLs | Validar propuesta antes de monetizar | — Pending |
+| Frontend Next.js (Vercel) + worker/cola en contenedor propio | Crawl+Lighthouse de 500 URLs no cabe en funciones serverless cortas | ✓ Good — probado e2e en v1.0 (web encola, worker ejecuta) |
+| Modo de trabajo GSD: YOLO | Usuario delegador, ejecuta end-to-end | ✓ Good — 10 fases entregadas sin fricción |
+| Granularidad Standard (5-8 fases) | Balance entre MVP rápido y estructura | ✓ Good — 7 fases v1.0 + 3 v1.1 |
+| Cuota free: 1 auditoría/semana, 500 URLs | Validar propuesta antes de monetizar | — Pending (falta lanzamiento a producción) |
 | Cobro (ilimitado) diferido a v2 | Primero validar con free tier | — Pending |
+| Scoring health-ratio size-independent | Penalización absoluta tanqueaba sitios grandes | ✓ Good — overall 91 vs 86 de referencia (v1.0 Phase 6) |
+| Fuentes de marca: Khand para títulos, Array sólo como token display | Decisión de marca de Juan; a Juan le gustan los títulos en Khand | ✓ Good — v1.1 (UI-FEEDBACK.md) |
+| Componentes tokens-only (cero hex crudo) | Coherencia dark/light y theming sin duplicar valores | ✓ Good — v1.1 Phase 9 |
+| No construir ruta `/styleguide` | Validar componentes en las pantallas reales de la Fase 10 | ✓ Good — v1.1 (validación visual diferida a Phase 10) |
+| v1.1 estrictamente UI-only | Proteger el pipeline validado de v1.0 | ✓ Good — flujo e2e preservado verbatim |
 
 ## Evolution
 
@@ -106,4 +115,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-05 after initialization*
+*Last updated: 2026-07-06 after v1.1 milestone (Overhaul de UI/UX y marca)*

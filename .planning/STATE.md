@@ -18,10 +18,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-05)
+See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 8 — Fundamentos de marca (fuentes + design system), primera fase de v1.1
+**Current focus:** Sin milestone abierto. v1.0 y v1.1 shipped. Próximo: deploy a producción + v2 (monetización/enriquecimiento) — arrancar con `/gsd:new-milestone`.
 
 ## Current Position
 
