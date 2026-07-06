@@ -1,0 +1,55 @@
+/*
+ * Field.module.css — wrapper de formulario accesible (COMP-06).
+ * Solo tokens semánticos (DS-01), CSP-safe, sin hex crudo.
+ * Clases camelCase de una palabra. Hint usa --text-secondary (contraste AA).
+ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: var(--lh-body);
+  color: var(--text);
+}
+
+.required {
+  color: var(--critical);
+}
+
+.hint {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+}
+
+.error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: var(--lh-body);
+  color: var(--critical);
+}
+
+/* Texto solo para lectores de pantalla (marcador "obligatorio"). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
