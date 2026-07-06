@@ -1,7 +1,8 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
-import styles from "./report.module.css";
+import styles from "./progress.module.css";
 
 interface AuditStats {
   discovered?: number;
@@ -11,10 +12,14 @@ interface AuditStats {
   phase?: "crawling" | "analyzing" | "performance";
 }
 
-const PHASE_LABEL: Record<string, string> = {
-  crawling: "Rastreando páginas…",
-  analyzing: "Analizando checks (SEO técnico, on-page, datos estructurados, AEO)…",
-  performance: "Midiendo rendimiento y Core Web Vitals (PageSpeed Insights)…",
+type Phase = "crawling" | "analyzing" | "performance";
+
+const PHASE_ORDER: Phase[] = ["crawling", "analyzing", "performance"];
+
+const PHASE_LABEL: Record<Phase, string> = {
+  crawling: "Rastreando páginas",
+  analyzing: "Analizando checks (SEO técnico, on-page, datos estructurados y AEO)",
+  performance: "Midiendo rendimiento y Core Web Vitals (PageSpeed Insights)",
 };
 
 interface AuditPollResponse {
@@ -51,38 +56,100 @@ export function AuditProgress({ auditId }: { auditId: string }) {
   }, [auditId]);
 
   const stats = poll?.stats;
+  const failed = poll?.status === "failed";
+  const phase: Phase = stats?.phase ?? "crawling";
+  const currentIndex = PHASE_ORDER.indexOf(phase);
+
+  const crawled = stats?.crawled ?? 0;
+  const total = typeof stats?.total === "number" ? stats.total : undefined;
+  const isCrawlingDeterminate =
+    phase === "crawling" && typeof total === "number" && total > 0;
+  const ratio = isCrawlingDeterminate
+    ? Math.min(1, Math.max(0, crawled / (total as number)))
+    : 0;
+
+  const phaseLabel = PHASE_LABEL[phase] ?? "Procesando";
+
+  // Semántica del progressbar: durante crawling con ratio conocido exponemos
+  // aria-valuenow/min/max; en fases indeterminadas queda aria-busy sin valuenow.
+  const progressbarProps = isCrawlingDeterminate
+    ? {
+        "aria-valuenow": crawled,
+        "aria-valuemin": 0,
+        "aria-valuemax": total,
+      }
+    : { "aria-busy": true as const };
+
+  function segmentClass(index: number): string | undefined {
+    if (failed) {
+      return index <= currentIndex
+        ? `${styles.segment} ${styles.segmentFailed}`
+        : styles.segment;
+    }
+    if (index < currentIndex) return `${styles.segment} ${styles.segmentComplete}`;
+    if (index === currentIndex) {
+      return isCrawlingDeterminate
+        ? `${styles.segment} ${styles.segmentActive}`
+        : `${styles.segment} ${styles.segmentBusy}`;
+    }
+    return styles.segment;
+  }
 
   return (
     <div className={styles.hero}>
-      <div className={styles.heroBody}>
-        <h2>Auditando el sitio…</h2>
-        <p>
-          Estamos rastreando las páginas, corriendo los checks y midiendo el rendimiento. Esto
-          puede tardar varios minutos en sitios grandes.
-        </p>
-        {stats && (
-          <>
-            <p style={{ marginTop: 14, fontSize: 15, fontWeight: 600 }}>
-              {PHASE_LABEL[stats.phase ?? "crawling"] ?? "Procesando…"}
-            </p>
-            {stats.phase === "analyzing" || stats.phase === "performance" ? (
-              <p style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
-                Ya rastreamos {stats.crawled ?? 0} página(s). Esta etapa no tiene barra de progreso
-                y puede tardar un poco; no cierres la página.
-              </p>
-            ) : (
-              <p style={{ marginTop: 6, fontSize: 14 }}>
-                {stats.crawled ?? 0}/{stats.total ?? "?"} páginas rastreadas
-                {typeof stats.discovered === "number" ? ` · ${stats.discovered} descubiertas` : ""}
-                {typeof stats.failed === "number" && stats.failed > 0 ? ` · ${stats.failed} fallidas` : ""}
-              </p>
-            )}
-          </>
-        )}
-        {poll?.status === "failed" && (
-          <p style={{ marginTop: 10, color: "#dc2626" }}>Error: {poll.error ?? "la auditoría falló"}</p>
-        )}
+      <h2 className={styles.title}>Auditando tu sitio</h2>
+      <p className={styles.body}>
+        Estamos rastreando las páginas, corriendo los checks y midiendo el rendimiento. En
+        sitios grandes esto puede tardar varios minutos.
+      </p>
+
+      <div
+        className={styles.stepper}
+        role="progressbar"
+        aria-label={failed ? "La auditoría falló" : phaseLabel}
+        {...progressbarProps}
+      >
+        {PHASE_ORDER.map((p, index) => {
+          const fillVar =
+            !failed && index === currentIndex && isCrawlingDeterminate
+              ? ({ "--fill": `${Math.round(ratio * 100)}%` } as CSSProperties)
+              : undefined;
+          return (
+            <div key={p} className={segmentClass(index)}>
+              <span className={styles.segmentFill} style={fillVar} />
+            </div>
+          );
+        })}
       </div>
+
+      {!failed && (
+        <>
+          <p className={styles.phaseLabel} role="status" aria-live="polite">
+            {phaseLabel}
+          </p>
+          {phase === "analyzing" || phase === "performance" ? (
+            <p className={styles.phaseCaption}>
+              Ya rastreamos {crawled} página(s). Esta etapa no tiene barra de progreso y puede
+              tardar un poco. No cierres esta página.
+            </p>
+          ) : (
+            <p className={styles.readout}>
+              {crawled}/{typeof total === "number" ? total : "?"} páginas rastreadas
+              {typeof stats?.discovered === "number" ? ` · ${stats.discovered} descubiertas` : ""}
+              {typeof stats?.failed === "number" && stats.failed > 0
+                ? ` · ${stats.failed} fallidas`
+                : ""}
+            </p>
+          )}
+        </>
+      )}
+
+      {failed && (
+        <p className={styles.errorText} role="alert">
+          La auditoría falló: {poll?.error ?? "error desconocido"}. Vuelve al inicio e
+          inténtalo de nuevo; si sigue fallando, escríbenos.
+        </p>
+      )}
     </div>
   );
 }

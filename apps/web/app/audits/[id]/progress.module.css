@@ -1,0 +1,167 @@
+/*
+ * progress.module.css — Estilos de la pantalla de progreso de auditoría
+ * (SCREEN-03 / MOTION-02). Desacoplado de report.module.css a propósito para
+ * seguridad en paralelo. Solo tokens semánticos (DS-01): cero hex crudo, cero
+ * valor numérico de diseño inline. Clases camelCase de una palabra.
+ *
+ * Barra de 3 fases (crawling → analyzing → performance):
+ *   - completada  → fill --success al 100%
+ *   - activa con ratio (crawling) → fill --accent por width (transición)
+ *   - activa sin ratio (analyzing/performance) → shimmer indeterminado
+ *   - failed → barra --critical
+ *
+ * El guard de prefers-reduced-motion al final es OBLIGATORIO: anula el shimmer
+ * y vuelve instantáneos los fills, dejando los números actualizándose.
+ */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-sm);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-heading);
+  color: var(--text);
+}
+
+.body {
+  margin: 0;
+  max-width: 56ch;
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+}
+
+/* --- Barra de 3 fases --- */
+
+.stepper {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.segment {
+  position: relative;
+  flex: 1;
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.segmentFill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--motion-base) var(--ease-standard);
+}
+
+.segmentComplete .segmentFill {
+  width: 100%;
+  background: var(--success);
+}
+
+.segmentActive .segmentFill {
+  width: var(--fill, 0);
+  background: var(--accent);
+}
+
+.segmentFailed .segmentFill {
+  width: 100%;
+  background: var(--critical);
+}
+
+/* Fase activa sin ratio: track teñido de accent + barrido shimmer que señala
+ * "trabajando, no colgado" (reuso del patrón de Skeleton.module.css). */
+.segmentBusy .segmentFill {
+  width: 100%;
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.segmentBusy::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent) 55%, transparent),
+    transparent
+  );
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* --- Copy por fase --- */
+
+.phaseLabel {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+
+.phaseCaption {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xs);
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+}
+
+.readout {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.errorText {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-medium);
+  color: var(--critical);
+}
+
+/* Etiqueta accesible solo para lectores de pantalla. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* GUARD OBLIGATORIO: bajo reduced-motion el shimmer se anula y los fills se
+ * vuelven instantáneos; los números siguen actualizándose con el poll. */
+@media (prefers-reduced-motion: reduce) {
+  .segmentFill {
+    transition: none;
+  }
+
+  .segmentBusy::after {
+    animation: none;
+  }
+}
