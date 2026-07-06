@@ -46,7 +46,7 @@ export interface IssuesTableProps {
  */
 function renderCell(value: ReactNode, column: IssuesTableColumn): ReactNode {
   if (typeof value === "string") {
-    if (value.startsWith("http")) {
+    if (/^https?:\/\//i.test(value)) {
       return (
         <a
           href={value}
