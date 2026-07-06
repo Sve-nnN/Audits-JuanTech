@@ -201,7 +201,17 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Las páginas rastreadas y el grafo de entidades se navegan con un visual limpio; el historial por email lista auditorías con score, fecha y acceso al reporte.
   5. Todas las animaciones (score que cuenta, reveal de secciones, transiciones, hover) respetan `prefers-reduced-motion`; todas las pantallas son responsive (móvil/tablet/desktop) sin overflow horizontal, con contraste AA en ambos temas, foco visible, roles/labels ARIA y navegación por teclado funcional (acordeones, toggle de tema, formularios).
 
-**Plans**: TBD
+**Plans**: 8 plans
+
+- [ ] 10-01-PLAN.md — Motion transversal: tokens + globals reduced-motion + at-property + hooks useCountUp/useReveal (MOTION-01/03)
+- [ ] 10-02-PLAN.md — SCREEN-01 Home: hero sin dead-space + form Fase 9 + copy neutro + reveal
+- [ ] 10-03-PLAN.md — SCREEN-02 Verify: 4 estados + ErrorState + verify.module.css propio
+- [ ] 10-04-PLAN.md — SCREEN-03 Progreso: barra de 3 fases (MOTION-02) + tokenizar DS-01 + progress.module.css
+- [ ] 10-05-PLAN.md — SCREEN-04 Reporte: gauge/cards/tabla/accordion Fase 9 + count-up + reveals (mayor)
+- [ ] 10-06-PLAN.md — SCREEN-05 Páginas + grafo de entidades tokenizado (DS-01)
+- [ ] 10-07-PLAN.md — SCREEN-06 Historial: form/tabla Fase 9 + history.module.css propio + locale es
+- [ ] 10-08-PLAN.md — Barrido A11Y/responsive + sign-off pixel-perfect (A11Y-01/02/03, MOTION-03)
+
 **UI hint**: yes
 
 ## Progress
@@ -220,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 1/1 | Complete   | 2026-07-06 |
 | 8. Fundamentos de marca — fuentes y design system | 5/5 | Complete   | 2026-07-06 |
 | 9. Librería de componentes | 6/6 | Complete   | 2026-07-06 |
-| 10. Pantallas rediseñadas, copy, motion y accesibilidad | 0/? | Not started | - |
+| 10. Pantallas rediseñadas, copy, motion y accesibilidad | 0/8 | Planned | - |
 
 ---
 *Roadmap created: 2026-07-05*
@@ -228,3 +238,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *v1.1 phases (8-10) appended: 2026-07-06*
 *Phase 8 planned: 2026-07-06 (5 plans, 3 waves)*
 *Phase 9 planned: 2026-07-06 (6 plans, 4 waves)*
+*Phase 10 planned: 2026-07-06 (8 plans, 3 waves)*
