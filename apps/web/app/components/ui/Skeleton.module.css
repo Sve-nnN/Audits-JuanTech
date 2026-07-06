@@ -1,0 +1,107 @@
+/*
+ * Skeleton.module.css — placeholder de carga con shimmer (COMP-08).
+ * Solo tokens semanticos (DS-01), CSP-safe, sin hex crudo (color-mix sobre
+ * token permitido). Clases camelCase de una palabra. El guard de
+ * prefers-reduced-motion es OBLIGATORIO: anula el shimmer y deja el bloque
+ * muted estatico.
+ */
+
+.skeleton {
+  display: block;
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--text) 6%, transparent),
+    transparent
+  );
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* --- Variantes --- */
+
+.text {
+  width: 100%;
+  height: 14px;
+  border-radius: var(--radius-sm);
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lastLine {
+  width: 60%;
+}
+
+.block {
+  width: 100%;
+  height: 20px;
+}
+
+.circle {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+}
+
+.gauge {
+  width: 132px;
+  height: 132px;
+  border-radius: var(--radius-full);
+}
+
+.row {
+  width: 100%;
+  height: 44px;
+}
+
+/* card: contenedor de superficie envolviendo titulo + score (no anima el
+ * contenedor, solo los bloques internos .skeleton). */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.cardTitle {
+  width: 60%;
+  height: 14px;
+}
+
+.cardScore {
+  width: 40%;
+  height: 32px;
+}
+
+/* GUARD OBLIGATORIO: bajo reduced-motion el shimmer se anula y el bloque
+ * muted queda como placeholder estatico. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
