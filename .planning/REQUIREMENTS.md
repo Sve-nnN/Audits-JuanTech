@@ -90,18 +90,18 @@ Requisitos para el release inicial (lead magnet gratuito). Cada uno mapea a una 
 
 ### Captura y Verificación de Email (AUTH)
 
-- [ ] **AUTH-01**: El usuario deja su email para solicitar una auditoría
-- [ ] **AUTH-02**: El email se normaliza (lowercase, strip de plus-addressing, filtro de dominios desechables) antes de guardar
-- [ ] **AUTH-03**: El usuario recibe un email de verificación (double opt-in) con enlace/token único
-- [ ] **AUTH-04**: El acceso a lanzar una auditoría se habilita sólo tras verificar el email
-- [ ] **AUTH-05**: Se registra evidencia de consentimiento (timestamp, IP, texto mostrado) al verificar
+- [x] **AUTH-01**: El usuario deja su email para solicitar una auditoría
+- [x] **AUTH-02**: El email se normaliza (lowercase, strip de plus-addressing, filtro de dominios desechables) antes de guardar
+- [x] **AUTH-03**: El usuario recibe un email de verificación (double opt-in) con enlace/token único
+- [x] **AUTH-04**: El acceso a lanzar una auditoría se habilita sólo tras verificar el email
+- [x] **AUTH-05**: Se registra evidencia de consentimiento (timestamp, IP, texto mostrado) al verificar
 
 ### Cuota y Rate Limiting (QUOTA)
 
-- [ ] **QUOTA-01**: Cada email verificado tiene derecho a 1 auditoría por semana (rolling 7 días)
-- [ ] **QUOTA-02**: Cada auditoría free está limitada a 500 URLs rastreadas
-- [ ] **QUOTA-03**: El sistema bloquea/encola con mensaje claro cuando se excede la cuota semanal
-- [ ] **QUOTA-04**: Se persiste el historial de auditorías por email (sitio, stats, fecha, estado de corrección de errores)
+- [x] **QUOTA-01**: Cada email verificado tiene derecho a 1 auditoría por semana (rolling 7 días)
+- [x] **QUOTA-02**: Cada auditoría free está limitada a 500 URLs rastreadas
+- [x] **QUOTA-03**: El sistema bloquea/encola con mensaje claro cuando se excede la cuota semanal
+- [x] **QUOTA-04**: Se persiste el historial de auditorías por email (sitio, stats, fecha, estado de corrección de errores)
 
 ## v2 Requirements
 
@@ -191,15 +191,15 @@ Excluido explícitamente. Documentado para evitar scope creep.
 | REPORT-02 | Phase 6 | Pending |
 | DIFF-01 | Phase 6 | Pending |
 | DIFF-02 | Phase 6 | Pending |
-| AUTH-01 | Phase 7 | Pending |
-| AUTH-02 | Phase 7 | Pending |
-| AUTH-03 | Phase 7 | Pending |
-| AUTH-04 | Phase 7 | Pending |
-| AUTH-05 | Phase 7 | Pending |
-| QUOTA-01 | Phase 7 | Pending |
-| QUOTA-02 | Phase 7 | Pending |
-| QUOTA-03 | Phase 7 | Pending |
-| QUOTA-04 | Phase 7 | Pending |
+| AUTH-01 | Phase 7 | Complete |
+| AUTH-02 | Phase 7 | Complete |
+| AUTH-03 | Phase 7 | Complete |
+| AUTH-04 | Phase 7 | Complete |
+| AUTH-05 | Phase 7 | Complete |
+| QUOTA-01 | Phase 7 | Complete |
+| QUOTA-02 | Phase 7 | Complete |
+| QUOTA-03 | Phase 7 | Complete |
+| QUOTA-04 | Phase 7 | Complete |
 
 **Coverage:**
 
