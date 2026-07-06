@@ -1,0 +1,166 @@
+/**
+ * tokens.css — Fuente única de verdad de los tokens de diseño (DS-01).
+ *
+ * Arquitectura:
+ *   - Primitivos (rampas de color, espaciado, tipografía, radios, z-index,
+ *     breakpoints, contenedores) viven en :root y son theme-agnósticos.
+ *   - Semánticos (--bg, --surface, --text, --accent, --border, etc.) se definen
+ *     en :root con el tema OSCURO como default (dark-first) y se sobreescriben
+ *     bajo [data-theme="light"].
+ *   - Los CSS Modules de componentes SOLO referencian tokens semánticos
+ *     (var(--surface)), nunca hex crudo ni rampas primitivas.
+ *
+ * Este archivo se importa al tope de globals.css en el plan 08-03.
+ */
+
+:root {
+  /* ============================================================
+   * PRIMITIVOS — theme-agnósticos
+   * ============================================================ */
+
+  /* --- Rampas de color: Slate neutrals --- */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+
+  /* --- Canvas (dark-first extra-dark) --- */
+  --ink-900: #0a0b0f;
+  --ink-800: #11131a;
+  --ink-700: #161922;
+  --ink-600: #1c1f2a;
+
+  /* --- Brand lime --- */
+  --lime-300: #d4f97a;
+  --lime-400: #c3f53c; /* brand accent */
+  --lime-500: #a3e635;
+  --lime-600: #84cc16;
+  --lime-700: #4d7c0f; /* lime accesible como texto sobre claro */
+
+  /* --- Severidad: Critical / red --- */
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+
+  /* --- Severidad: Warning / amber --- */
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+
+  /* --- Severidad: OK / green --- */
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+
+  /* --- Escala de espaciado (base 4px, todos múltiplos de 4) --- */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* --- Tipografía: escala de tamaños (root 16px = 1rem) --- */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-size-4xl: 36px;
+  --font-size-5xl: 48px;
+  --font-size-6xl: 60px;
+
+  /* --- Tipografía: line-heights --- */
+  --lh-tight: 1.1;
+  --lh-heading: 1.2;
+  --lh-snug: 1.35;
+  --lh-body: 1.5;
+  --lh-relaxed: 1.65;
+
+  /* --- Tipografía: pesos --- */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* --- Radios --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* --- Z-index --- */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-overlay: 1200;
+  --z-modal: 1300;
+  --z-toast: 1400;
+  --z-tooltip: 1500;
+
+  /* --- Breakpoints (min-width, mobile-first) --- */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+
+  /* --- Contenedores --- */
+  --container-max: 1200px;
+  --container-narrow: 720px;
+  --container-wide: 1440px;
+
+  /* ============================================================
+   * SEMÁNTICOS — TEMA OSCURO (default, dark-first)
+   * ============================================================ */
+
+  --bg: #0a0b0f;              /* --ink-900  · canvas de la app */
+  --surface: #11131a;        /* --ink-800  · cards, paneles, header, footer */
+  --surface-raised: #161922; /* --ink-700  · popovers, cards elevadas, inputs */
+  --surface-hover: #1c1f2a;  /* --ink-600  · hover de filas/cards */
+  --border: #1e293b;         /* --slate-800 · divisores, bordes de card */
+  --border-strong: #334155;  /* --slate-700 · bordes de input, focus containers */
+  --text: #f1f5f9;           /* --slate-100 · headings, body */
+  --text-secondary: #94a3b8; /* --slate-400 · help text, captions */
+  --text-muted: #64748b;     /* --slate-500 · disabled, placeholders */
+  --accent: #c3f53c;         /* --lime-400  · CTA fill, focus ring, nav activo */
+  --accent-hover: #d4f97a;   /* --lime-300  · hover de elementos accent */
+  --accent-foreground: #0a0b0f; /* --ink-900 · texto/icono sobre fill accent */
+  --accent-text: #c3f53c;    /* --lime-400  · links inline en superficies oscuras */
+  --critical: #ef4444;       /* --red-500   · severidad/destructivo */
+  --warning: #f59e0b;        /* --amber-500 · severidad */
+  --success: #22c55e;        /* --green-500 · severidad/positivo */
+  --ring: #c3f53c;           /* --lime-400  · outline focus-visible */
+
+  /* --- Sombras (tema oscuro: bordes + elevación tenue) --- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --shadow-focus: 0 0 0 3px rgba(195, 245, 60, 0.35);
+
+  /*
+   * Coherencia score-state ↔ severidad (DS-02):
+   * los estados de score reutilizan EXACTAMENTE los tres tokens de severidad,
+   * sin crear tokens divergentes:
+   *   good              → var(--success)
+   *   needs_improvement → var(--warning)
+   *   critical          → var(--critical)
+   * Mismos tres tokens respaldan la escala de severidad de issues y los
+   * estados de score de categorías, en ambos temas.
+   */
+}
