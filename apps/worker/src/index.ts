@@ -255,14 +255,29 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
 
   const startUrl = `https://${audit.site.domain}`;
   let lastStatsWriteAt = 0;
+  let lastCrawlProgress = { discovered: 0, crawled: 0, total: audit.urlLimit };
 
   async function onProgress(progress: { discovered: number; crawled: number; total: number }): Promise<void> {
+    lastCrawlProgress = progress;
     const now = Date.now();
     if (now - lastStatsWriteAt < PROGRESS_WRITE_THROTTLE_MS) return;
     lastStatsWriteAt = now;
     await prisma.audit.update({
       where: { id: auditId },
-      data: { stats: progress },
+      data: { stats: { ...progress, phase: "crawling" } },
+    });
+  }
+
+  /**
+   * The crawl reports live per-page progress, but the check + performance
+   * passes are long and silent — without a phase marker the UI looks frozen
+   * at the last crawl count. Stamp the current phase so the report can show
+   * "Analizando…" / "Midiendo rendimiento…" instead of a stuck progress bar.
+   */
+  async function writePhase(phase: "analyzing" | "performance"): Promise<void> {
+    await prisma.audit.update({
+      where: { id: auditId },
+      data: { stats: { ...lastCrawlProgress, phase } },
     });
   }
 
@@ -292,6 +307,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       discoverSitemapUrls(origin),
     ]);
 
+    await writePhase("analyzing");
     const { issues: issueDrafts, pageSchemaGraphs } = await runAllChecks({
       pages,
       origin,
@@ -306,6 +322,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     let perfIssues: PerfIssueDraft[] = [];
     let perfSummary: PerfSampleSummary;
     try {
+      await writePhase("performance");
       const perfResult = await runPerfSample(auditId, pages);
       perfIssues = perfResult.issues;
       perfSummary = perfResult.summary;

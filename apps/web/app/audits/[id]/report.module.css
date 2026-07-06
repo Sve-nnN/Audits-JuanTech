@@ -443,3 +443,18 @@
   margin-top: 24px;
   font-size: 14px;
 }
+
+/* Detalle por categoría: subgrupos Problemas / Correcto */
+.subGroupTitle {
+  margin: 14px 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.subGroupEmpty {
+  margin: 0 0 8px;
+  font-size: 13px;
+  opacity: 0.6;
+}

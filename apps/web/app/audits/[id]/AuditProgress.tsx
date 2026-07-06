@@ -8,7 +8,14 @@ interface AuditStats {
   crawled?: number;
   total?: number;
   failed?: number;
+  phase?: "crawling" | "analyzing" | "performance";
 }
+
+const PHASE_LABEL: Record<string, string> = {
+  crawling: "Rastreando páginas…",
+  analyzing: "Analizando checks (SEO técnico, on-page, datos estructurados, AEO)…",
+  performance: "Midiendo rendimiento y Core Web Vitals (PageSpeed Insights)…",
+};
 
 interface AuditPollResponse {
   status: "queued" | "running" | "done" | "failed";
@@ -54,11 +61,23 @@ export function AuditProgress({ auditId }: { auditId: string }) {
           puede tardar varios minutos en sitios grandes.
         </p>
         {stats && (
-          <p style={{ marginTop: 10, fontSize: 14 }}>
-            {stats.crawled ?? 0}/{stats.total ?? "?"} páginas rastreadas
-            {typeof stats.discovered === "number" ? ` · ${stats.discovered} descubiertas` : ""}
-            {typeof stats.failed === "number" && stats.failed > 0 ? ` · ${stats.failed} fallidas` : ""}
-          </p>
+          <>
+            <p style={{ marginTop: 14, fontSize: 15, fontWeight: 600 }}>
+              {PHASE_LABEL[stats.phase ?? "crawling"] ?? "Procesando…"}
+            </p>
+            {stats.phase === "analyzing" || stats.phase === "performance" ? (
+              <p style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
+                Ya rastreamos {stats.crawled ?? 0} página(s). Esta etapa no tiene barra de progreso
+                y puede tardar un poco; no cierres la página.
+              </p>
+            ) : (
+              <p style={{ marginTop: 6, fontSize: 14 }}>
+                {stats.crawled ?? 0}/{stats.total ?? "?"} páginas rastreadas
+                {typeof stats.discovered === "number" ? ` · ${stats.discovered} descubiertas` : ""}
+                {typeof stats.failed === "number" && stats.failed > 0 ? ` · ${stats.failed} fallidas` : ""}
+              </p>
+            )}
+          </>
         )}
         {poll?.status === "failed" && (
           <p style={{ marginTop: 10, color: "#dc2626" }}>Error: {poll.error ?? "la auditoría falló"}</p>

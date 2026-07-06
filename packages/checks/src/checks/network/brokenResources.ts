@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import { normalizeUrl } from "@auditor/crawler";
 import type { IssueDraft, NetworkCheck } from "../../types";
 import { siteFingerprint } from "../../util";
-import { checkLinks } from "./linkChecker";
+import { checkLinks, MAX_URLS_PER_NETWORK_CHECK } from "./linkChecker";
 
 const CHECK_ID = "TECH-13";
 
@@ -35,10 +35,26 @@ export const brokenResourcesCheck: NetworkCheck = {
 
     if (resources.size === 0) return [];
 
-    const urls = Array.from(resources.keys());
+    const allUrls = Array.from(resources.keys());
+    const urls = allUrls.slice(0, MAX_URLS_PER_NETWORK_CHECK);
     const results = await checkLinks(urls);
 
     const issues: IssueDraft[] = [];
+
+    if (allUrls.length > urls.length) {
+      issues.push({
+        checkId: CHECK_ID,
+        category: "tech",
+        title: "Verificación de recursos limitada",
+        severity: "ok",
+        measuredValue: `Se verificaron ${urls.length} de ${allUrls.length} recursos únicos`,
+        source: "",
+        criterion: "En el plan gratuito se verifica una muestra de recursos para acotar el tiempo de auditoría",
+        recommendation: "Sin acción necesaria. El resto de los recursos se verificarán en próximas auditorías o en un plan superior.",
+        fingerprint: siteFingerprint(CHECK_ID, "resources-capped"),
+        scope: "resources-capped",
+      });
+    }
     for (const result of results) {
       if (result.ok) continue;
       const sourcePage = resources.get(result.url) ?? "";

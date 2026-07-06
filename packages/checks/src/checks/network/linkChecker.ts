@@ -1,5 +1,12 @@
-const REQUEST_TIMEOUT_MS = 8_000;
-const CONCURRENCY = 5;
+const REQUEST_TIMEOUT_MS = 5_000;
+const CONCURRENCY = 12;
+/**
+ * Hard cap on how many unique URLs a single network check will probe. On a
+ * large crawl (hundreds of pages) the unique external-link / resource set can
+ * be huge; probing every one (HEAD+GET, with timeouts) can take many minutes
+ * and makes the audit look hung. Callers slice to this and report the cap.
+ */
+export const MAX_URLS_PER_NETWORK_CHECK = 150;
 
 export type LinkCheckResult =
   | { url: string; ok: true; status: number }

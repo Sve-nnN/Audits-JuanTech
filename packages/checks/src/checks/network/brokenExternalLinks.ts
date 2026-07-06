@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import { normalizeUrl, sameRegistrableDomain } from "@auditor/crawler";
 import type { IssueDraft, NetworkCheck } from "../../types";
 import { siteFingerprint } from "../../util";
-import { checkLinks } from "./linkChecker";
+import { checkLinks, MAX_URLS_PER_NETWORK_CHECK } from "./linkChecker";
 
 const CHECK_ID = "TECH-12";
 
@@ -28,10 +28,27 @@ export const brokenExternalLinksCheck: NetworkCheck = {
 
     if (externalLinks.size === 0) return [];
 
-    const urls = Array.from(externalLinks.keys());
+    const allUrls = Array.from(externalLinks.keys());
+    const urls = allUrls.slice(0, MAX_URLS_PER_NETWORK_CHECK);
     const results = await checkLinks(urls);
 
     const issues: IssueDraft[] = [];
+
+    // No silent truncation: if we capped, say so as an informational note.
+    if (allUrls.length > urls.length) {
+      issues.push({
+        checkId: CHECK_ID,
+        category: "tech",
+        title: "Verificación de enlaces externos limitada",
+        severity: "ok",
+        measuredValue: `Se verificaron ${urls.length} de ${allUrls.length} enlaces externos únicos`,
+        source: origin,
+        criterion: "En el plan gratuito se verifica una muestra de enlaces externos para acotar el tiempo de auditoría",
+        recommendation: "Sin acción necesaria. El resto de los enlaces se verificarán en próximas auditorías o en un plan superior.",
+        fingerprint: siteFingerprint(CHECK_ID, "external-links-capped"),
+        scope: "external-links-capped",
+      });
+    }
     for (const result of results) {
       if (result.ok) continue;
       const sourcePage = externalLinks.get(result.url) ?? origin;

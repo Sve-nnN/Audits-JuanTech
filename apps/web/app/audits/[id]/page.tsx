@@ -112,6 +112,28 @@ function formatPerfNumber(value: number | null, unit: string): string {
   return `${value}${unit}`;
 }
 
+/**
+ * The URL an issue is about. Page-level checks put the page URL in `source`;
+ * some checks append " (enlazado desde X)" — keep just the leading URL. Falls
+ * back to `scope`. Returned as a compact path for the table.
+ */
+function issueUrl(issue: { source: string | null; scope: string | null }): string | null {
+  const raw = issue.source ?? issue.scope ?? null;
+  if (!raw) return null;
+  const firstToken = raw.split(" ")[0] ?? raw;
+  return firstToken;
+}
+
+function shortUrl(url: string | null): string {
+  if (!url) return "—";
+  try {
+    const u = new URL(url);
+    return (u.pathname + u.search) || "/";
+  } catch {
+    return url.length > 48 ? `${url.slice(0, 48)}…` : url;
+  }
+}
+
 export default async function AuditReportPage({ params }: PageProps) {
   const { id: auditId } = await params;
 
@@ -284,6 +306,7 @@ export default async function AuditReportPage({ params }: PageProps) {
                   <tr>
                     <th>Categoría</th>
                     <th>Issue</th>
+                    <th>Página</th>
                     <th>Severidad</th>
                     <th>Valor medido</th>
                     <th>Estado</th>
@@ -296,29 +319,41 @@ export default async function AuditReportPage({ params }: PageProps) {
                       (a, b) =>
                         (SEVERITY_SORT_WEIGHT[a.severity] ?? 99) - (SEVERITY_SORT_WEIGHT[b.severity] ?? 99)
                     )
-                    .map((issue) => (
-                      <tr key={issue.id}>
-                        <td className={styles.categoryTag}>
-                          {CATEGORY_LABEL[issue.category as Category] ?? issue.category}
-                        </td>
-                        <td>{issue.title}</td>
-                        <td>
-                          <span className={`${styles.badge} ${SEVERITY_BADGE_CLASS[issue.severity]}`}>
-                            {SEVERITY_LABEL[issue.severity]}
-                          </span>
-                        </td>
-                        <td>{issue.measuredValue ?? "—"}</td>
-                        <td>
-                          {issue.diffStatus ? (
-                            <span className={`${styles.badge} ${DIFF_BADGE_CLASS[issue.diffStatus]}`}>
-                              {DIFF_LABEL[issue.diffStatus]}
+                    .map((issue) => {
+                      const url = issueUrl(issue);
+                      return (
+                        <tr key={issue.id}>
+                          <td className={styles.categoryTag}>
+                            {CATEGORY_LABEL[issue.category as Category] ?? issue.category}
+                          </td>
+                          <td>{issue.title}</td>
+                          <td>
+                            {url && url.startsWith("http") ? (
+                              <a href={url} target="_blank" rel="noreferrer" title={url}>
+                                {shortUrl(url)}
+                              </a>
+                            ) : (
+                              <span title={url ?? undefined}>{shortUrl(url)}</span>
+                            )}
+                          </td>
+                          <td>
+                            <span className={`${styles.badge} ${SEVERITY_BADGE_CLASS[issue.severity]}`}>
+                              {SEVERITY_LABEL[issue.severity]}
                             </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td>{issue.measuredValue ?? "—"}</td>
+                          <td>
+                            {issue.diffStatus ? (
+                              <span className={`${styles.badge} ${DIFF_BADGE_CLASS[issue.diffStatus]}`}>
+                                {DIFF_LABEL[issue.diffStatus]}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
               {totalPriorityCandidates > priorityIssues.length && (
@@ -380,53 +415,90 @@ export default async function AuditReportPage({ params }: PageProps) {
           )}
         </section>
 
-        {/* Detalle por categoría */}
+        {/* Detalle por categoría — separado en Problemas vs Correcto */}
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>Detalle por categoría</h3>
           {CATEGORY_ORDER.map((category) => {
             const issues = issuesByCategory.get(category) ?? [];
             if (issues.length === 0) return null;
+            const problems = issues.filter((i) => i.severity === "critical" || i.severity === "warning");
+            const passing = issues.filter((i) => i.severity === "ok");
+
+            const renderIssue = (issue: (typeof issues)[number]) => {
+              const url = issueUrl(issue);
+              return (
+                <div key={issue.id} className={styles.issueDetail}>
+                  <div className={styles.issueHeader}>
+                    <span className={styles.issueTitle}>
+                      [{issue.checkId}] {issue.title}
+                    </span>
+                    <span className={`${styles.badge} ${SEVERITY_BADGE_CLASS[issue.severity]}`}>
+                      {SEVERITY_LABEL[issue.severity]}
+                    </span>
+                    {issue.diffStatus && (
+                      <span className={`${styles.badge} ${DIFF_BADGE_CLASS[issue.diffStatus]}`}>
+                        {DIFF_LABEL[issue.diffStatus]}
+                      </span>
+                    )}
+                  </div>
+                  <dl className={styles.issueFields}>
+                    <div className={styles.issueField}>
+                      <dt>Página / URL</dt>
+                      <dd>
+                        {url && url.startsWith("http") ? (
+                          <a href={url} target="_blank" rel="noreferrer">
+                            {url}
+                          </a>
+                        ) : (
+                          url ?? "—"
+                        )}
+                      </dd>
+                    </div>
+                    <div className={styles.issueField}>
+                      <dt>Valor medido</dt>
+                      <dd>{issue.measuredValue ?? "—"}</dd>
+                    </div>
+                    <div className={styles.issueField}>
+                      <dt>Criterio</dt>
+                      <dd>{issue.criterion ?? "—"}</dd>
+                    </div>
+                    <div className={styles.issueField}>
+                      <dt>Recomendación</dt>
+                      <dd>{issue.recommendation ?? "—"}</dd>
+                    </div>
+                  </dl>
+                </div>
+              );
+            };
+
             return (
               <details key={category} className={styles.categoryGroup}>
                 <summary className={styles.categoryGroupSummary}>
                   <span>{CATEGORY_LABEL[category]}</span>
-                  <span className={styles.categoryGroupCount}>{issues.length} hallazgo(s)</span>
+                  <span className={styles.categoryGroupCount}>
+                    {problems.length} problema(s) · {passing.length} correcto(s)
+                  </span>
                 </summary>
-                {issues.map((issue) => (
-                  <div key={issue.id} className={styles.issueDetail}>
-                    <div className={styles.issueHeader}>
-                      <span className={styles.issueTitle}>
-                        [{issue.checkId}] {issue.title}
-                      </span>
-                      <span className={`${styles.badge} ${SEVERITY_BADGE_CLASS[issue.severity]}`}>
-                        {SEVERITY_LABEL[issue.severity]}
-                      </span>
-                      {issue.diffStatus && (
-                        <span className={`${styles.badge} ${DIFF_BADGE_CLASS[issue.diffStatus]}`}>
-                          {DIFF_LABEL[issue.diffStatus]}
-                        </span>
-                      )}
-                    </div>
-                    <dl className={styles.issueFields}>
-                      <div className={styles.issueField}>
-                        <dt>Valor medido</dt>
-                        <dd>{issue.measuredValue ?? "—"}</dd>
-                      </div>
-                      <div className={styles.issueField}>
-                        <dt>Fuente</dt>
-                        <dd>{issue.source ?? issue.scope ?? "—"}</dd>
-                      </div>
-                      <div className={styles.issueField}>
-                        <dt>Criterio</dt>
-                        <dd>{issue.criterion ?? "—"}</dd>
-                      </div>
-                      <div className={styles.issueField}>
-                        <dt>Recomendación</dt>
-                        <dd>{issue.recommendation ?? "—"}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                ))}
+
+                <h4 className={styles.subGroupTitle}>
+                  <span className={`${styles.badge} ${styles.severityCritical}`}>Problemas</span>{" "}
+                  {problems.length}
+                </h4>
+                {problems.length === 0 ? (
+                  <p className={styles.subGroupEmpty}>Sin problemas en esta categoría.</p>
+                ) : (
+                  problems.map(renderIssue)
+                )}
+
+                <h4 className={styles.subGroupTitle}>
+                  <span className={`${styles.badge} ${styles.severityOk}`}>Correcto</span>{" "}
+                  {passing.length}
+                </h4>
+                {passing.length === 0 ? (
+                  <p className={styles.subGroupEmpty}>Sin checks marcados como correctos.</p>
+                ) : (
+                  passing.map(renderIssue)
+                )}
               </details>
             );
           })}
