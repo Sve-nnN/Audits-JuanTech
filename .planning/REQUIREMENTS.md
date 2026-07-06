@@ -29,7 +29,7 @@
 - [x] **COMP-03**: Badges de severidad y de diff (nuevo/persistente/resuelto) reutilizables
 - [x] **COMP-04**: Tabla de issues responsive (colapsa/scrollea en móvil) con columna de URL clickeable
 - [ ] **COMP-05**: Acordeón de detalle por categoría (problemas vs correctos) pulido
-- [ ] **COMP-06**: Botones, inputs y formularios con estados (hover/focus/disabled/error) accesibles
+- [x] **COMP-06**: Botones, inputs y formularios con estados (hover/focus/disabled/error) accesibles
 - [ ] **COMP-07**: Estados vacíos y de error con copy claro e ilustración/ícono
 - [x] **COMP-08**: Skeletons/placeholders de carga para vistas que esperan datos
 
@@ -91,7 +91,7 @@
 | COMP-03 | Phase 9 | Complete |
 | COMP-04 | Phase 9 | Complete |
 | COMP-05 | Phase 9 | Pending |
-| COMP-06 | Phase 9 | Pending |
+| COMP-06 | Phase 9 | Complete |
 | COMP-07 | Phase 9 | Pending |
 | COMP-08 | Phase 9 | Complete |
 | SCREEN-01 | Phase 10 | Pending |
