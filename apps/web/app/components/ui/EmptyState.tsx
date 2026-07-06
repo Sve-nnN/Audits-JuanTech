@@ -26,6 +26,12 @@ interface StateMessageProps {
   title?: string;
   /** Descripción. Si se omite, usa el placeholder voceo-free por variante. */
   description?: string;
+  /**
+   * Nivel del heading del título (aria-level). Default 2. Permite anidar el
+   * estado dentro de secciones del reporte (p. ej. paneles de categoría con
+   * h3/h4) sin romper la jerarquía monotónica de encabezados.
+   */
+  titleLevel?: 2 | 3;
   /** Acción opcional (renderiza un Button). */
   action?: StateAction;
 }
@@ -60,7 +66,8 @@ const DEFAULT_COPY: Record<
  * Accesibilidad:
  *   - El ícono es `aria-hidden` (el texto porta el significado).
  *   - Contenedor `role="status"` (empty) o `role="alert"` (error, anuncia fallo).
- *   - El título es un heading (`role="heading"` nivel 2) para el árbol de a11y.
+ *   - El título es un heading (`role="heading"`, nivel configurable vía
+ *     `titleLevel`, default 2) para el árbol de a11y.
  *   - La acción es un Button real con anillo de foco visible.
  */
 export function EmptyState({
@@ -68,6 +75,7 @@ export function EmptyState({
   icon,
   title,
   description,
+  titleLevel = 2,
   action,
 }: StateMessageProps) {
   const isError = variant === "error";
@@ -145,7 +153,7 @@ export function EmptyState({
       <span className={styles.chip} aria-hidden="true">
         <Icon size={32} />
       </span>
-      <p className={styles.title} role="heading" aria-level={2}>
+      <p className={styles.title} role="heading" aria-level={titleLevel}>
         {resolvedTitle}
       </p>
       {resolvedDescription ? (
