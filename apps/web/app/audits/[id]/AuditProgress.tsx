@@ -43,9 +43,15 @@ export function AuditProgress({ auditId }: { auditId: string }) {
       if (!res.ok) return;
       const data: AuditPollResponse = await res.json();
       setPoll(data);
-      if (data.status === "done" || data.status === "failed") {
+      if (data.status === "done") {
         if (intervalRef.current) clearInterval(intervalRef.current);
         window.location.reload();
+      } else if (data.status === "failed") {
+        // Terminal, pero mantenemos la SPA: paramos el polling y dejamos que el
+        // componente renderice su rama de error (role="alert"). Recargar aquí
+        // volvería a montar AuditProgress (page.tsx renderiza este componente
+        // para cualquier status !== "done") y crearía un bucle de recargas.
+        if (intervalRef.current) clearInterval(intervalRef.current);
       }
     }
     void tick();
