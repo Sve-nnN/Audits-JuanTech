@@ -253,9 +253,11 @@ export default async function AuditReportPage({ params }: PageProps) {
                 Promedio ponderado de SEO técnico, rendimiento, on-page, datos estructurados y
                 AEO, calculado con los hallazgos de esta auditoría.
               </p>
-              <Badge variant={STATUS_BADGE_VARIANT[overallStatus]}>
-                {STATUS_LABEL[overallStatus]}
-              </Badge>
+              {scores ? (
+                <Badge variant={STATUS_BADGE_VARIANT[overallStatus]}>
+                  {STATUS_LABEL[overallStatus]}
+                </Badge>
+              ) : null}
             </div>
           </div>
         </Reveal>
