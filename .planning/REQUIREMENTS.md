@@ -24,10 +24,10 @@
 
 ### Componentes (COMP)
 
-- [ ] **COMP-01**: Score gauge/círculo del score general con color por estado y número legible
-- [ ] **COMP-02**: Cards por categoría (score + estado + etiqueta) consistentes
-- [ ] **COMP-03**: Badges de severidad y de diff (nuevo/persistente/resuelto) reutilizables
-- [ ] **COMP-04**: Tabla de issues responsive (colapsa/scrollea en móvil) con columna de URL clickeable
+- [x] **COMP-01**: Score gauge/círculo del score general con color por estado y número legible
+- [x] **COMP-02**: Cards por categoría (score + estado + etiqueta) consistentes
+- [x] **COMP-03**: Badges de severidad y de diff (nuevo/persistente/resuelto) reutilizables
+- [x] **COMP-04**: Tabla de issues responsive (colapsa/scrollea en móvil) con columna de URL clickeable
 - [ ] **COMP-05**: Acordeón de detalle por categoría (problemas vs correctos) pulido
 - [ ] **COMP-06**: Botones, inputs y formularios con estados (hover/focus/disabled/error) accesibles
 - [ ] **COMP-07**: Estados vacíos y de error con copy claro e ilustración/ícono
@@ -86,10 +86,10 @@
 | DS-02 | Phase 8 | Complete |
 | DS-03 | Phase 8 | Complete |
 | DS-04 | Phase 8 | Complete |
-| COMP-01 | Phase 9 | Pending |
-| COMP-02 | Phase 9 | Pending |
-| COMP-03 | Phase 9 | Pending |
-| COMP-04 | Phase 9 | Pending |
+| COMP-01 | Phase 9 | Complete |
+| COMP-02 | Phase 9 | Complete |
+| COMP-03 | Phase 9 | Complete |
+| COMP-04 | Phase 9 | Complete |
 | COMP-05 | Phase 9 | Pending |
 | COMP-06 | Phase 9 | Pending |
 | COMP-07 | Phase 9 | Pending |
