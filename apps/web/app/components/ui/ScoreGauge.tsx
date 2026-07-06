@@ -1,8 +1,7 @@
 "use client";
 
+import type { ScoreStatus } from "@auditor/scoring";
 import styles from "./ScoreGauge.module.css";
-
-type ScoreStatus = "good" | "needs_improvement" | "critical" | null;
 
 interface ScoreGaugeProps {
   /** Valor 0–max. `null` → estado "sin datos" (solo track, guion). */
@@ -10,7 +9,7 @@ interface ScoreGaugeProps {
   /** Máximo de la escala. Default 100. */
   max?: number;
   /** Estado semántico que colorea el arco. `null` → color muted. */
-  status: ScoreStatus;
+  status: ScoreStatus | null;
   /** md=96px (categoría) · lg=132px (hero general). Default "lg". */
   size?: "md" | "lg";
   /** Caption opcional debajo del número (Geist Sans 14). */

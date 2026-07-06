@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import type { ScoreStatus } from "@auditor/scoring";
 import styles from "./CategoryCard.module.css";
-
-type ScoreStatus = "good" | "needs_improvement" | "critical" | null;
 
 interface CategoryCardProps {
   /** Nombre de la categoría, p. ej. "SEO Técnico". */
@@ -11,7 +10,7 @@ interface CategoryCardProps {
   /** Score 0–100. `null` → estado "sin datos" (guion muted). */
   score: number | null;
   /** Estado semántico que colorea score y caption. */
-  status: ScoreStatus;
+  status: ScoreStatus | null;
   /** Texto del estado, p. ej. "Bueno" | "Necesita mejora" | "Crítico". */
   statusLabel?: string;
   /** Si se provee, toda la card se vuelve un único enlace. */
