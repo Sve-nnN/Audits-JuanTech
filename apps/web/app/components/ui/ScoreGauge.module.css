@@ -1,0 +1,111 @@
+/*
+ * ScoreGauge.module.css — anillo circular de score (COMP-01).
+ * Solo tokens semánticos (DS-01/DS-02), CSP-safe, sin hex crudo.
+ * Clases camelCase de una palabra. El arco toma su color de la clase de estado
+ * en el wrapper (currentColor). Motion-ready: --gauge-offset sin transition.
+ */
+
+.root {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gauge {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.lg .gauge {
+  width: 132px;
+  height: 132px;
+}
+
+.md .gauge {
+  width: 96px;
+  height: 96px;
+}
+
+.svg {
+  display: block;
+}
+
+.track {
+  fill: none;
+  stroke: var(--border);
+}
+
+.arc {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-dashoffset: var(--gauge-offset);
+}
+
+/* Estado → color del arco (reusa los tokens de severidad). */
+.good {
+  color: var(--success);
+}
+
+.needs_improvement {
+  color: var(--warning);
+}
+
+.critical {
+  color: var(--critical);
+}
+
+.unknown {
+  color: var(--text-muted);
+}
+
+.readout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.number {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  color: var(--text);
+}
+
+.lg .number {
+  font-size: var(--font-size-5xl);
+}
+
+.md .number {
+  font-size: var(--font-size-2xl);
+}
+
+.max {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.caption {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/*
+ * Motion-ready: aún sin animación viva. Se deja el guard listo para la Fase 10;
+ * el offset se entrega estático (sin transition) también con reduced-motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .arc {
+    transition: none;
+  }
+}
