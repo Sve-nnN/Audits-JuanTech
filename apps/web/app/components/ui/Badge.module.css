@@ -1,0 +1,66 @@
+/*
+ * Badge.module.css — pill de severidad/diff (COMP-03).
+ * Solo tokens semánticos (DS-01), CSP-safe, sin hex crudo (color-mix sobre
+ * token permitido). Clases camelCase de una palabra. Soft-fills `--sev-*`
+ * locales a `.badge` para que el primitivo sea self-contained.
+ */
+
+.badge {
+  /* Fondos suaves de severidad derivados por transparencia sobre el token de
+   * color, locales al badge para no depender del scope de la página. */
+  --sev-good-bg: color-mix(in srgb, var(--success) 12%, transparent);
+  --sev-warn-bg: color-mix(in srgb, var(--warning) 12%, transparent);
+  --sev-critical-bg: color-mix(in srgb, var(--critical) 12%, transparent);
+  --sev-info-bg: color-mix(in srgb, var(--accent-text) 12%, transparent);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.critical {
+  color: var(--critical);
+  background: var(--sev-critical-bg);
+}
+
+.warning {
+  color: var(--warning);
+  background: var(--sev-warn-bg);
+}
+
+.ok {
+  color: var(--success);
+  background: var(--sev-good-bg);
+}
+
+.new {
+  color: var(--accent-text);
+  background: var(--sev-info-bg);
+}
+
+.persistent {
+  color: var(--text-secondary);
+  background: var(--surface-hover);
+}
+
+.resolved {
+  color: var(--success);
+  background: var(--sev-good-bg);
+}
+
+.info {
+  color: var(--accent-text);
+  background: var(--sev-info-bg);
+}
+
+.neutral {
+  color: var(--text-secondary);
+  background: var(--surface-hover);
+}
