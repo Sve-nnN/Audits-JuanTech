@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle, Inbox, type LucideIcon } from "lucide-react";
 import { Button } from "./Button";
+import buttonStyles from "./Button.module.css";
 import styles from "./EmptyState.module.css";
 
 type StateVariant = "empty" | "error";
@@ -73,14 +75,65 @@ export function EmptyState({
   const Icon = icon ?? copy.icon;
   const resolvedTitle = title ?? copy.title;
   const resolvedDescription = description ?? copy.description;
+  const buttonVariant = isError ? "secondary" : "primary";
 
-  const handleAction = action?.onClick
-    ? action.onClick
-    : action?.href
-      ? () => {
-          window.location.assign(action.href as string);
-        }
-      : undefined;
+  /**
+   * Renderiza la acción opcional respetando el router de Next:
+   *   - `onClick` → `<Button>` real (precedencia sobre `href`).
+   *   - `href` interno (empieza con "/") → `<Link>` estilizado como Button
+   *     (navegación SPA, sin recarga completa ni pérdida de estado).
+   *   - `href` externo http(s) → `<a target="_blank" rel="noreferrer">`.
+   *   - Cualquier otro esquema (javascript:, data:, mailto:, etc.) se descarta
+   *     por seguridad: no se renderiza la acción.
+   */
+  const renderAction = () => {
+    if (!action) return null;
+
+    if (action.onClick) {
+      return (
+        <Button variant={buttonVariant} onClick={action.onClick}>
+          {action.label}
+        </Button>
+      );
+    }
+
+    if (action.href) {
+      const href = action.href;
+      const buttonClassName = [
+        buttonStyles.button,
+        buttonStyles.md,
+        buttonStyles[buttonVariant],
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      if (href.startsWith("/")) {
+        return (
+          <Link href={href} className={buttonClassName}>
+            {action.label}
+          </Link>
+        );
+      }
+
+      if (/^https?:\/\//i.test(href)) {
+        return (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className={buttonClassName}
+          >
+            {action.label}
+          </a>
+        );
+      }
+
+      // Esquema no permitido: se omite la acción (evita vector javascript:).
+      return null;
+    }
+
+    return null;
+  };
 
   return (
     <div
@@ -98,14 +151,7 @@ export function EmptyState({
       {resolvedDescription ? (
         <p className={styles.description}>{resolvedDescription}</p>
       ) : null}
-      {action ? (
-        <Button
-          variant={isError ? "secondary" : "primary"}
-          onClick={handleAction}
-        >
-          {action.label}
-        </Button>
-      ) : null}
+      {renderAction()}
     </div>
   );
 }
