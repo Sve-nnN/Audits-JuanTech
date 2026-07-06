@@ -56,9 +56,9 @@
 
 ### Accesibilidad y responsive (A11Y)
 
-- [ ] **A11Y-01**: Todas las pantallas responsive (móvil, tablet, desktop) sin overflow horizontal
-- [ ] **A11Y-02**: Contraste AA en ambos temas, foco visible, roles/labels ARIA donde corresponde
-- [ ] **A11Y-03**: Navegación por teclado funcional (acordeones, toggle de tema, formularios)
+- [x] **A11Y-01**: Todas las pantallas responsive (móvil, tablet, desktop) sin overflow horizontal
+- [x] **A11Y-02**: Contraste AA en ambos temas, foco visible, roles/labels ARIA donde corresponde
+- [x] **A11Y-03**: Navegación por teclado funcional (acordeones, toggle de tema, formularios)
 
 ## Future Requirements
 
@@ -106,9 +106,9 @@
 | MOTION-01 | Phase 10 | Complete |
 | MOTION-02 | Phase 10 | Complete |
 | MOTION-03 | Phase 10 | Complete |
-| A11Y-01 | Phase 10 | Pending |
-| A11Y-02 | Phase 10 | Pending |
-| A11Y-03 | Phase 10 | Pending |
+| A11Y-01 | Phase 10 | Complete |
+| A11Y-02 | Phase 10 | Complete |
+| A11Y-03 | Phase 10 | Complete |
 
 **Coverage:**
 

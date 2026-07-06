@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: completed
-stopped_at: Completed 10-04-PLAN.md (SCREEN-03 progreso de auditoría re-skineado + tokenizado)
-last_updated: "2026-07-06T16:04:21.070Z"
-last_activity: 2026-07-06 — Plan 10-04 ejecutado (SCREEN-03 progreso de auditoría)
+stopped_at: Completed 10-08-PLAN.md (barrido final A11Y/responsive/motion)
+last_updated: "2026-07-06T16:20:00.000Z"
+last_activity: 2026-07-06 — Plan 10-08 ejecutado (sweep A11Y/responsive/motion + skip-to-content)
 progress:
   total_phases: 10
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 26
-  completed_plans: 25
-  percent: 90
+  completed_plans: 26
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 
 ## Current Position
 
-Phase: Phase 10 (Pantallas rediseñadas, copy, motion, a11y) — Wave 2 en curso
-Plan: 10-04 (SCREEN-03, progreso de auditoría) completado. Barra de 3 fases animada + tokenización DS-01 + copy neutro + a11y, poll de v1.0 intacto.
-Status: Progreso de auditoría re-skineado (SCREEN-03/MOTION-02): progress.module.css propio (desacoplado de report.module.css), stepper de 3 fases con fill determinado en crawling y shimmer indeterminado en analyzing/performance, role=progressbar + aria-live + role=alert, guard prefers-reduced-motion, copy neutro sin voceo. Poll (setInterval 2500ms + reload en done/failed) preservado verbatim. typecheck verde.
-Last activity: 2026-07-06 — Plan 10-04 ejecutado (SCREEN-03 progreso de auditoría)
+Phase: Phase 10 (Pantallas rediseñadas, copy, motion, a11y) — Wave 3 (sweep final)
+Plan: 10-08 (A11Y/responsive/motion sweep) completado. Auditoría cruzada de las 6 pantallas contra la barra de aceptación A11Y del UI-SPEC + 2 fixes puntuales.
+Status: Sweep A11Y/responsive/motion cerrado: skip-to-content global en layout (visually hidden hasta foco, salta a #main-content) y breadcrumb de pages a --accent-text (contraste AA). El resto de la barra ya la cumplían las olas previas (regiones de scroll enfocables, grafo responsive, cero hex crudo, reduced-motion net + por primitiva). typecheck + build verdes (12 rutas). Checkpoint pixel-perfect de Juan auto-aprobado en AUTO_MODE.
+Last activity: 2026-07-06 — Plan 10-08 ejecutado (sweep A11Y/responsive/motion)
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Last activity: 2026-07-06 — Plan 10-04 ejecutado (SCREEN-03 progreso de audito
 | Phase 10 P03 | ~5 min | 2 tasks | 3 files |
 | Phase 10 P02 | ~35 min | 1 task | 2 files |
 | Phase 10 P05 | ~20m | 2 tasks | 4 files |
+| Phase 10 P08 | ~12 min | 1 task | 3 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,7 @@ Recent decisions affecting current work:
 - [Phase 10]: 10-02: Home SCREEN-01 re-skineado con clases nuevas (.home/.shell/.hero/.flowCard); clases legacy de home.module.css preservadas para History; foco de paso por document.getElementById (Input no expone ref); dead-space fix sin centrado al viewport; copy neutro exacto del UI-SPEC.
 - [Phase ?]: 10-03: SCREEN-02 verify desacoplado de home.module.css (verify.module.css propio); 4 estados con Button/ErrorState de Fase 9; copy neutro sin voceo; POST /api/verify preservado
 - [Phase ?]: Report gauge count-up feeds interpolated value into ScoreGauge; reduced-motion final value
+- [Phase 10]: 10-08: skip-to-content global en layout (no solo reporte); breadcrumb de pages a --accent-text; barra A11Y/responsive/motion validada en las 6 pantallas
 
 ### Pending Todos
 
@@ -111,6 +113,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06T16:04:09.190Z
-Stopped at: Completed 10-04-PLAN.md (SCREEN-03 progreso de auditoría re-skineado + tokenizado)
+Last session: 2026-07-06T16:20:00.000Z
+Stopped at: Completed 10-08-PLAN.md (barrido final A11Y/responsive/motion)
 Resume file: None

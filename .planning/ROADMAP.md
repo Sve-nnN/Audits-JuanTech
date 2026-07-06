@@ -24,7 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Verificación de email, cuota y compuerta de lanzamiento** - Double opt-in, normalización, rate limiting y persistencia de historial (completed 2026-07-06)
 - [x] **Phase 8: Fundamentos de marca — fuentes y design system** - Tipografía de marca (Array/Khand/Geist), tokens de diseño y theming claro/oscuro sin flash (completed 2026-07-06)
 - [x] **Phase 9: Librería de componentes** - Score gauge, cards, badges, tabla de issues, acordeones, formularios, estados vacíos y skeletons pulidos y reutilizables (completed 2026-07-06)
-- [ ] **Phase 10: Pantallas rediseñadas, copy, motion y accesibilidad** - Todas las pantallas ensambladas con copy humanizado, motion sutil y accesibilidad/responsive validados
+- [x] **Phase 10: Pantallas rediseñadas, copy, motion y accesibilidad** - Todas las pantallas ensambladas con copy humanizado, motion sutil y accesibilidad/responsive validados (completed 2026-07-06)
 
 ## Phase Details
 
@@ -210,7 +210,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 10-05-PLAN.md — SCREEN-04 Reporte: gauge/cards/tabla/accordion Fase 9 + count-up + reveals (mayor)
 - [x] 10-06-PLAN.md — SCREEN-05 Páginas + grafo de entidades tokenizado (DS-01)
 - [x] 10-07-PLAN.md — SCREEN-06 Historial: form/tabla Fase 9 + history.module.css propio + locale es
-- [ ] 10-08-PLAN.md — Barrido A11Y/responsive + sign-off pixel-perfect (A11Y-01/02/03, MOTION-03)
+- [x] 10-08-PLAN.md — Barrido A11Y/responsive + sign-off pixel-perfect (A11Y-01/02/03, MOTION-03)
 
 **UI hint**: yes
 
@@ -230,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 1/1 | Complete   | 2026-07-06 |
 | 8. Fundamentos de marca — fuentes y design system | 5/5 | Complete   | 2026-07-06 |
 | 9. Librería de componentes | 6/6 | Complete   | 2026-07-06 |
-| 10. Pantallas rediseñadas, copy, motion y accesibilidad | 7/8 | In Progress|  |
+| 10. Pantallas rediseñadas, copy, motion y accesibilidad | 8/8 | Complete   | 2026-07-06 |
 
 ---
 *Roadmap created: 2026-07-05*
