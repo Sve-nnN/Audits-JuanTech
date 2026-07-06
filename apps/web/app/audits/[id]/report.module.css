@@ -311,10 +311,6 @@
   padding: 14px 18px;
 }
 
-.issueDetail + .issueDetail {
-  border-top: 1px solid var(--border);
-}
-
 .issueHeader {
   display: flex;
   align-items: center;
