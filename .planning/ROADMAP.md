@@ -180,9 +180,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] 09-01-PLAN.md — Fundación: verificar/instalar lucide-react + extraer labels.ts y url.ts compartidos
 - [x] 09-02-PLAN.md — ScoreGauge (COMP-01) + CategoryCard (COMP-02): score-state visual pair
-- [ ] 09-03-PLAN.md — Badge severidad/diff (COMP-03) + Skeleton con shimmer accesible (COMP-08)
-- [ ] 09-04-PLAN.md — Button + Input + Field con estados accesibles (COMP-06)
-- [ ] 09-05-PLAN.md — EmptyState/ErrorState (COMP-07) + CategoryAccordion (COMP-05)
+- [x] 09-03-PLAN.md — Badge severidad/diff (COMP-03) + Skeleton con shimmer accesible (COMP-08)
+- [x] 09-04-PLAN.md — Button + Input + Field con estados accesibles (COMP-06)
+- [x] 09-05-PLAN.md — EmptyState/ErrorState (COMP-07) + CategoryAccordion (COMP-05)
 - [ ] 09-06-PLAN.md — IssuesTable responsive con URL sticky/clickeable + estado vacío (COMP-04)
 
 **UI hint**: yes
@@ -219,7 +219,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Scoring, comparación de corridas y reporte | 1/1 | Complete ✅ | 2026-07-05 |
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 1/1 | Complete   | 2026-07-06 |
 | 8. Fundamentos de marca — fuentes y design system | 5/5 | Complete   | 2026-07-06 |
-| 9. Librería de componentes | 2/6 | In Progress|  |
+| 9. Librería de componentes | 5/6 | In Progress|  |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | 0/? | Not started | - |
 
 ---
