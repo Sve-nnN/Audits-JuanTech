@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@auditor/db";
 import { getAuditQueue } from "@auditor/queue";
+import { normalizeEmail } from "@auditor/email";
+import { canRunAudit, PrismaAuditCountStore, FREE_URL_LIMIT } from "@auditor/quota";
 
 // Force the Node.js runtime: this route touches Postgres (Prisma) and
 // Redis (BullMQ), neither of which run on the Edge runtime.
 export const runtime = "nodejs";
 
-const DEFAULT_URL_LIMIT = 500;
-const MAX_URL_LIMIT = 500;
+const DEFAULT_URL_LIMIT = FREE_URL_LIMIT;
+const MAX_URL_LIMIT = FREE_URL_LIMIT;
 
 interface CreateAuditBody {
   /** Full URL (e.g. "https://example.com/") or bare domain (e.g. "example.com"). */
   url?: unknown;
   /** @deprecated kept for backwards compat with the Phase 1 wiring test. */
   domain?: unknown;
+  /** Verified email launching this audit (Phase 7, AUTH-04 launch gate). */
+  email?: unknown;
   /** Optional override for testing/verification; capped at 500. */
   urlLimit?: unknown;
 }
@@ -57,6 +61,39 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: "`url` is invalid" }, { status: 400 });
   }
 
+  if (typeof body.email !== "string" || body.email.trim().length === 0) {
+    return NextResponse.json({ error: "El email es requerido" }, { status: 400 });
+  }
+
+  const normalized = normalizeEmail(body.email);
+  if (!normalized.valid) {
+    return NextResponse.json({ error: "El email no tiene un formato válido" }, { status: 400 });
+  }
+
+  // Launch gate (AUTH-04): only a verified email may enqueue an audit.
+  const email = await prisma.email.findUnique({
+    where: { normalizedAddress: normalized.normalizedAddress },
+  });
+
+  if (!email || !email.verified) {
+    return NextResponse.json(
+      {
+        error: "Tenés que verificar tu email antes de lanzar la auditoría.",
+        needsVerification: true,
+      },
+      { status: 403 }
+    );
+  }
+
+  // Quota gate (QUOTA-01/03): 1 free audit per rolling 7-day window.
+  const quota = await canRunAudit(email.id, new PrismaAuditCountStore());
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: quota.reason, nextAllowedAt: quota.nextAllowedAt },
+      { status: 429 }
+    );
+  }
+
   let urlLimit = DEFAULT_URL_LIMIT;
   if (body.urlLimit !== undefined) {
     const parsed = Number(body.urlLimit);
@@ -75,6 +112,7 @@ export async function POST(request: Request): Promise<Response> {
   const audit = await prisma.audit.create({
     data: {
       siteId: site.id,
+      emailId: email.id,
       status: "queued",
       urlLimit,
     },

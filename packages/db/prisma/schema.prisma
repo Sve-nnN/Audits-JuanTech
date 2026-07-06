@@ -32,8 +32,26 @@ model Email {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  audits      Audit[]
-  quotaUsages QuotaUsage[]
+  audits        Audit[]
+  quotaUsages   QuotaUsage[]
+  verifications EmailVerification[]
+}
+
+/**
+ * Double opt-in token for a pending Email verification (Phase 7, AUTH-03/04).
+ * One row per issued token; a verified email may accumulate multiple rows
+ * over time (re-requests), but only an unused, unexpired token can succeed.
+ */
+model EmailVerification {
+  id        String    @id @default(cuid())
+  emailId   String
+  email     Email     @relation(fields: [emailId], references: [id])
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([emailId])
 }
 
 model Site {

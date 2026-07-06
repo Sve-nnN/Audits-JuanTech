@@ -12,6 +12,8 @@
   "dependencies": {
     "@auditor/checks": "workspace:*",
     "@auditor/db": "workspace:*",
+    "@auditor/email": "workspace:*",
+    "@auditor/quota": "workspace:*",
     "@auditor/queue": "workspace:*",
     "@auditor/scoring": "workspace:*",
     "next": "^15.1.0",
