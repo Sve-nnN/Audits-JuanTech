@@ -4,6 +4,8 @@
 
 El proyecto se construye de adentro hacia afuera: primero el esqueleto de datos y cola que conecta la app web con el worker de fondo (sin eso nada más puede persistir ni ejecutarse sin bloquear requests); luego el motor de crawler que descubre y rastrea páginas de forma confiable (la pieza de mayor riesgo real, por variabilidad de sitios externos); después las capas de checks que consumen esos datos rastreados, empezando por SEO técnico y on-page (sin dependencias externas), sumando datos estructurados y AEO (el diferenciador del producto), y dejando Rendimiento/CWV al final de las categorías de check porque es la única con límites de API externos y variabilidad de Lighthouse. Con las cinco categorías de checks completas, se construye el scoring, la comparación entre corridas y el reporte visual. Por último, el flujo de verificación de email y cuota se cierra como compuerta obligatoria antes de cualquier lanzamiento público, aunque gran parte de su trabajo (tablas de email/cuota, endpoint de creación de auditoría) puede construirse en paralelo con las fases anteriores.
 
+**Milestone v1.1 (UI/UX y marca):** una vez validado el pipeline funcional en v1.0, el overhaul de UI se construye de fundamentos hacia afuera: primero las fuentes de marca y el design system (tokens, tema claro/oscuro, layout base) porque todo lo demás depende de esas variables y decisiones visuales; luego la librería de componentes reutilizables (score gauge, cards, badges, tabla de issues, acordeones, formularios, estados vacíos/skeletons) que consume esos tokens; y por último las pantallas completas, donde se ensamblan los componentes, se aplica el copy humanizado, el motion sutil y se valida accesibilidad/responsive de punta a punta. No se toca lógica de crawl/checks/scoring/email.
+
 ## Phases
 
 **Phase Numbering:**
@@ -20,6 +22,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Rendimiento / Core Web Vitals** - Integración con PageSpeed Insights, muestreada y cacheada
 - [x] **Phase 6: Scoring, comparación de corridas y reporte** - Score general/por categoría, tabla priorizada y diff entre auditorías
 - [x] **Phase 7: Verificación de email, cuota y compuerta de lanzamiento** - Double opt-in, normalización, rate limiting y persistencia de historial (completed 2026-07-06)
+- [ ] **Phase 8: Fundamentos de marca — fuentes y design system** - Tipografía de marca (Array/Khand/Geist), tokens de diseño y theming claro/oscuro sin flash
+- [ ] **Phase 9: Librería de componentes** - Score gauge, cards, badges, tabla de issues, acordeones, formularios, estados vacíos y skeletons pulidos y reutilizables
+- [ ] **Phase 10: Pantallas rediseñadas, copy, motion y accesibilidad** - Todas las pantallas ensambladas con copy humanizado, motion sutil y accesibilidad/responsive validados
 
 ## Phase Details
 
@@ -133,10 +138,61 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Plans**: TBD
 
+### Phase 8: Fundamentos de marca — fuentes y design system
+
+**Goal**: El auditor tiene tipografía de marca, tokens de diseño y theming claro/oscuro consistentes, sirviendo de base para toda la librería de componentes y las pantallas.
+**Mode:** mvp
+**Depends on**: Phase 6 (consume el reporte y las pantallas existentes de v1.0 como superficie a rediseñar)
+**Requirements**: FONT-01, FONT-02, FONT-03, FONT-04, DS-01, DS-02, DS-03, DS-04
+**Success Criteria** (what must be TRUE):
+
+  1. El texto de display usa Array (self-hosted vía `next/font/local`), los títulos/UI usan Khand, el body usa Geist Sans y el código/métricas usan Geist Mono, con fallbacks y `font-display: swap` en toda la app.
+  2. Los tokens de color, tipografía, espaciado, radios, sombras y z-index están centralizados como variables CSS y se usan en vez de valores hardcodeados.
+  3. La paleta de marca y la escala de severidad (crítico/advertencia/ok) y de estados (good/needs_improvement/critical) son coherentes en toda la interfaz.
+  4. El usuario puede alternar entre modo claro y oscuro, la preferencia persiste (localStorage) entre sesiones y no hay flash de tema incorrecto al cargar.
+  5. Todas las pantallas comparten el mismo layout base (contenedor, grid, header/footer).
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 9: Librería de componentes
+
+**Goal**: Existe una librería de componentes reutilizables y pulidos, construida sobre los tokens y fuentes de la Fase 8, que cubre todos los patrones visuales necesarios para las pantallas del auditor.
+**Mode:** mvp
+**Depends on**: Phase 8
+**Requirements**: COMP-01, COMP-02, COMP-03, COMP-04, COMP-05, COMP-06, COMP-07, COMP-08
+**Success Criteria** (what must be TRUE):
+
+  1. El score gauge/círculo muestra el score general con color por estado y número legible.
+  2. Las cards por categoría muestran score, estado y etiqueta de forma consistente entre sí.
+  3. Los badges de severidad y de diff (nuevo/persistente/resuelto) son componentes reutilizables en toda la app.
+  4. La tabla de issues es responsive (colapsa o scrollea en móvil) y su columna de URL es clickeable.
+  5. El acordeón de detalle por categoría, los botones/inputs/formularios con sus estados (hover/focus/disabled/error), los estados vacíos/de error con copy e ícono, y los skeletons de carga están implementados y listos para usarse en cualquier pantalla.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 10: Pantallas rediseñadas, copy, motion y accesibilidad
+
+**Goal**: Todas las pantallas del auditor (home, verificación, progreso, reporte, páginas + grafo, historial) quedan ensambladas con los componentes de la Fase 9, con copy humanizado, motion sutil y accesibilidad/responsive validados de punta a punta.
+**Mode:** mvp
+**Depends on**: Phase 8, Phase 9
+**Requirements**: SCREEN-01, SCREEN-02, SCREEN-03, SCREEN-04, SCREEN-05, SCREEN-06, COPY-01, COPY-02, COPY-03, MOTION-01, MOTION-02, MOTION-03, A11Y-01, A11Y-02, A11Y-03
+**Success Criteria** (what must be TRUE):
+
+  1. El home presenta un hero y un flujo email→verificar→URL claro, jerárquico y profesional; la página de verificación de email muestra con claridad los estados de éxito, error y expirado.
+  2. El progreso de auditoría muestra la fase actual (rastreando / analizando / midiendo rendimiento) con feedback vivo y animado, sin sensación de estar colgado.
+  3. El reporte `/audits/[id]` muestra hero score, categorías, issues prioritarios, detalle de problemas/correctos, rendimiento y diff, y todos sus textos (incluyendo recomendaciones de issues, mensajes de error/cuota/verificación) están en español neutro sin voceo, humanizados, sin tells de IA.
+  4. Las páginas rastreadas y el grafo de entidades se navegan con un visual limpio; el historial por email lista auditorías con score, fecha y acceso al reporte.
+  5. Todas las animaciones (score que cuenta, reveal de secciones, transiciones, hover) respetan `prefers-reduced-motion`; todas las pantallas son responsive (móvil/tablet/desktop) sin overflow horizontal, con contraste AA en ambos temas, foco visible, roles/labels ARIA y navegación por teclado funcional (acordeones, toggle de tema, formularios).
+
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -147,7 +203,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 5. Rendimiento / Core Web Vitals | 1/1 | Complete ✅ | 2026-07-05 |
 | 6. Scoring, comparación de corridas y reporte | 1/1 | Complete ✅ | 2026-07-05 |
 | 7. Verificación de email, cuota y compuerta de lanzamiento | 1/1 | Complete   | 2026-07-06 |
+| 8. Fundamentos de marca — fuentes y design system | 0/? | Not started | - |
+| 9. Librería de componentes | 0/? | Not started | - |
+| 10. Pantallas rediseñadas, copy, motion y accesibilidad | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-07-05*
-*Granularity: standard (7 phases)*
+*Granularity: standard (7 phases v1.0 + 3 phases v1.1 = 10 phases)*
+*v1.1 phases (8-10) appended: 2026-07-06*

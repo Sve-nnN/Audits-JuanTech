@@ -76,16 +76,45 @@
 
 ## Traceability
 
-Se completa durante la creación del roadmap.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (pendiente — lo llena el roadmapper) | — | Pending |
+| FONT-01 | Phase 8 | Pending |
+| FONT-02 | Phase 8 | Pending |
+| FONT-03 | Phase 8 | Pending |
+| FONT-04 | Phase 8 | Pending |
+| DS-01 | Phase 8 | Pending |
+| DS-02 | Phase 8 | Pending |
+| DS-03 | Phase 8 | Pending |
+| DS-04 | Phase 8 | Pending |
+| COMP-01 | Phase 9 | Pending |
+| COMP-02 | Phase 9 | Pending |
+| COMP-03 | Phase 9 | Pending |
+| COMP-04 | Phase 9 | Pending |
+| COMP-05 | Phase 9 | Pending |
+| COMP-06 | Phase 9 | Pending |
+| COMP-07 | Phase 9 | Pending |
+| COMP-08 | Phase 9 | Pending |
+| SCREEN-01 | Phase 10 | Pending |
+| SCREEN-02 | Phase 10 | Pending |
+| SCREEN-03 | Phase 10 | Pending |
+| SCREEN-04 | Phase 10 | Pending |
+| SCREEN-05 | Phase 10 | Pending |
+| SCREEN-06 | Phase 10 | Pending |
+| COPY-01 | Phase 10 | Pending |
+| COPY-02 | Phase 10 | Pending |
+| COPY-03 | Phase 10 | Pending |
+| MOTION-01 | Phase 10 | Pending |
+| MOTION-02 | Phase 10 | Pending |
+| MOTION-03 | Phase 10 | Pending |
+| A11Y-01 | Phase 10 | Pending |
+| A11Y-02 | Phase 10 | Pending |
+| A11Y-03 | Phase 10 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 30 total
-- Mapped to phases: 0 (pendiente)
-- Unmapped: 30 ⚠️
+- v1.1 requirements: 31 total (el conteo de "30" en el encabezado original no cuadraba con el listado real; se corrigió durante la creación del roadmap)
+- Mapped to phases: 31/31 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-06 (milestone v1.1)*
+*Traceability completed: 2026-07-06 (roadmap phases 8-10)*
