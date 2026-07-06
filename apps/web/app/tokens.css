@@ -164,3 +164,37 @@
    * estados de score de categorías, en ambos temas.
    */
 }
+
+/* ============================================================
+ * SEMÁNTICOS — TEMA CLARO (override bajo [data-theme="light"])
+ * Inversión coherente del dark-first. Severidad y accent-text pasan a
+ * shades más oscuros para sostener AA sobre superficies claras.
+ * Solo se sobreescriben tokens semánticos + sombras; las rampas primitivas
+ * y las escalas (espaciado/tipografía/radios/z-index) NO se redefinen.
+ * ============================================================ */
+
+[data-theme="light"] {
+  --bg: #f8fafc;              /* --slate-50  · canvas de la app */
+  --surface: #ffffff;        /*             · cards, paneles, header, footer */
+  --surface-raised: #ffffff; /*             · popovers, inputs (con borde) */
+  --surface-hover: #f1f5f9;  /* --slate-100 · hover de filas/cards */
+  --border: #e2e8f0;         /* --slate-200 · divisores */
+  --border-strong: #cbd5e1;  /* --slate-300 · bordes de input */
+  --text: #0f172a;           /* --slate-900 · headings, body */
+  --text-secondary: #475569; /* --slate-600 · help text */
+  --text-muted: #64748b;     /* --slate-500 · disabled, placeholders */
+  --accent: #c3f53c;         /* --lime-400  · solo fills; texto encima queda --ink-900 */
+  --accent-hover: #a3e635;   /* --lime-500  · hover de fill accent */
+  --accent-foreground: #0a0b0f; /* --ink-900 · texto/icono sobre fill accent */
+  --accent-text: #4d7c0f;    /* --lime-700  · links inline en claro (AA ≈ 4.8:1) */
+  --critical: #dc2626;       /* --red-600   · severidad/destructivo */
+  --warning: #d97706;        /* --amber-600 · severidad */
+  --success: #16a34a;        /* --green-600 · severidad/positivo */
+  --ring: #4d7c0f;           /* --lime-700  · outline focus-visible (visible en claro) */
+
+  /* --- Sombras (tema claro: elevación suave) --- */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --shadow-focus: 0 0 0 3px rgba(77, 124, 15, 0.3);
+}
