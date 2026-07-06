@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { array, khand, geistSans, geistMono } from "./fonts";
 import { Providers } from "./providers";
+import { AppHeader } from "./components/AppHeader";
+import { AppFooter } from "./components/AppFooter";
+import shell from "./components/shell.module.css";
 import "./globals.css";
 
 export const metadata = {
@@ -19,7 +22,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es" className={fontVariables} suppressHydrationWarning>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className={shell.shell}>
+            <AppHeader />
+            <main className={shell.main}>{children}</main>
+            <AppFooter />
+          </div>
+        </Providers>
       </body>
     </html>
   );
