@@ -31,7 +31,7 @@
 - [ ] **COMP-05**: Acordeón de detalle por categoría (problemas vs correctos) pulido
 - [ ] **COMP-06**: Botones, inputs y formularios con estados (hover/focus/disabled/error) accesibles
 - [ ] **COMP-07**: Estados vacíos y de error con copy claro e ilustración/ícono
-- [ ] **COMP-08**: Skeletons/placeholders de carga para vistas que esperan datos
+- [x] **COMP-08**: Skeletons/placeholders de carga para vistas que esperan datos
 
 ### Pantallas (SCREEN)
 
@@ -93,7 +93,7 @@
 | COMP-05 | Phase 9 | Pending |
 | COMP-06 | Phase 9 | Pending |
 | COMP-07 | Phase 9 | Pending |
-| COMP-08 | Phase 9 | Pending |
+| COMP-08 | Phase 9 | Complete |
 | SCREEN-01 | Phase 10 | Pending |
 | SCREEN-02 | Phase 10 | Pending |
 | SCREEN-03 | Phase 10 | Pending |
