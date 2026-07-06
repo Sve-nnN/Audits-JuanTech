@@ -125,6 +125,18 @@
   --container-narrow: 720px;
   --container-wide: 1440px;
 
+  /* --- Motion: duraciones + easings (theme-agnósticos, invariantes de tema).
+   * Consumidos por los hooks useCountUp/useReveal y por las transiciones CSS
+   * de [data-reveal]. WAAPI/CSS puro, sin librerías. Todo motion queda
+   * neutralizado por la red de seguridad global de prefers-reduced-motion
+   * en globals.css. --- */
+  --motion-fast: 150ms;
+  --motion-base: 300ms;
+  --motion-reveal: 500ms;
+  --motion-count: 900ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
   /* ============================================================
    * SEMÁNTICOS — TEMA OSCURO (default, dark-first)
    * ============================================================ */

@@ -26,3 +26,62 @@ body {
 a {
   color: inherit;
 }
+
+/* ============================================================
+ * MOTION — primitivas transversales (Fase 10)
+ * CSS + WAAPI, cero librerías, CSP-safe. Los tokens de duración/easing
+ * viven en tokens.css; aquí van el registro de la custom prop del gauge,
+ * las reglas base de reveal y la red de seguridad global de reduced-motion.
+ * ============================================================ */
+
+/*
+ * Registro de --gauge-offset como custom prop tipada para que el
+ * stroke-dashoffset del arco del ScoreGauge sea animable por transición CSS
+ * (además de WAAPI). Sin este @property el navegador trata la custom prop
+ * como texto y no interpola.
+ */
+@property --gauge-offset {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+/*
+ * Reveal on-scroll: el contenido SIEMPRE está en el DOM (visible para AT y
+ * no-JS gracias a la neutralización de reduced-motion más abajo). El hook
+ * useReveal solo togglea el atributo data-reveal="in".
+ */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+[data-reveal="in"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--motion-reveal) var(--ease-out),
+    transform var(--motion-reveal) var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+/*
+ * Red de seguridad global de accesibilidad: cuando el usuario pide menos
+ * movimiento, se neutraliza toda animación/transición y se fuerza el estado
+ * final visible de cualquier [data-reveal] (nunca queda contenido oculto).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
