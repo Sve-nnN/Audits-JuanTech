@@ -1,0 +1,68 @@
+/*
+ * Input.module.css — control de texto (COMP-06).
+ * Solo tokens semánticos (DS-01), CSP-safe, sin hex crudo.
+ * Clases camelCase de una palabra. font-size 16px anti-zoom iOS.
+ */
+
+.input {
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-base);
+  line-height: var(--lh-body);
+  width: 100%;
+  min-height: 44px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Tamaños */
+.md {
+  min-height: 44px;
+}
+
+.lg {
+  padding: var(--space-4) var(--space-5);
+  min-height: 52px;
+}
+
+/* Estados */
+.input:hover {
+  border-color: var(--text-muted);
+}
+
+.input:focus-visible {
+  border-color: var(--ring);
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+  box-shadow: var(--shadow-focus);
+}
+
+.input:disabled {
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Error: el borde crítico se mantiene incluso con foco */
+.invalid,
+.invalid:hover {
+  border-color: var(--critical);
+}
+
+.invalid:focus-visible {
+  border-color: var(--critical);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input {
+    transition: none;
+  }
+}
