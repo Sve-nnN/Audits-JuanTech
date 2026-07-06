@@ -83,6 +83,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 09-05: EmptyState/ErrorState y CategoryAccordion (composites wave 3) sobre details/summary nativos; EmptyState consume Button, acordeón consume Badge; tokens-only, cero hex
 - [Phase ?]: IssuesTable estado vacio remapea text-muted a success
 - [Phase ?]: 10-07: History desacoplado de home.module.css con history.module.css propio; locale fecha es neutro; STATUS_LABEL desde labels.ts
+- [Phase 10]: 10-02: Home SCREEN-01 re-skineado con clases nuevas (.home/.shell/.hero/.flowCard); clases legacy de home.module.css preservadas para History; foco de paso por document.getElementById (Input no expone ref); dead-space fix sin centrado al viewport; copy neutro exacto del UI-SPEC.
 - [Phase ?]: 10-03: SCREEN-02 verify desacoplado de home.module.css (verify.module.css propio); 4 estados con Button/ErrorState de Fase 9; copy neutro sin voceo; POST /api/verify preservado
 - [Phase ?]: Report gauge count-up feeds interpolated value into ScoreGauge; reduced-motion final value
 
