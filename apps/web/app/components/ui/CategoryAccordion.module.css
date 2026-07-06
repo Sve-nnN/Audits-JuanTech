@@ -1,0 +1,176 @@
+/*
+ * CategoryAccordion.module.css — acordeón de detalle por categoría (COMP-05).
+ * details/summary nativos; solo tokens semánticos (DS-01), sin hex crudo.
+ * Clases camelCase. Chevron con guard reduced-motion; foco inset -2px.
+ */
+
+.group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+}
+
+.summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  list-style: none;
+}
+
+/* Oculta el marcador nativo del disclosure (triángulo). */
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:hover {
+  background: var(--surface-hover);
+}
+
+.summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.title {
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-xl);
+  font-weight: var(--weight-medium);
+  line-height: var(--lh-heading);
+  color: var(--text);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.count {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.group[open] .chevron {
+  transform: rotate(180deg);
+}
+
+/* Bajo reduced-motion la rotación es instantánea (sin transición). */
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}
+
+.body {
+  border-top: 1px solid var(--border);
+  padding: var(--space-5);
+}
+
+/* --- Subgrupos "Problemas" / "Correcto" --- */
+.subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.subgroup + .subgroup {
+  margin-top: var(--space-5);
+}
+
+.subgroupHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.subgroupCount {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+}
+
+.subgroupEmpty {
+  margin: 0;
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* --- Fila de detalle de issue --- */
+.issue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.issue + .issue {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.issueHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.issueTitle {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+
+.issueCheckId {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  color: var(--text-secondary);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.field {
+  margin: 0;
+}
+
+.fieldLabel {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-geist-sans);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.fieldValue {
+  margin: 0;
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  color: var(--text);
+}
+
+/* "Valor medido" (2.º campo de cada issue) en Geist Mono + tnum, igual que
+ * report.module.css L348-351; las etiquetas y campos de texto van en Sans. */
+.fields > .field:nth-of-type(2) .fieldValue {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
+}
