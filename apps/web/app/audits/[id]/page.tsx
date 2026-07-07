@@ -3,7 +3,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@auditor/db";
-import type { Category, ScoreStatus, CategoryScoreResult } from "@auditor/scoring";
+import type { Category, ScoreStatus } from "@auditor/scoring";
+import { buildReportModel, type ReportIssue } from "@auditor/report-model";
 import { ScoreGauge } from "../../components/ui/ScoreGauge";
 import { CategoryCard } from "../../components/ui/CategoryCard";
 import { IssuesTable, type IssuesTableColumn } from "../../components/ui/IssuesTable";
@@ -20,7 +21,7 @@ import {
   STATUS_LABEL,
   STRATEGY_LABEL,
 } from "../../components/ui/labels";
-import { issueUrl, shortUrl } from "../../components/ui/url";
+import { shortUrl } from "../../components/ui/url";
 import { AuditProgress } from "./AuditProgress";
 import { ScoreGaugeAnimated } from "./ScoreGaugeAnimated";
 import styles from "./report.module.css";
@@ -41,47 +42,7 @@ const STATUS_BADGE_VARIANT: Record<ScoreStatus, "ok" | "warning" | "critical"> =
 type Severity = "critical" | "warning" | "ok";
 type Diff = "new" | "persistent" | "resolved";
 
-/** Shape persisted at `Audit.scores` by the worker (Phase 6, SCORE-01..05 + DIFF-01/02). */
-interface AuditScores {
-  overall: number;
-  status: ScoreStatus;
-  byCategory: Partial<Record<Category, CategoryScoreResult>>;
-  diff: {
-    newCount: number;
-    persistentCount: number;
-    resolvedCount: number;
-    resolvedFingerprints: string[];
-    previousAuditId: string | null;
-  };
-}
-
-interface StrategyPerfSummary {
-  avgScore: number | null;
-  avgLcpMs: number | null;
-  avgCls: number | null;
-  avgInpMs: number | null;
-  avgTtfbMs: number | null;
-}
-
-interface PerfStatsSummary {
-  sampledPages: number;
-  sampledUrls: string[];
-  mobile: StrategyPerfSummary;
-  desktop: StrategyPerfSummary;
-  error?: string;
-}
-
-interface AuditStats {
-  discovered?: number;
-  crawled?: number;
-  total?: number;
-  failed?: number;
-  issues?: { critical: number; warning: number; ok: number; total: number };
-  perf?: PerfStatsSummary;
-}
-
 const SEVERITY_SORT_WEIGHT: Record<string, number> = { critical: 0, warning: 1, ok: 2 };
-const MAX_PRIORITY_ROWS = 60;
 
 function formatDate(value: Date | null): string {
   if (!value) return "—";
@@ -136,44 +97,18 @@ export default async function AuditReportPage({ params }: PageProps) {
     );
   }
 
-  const scores = audit.scores as unknown as AuditScores | null;
-  const stats = audit.stats as unknown as AuditStats | null;
-  const perf = stats?.perf;
+  // Single source of truth for the report: buildReportModel (@auditor/report-model)
+  // reads the same persisted data this component assembled inline before.
+  const model = await buildReportModel(auditId);
+  if (!model) notFound();
 
-  const [priorityIssues, issuesForDetail, resolvedIssues] = await Promise.all([
-    prisma.issue.findMany({
-      where: { auditId, severity: { in: ["critical", "warning"] } },
-      orderBy: [{ severity: "asc" }, { category: "asc" }],
-      take: MAX_PRIORITY_ROWS,
-    }),
-    prisma.issue.findMany({
-      where: { auditId },
-      orderBy: [{ category: "asc" }, { severity: "asc" }, { checkId: "asc" }],
-    }),
-    scores?.diff.previousAuditId && scores.diff.resolvedFingerprints.length > 0
-      ? prisma.issue.findMany({
-          where: {
-            auditId: scores.diff.previousAuditId,
-            fingerprint: { in: scores.diff.resolvedFingerprints },
-          },
-          select: { checkId: true, title: true, category: true },
-        })
-      : Promise.resolve([]),
-  ]);
+  const { byCategory, diff, perf, priorityIssues, totalPriorityCandidates } = model;
+  const resolvedIssues = diff.resolvedIssues;
+  const issuesByCategory = model.issuesByCategory;
 
-  const totalPriorityCandidates = await prisma.issue.count({
-    where: { auditId, severity: { in: ["critical", "warning"] } },
-  });
-
-  const issuesByCategory = new Map<string, typeof issuesForDetail>();
-  for (const issue of issuesForDetail) {
-    const bucket = issuesByCategory.get(issue.category) ?? [];
-    bucket.push(issue);
-    issuesByCategory.set(issue.category, bucket);
-  }
-
-  const overallStatus = scores?.status ?? "critical";
-  const overall = scores?.overall ?? null;
+  const overallStatus = model.status;
+  const overall = model.overall;
+  const hasScores = model.hasScores;
 
   // --- Issues prioritarios → filas de IssuesTable (orden por severidad) ---
   const issueColumns: IssuesTableColumn[] = [
@@ -192,7 +127,7 @@ export default async function AuditReportPage({ params }: PageProps) {
         (SEVERITY_SORT_WEIGHT[a.severity] ?? 99) - (SEVERITY_SORT_WEIGHT[b.severity] ?? 99)
     )
     .map((issue) => {
-      const url = issueUrl(issue);
+      const url = issue.url;
       const pageCell: ReactNode =
         url && /^https?:\/\//i.test(url) ? url : shortUrl(url);
       return [
@@ -235,7 +170,7 @@ export default async function AuditReportPage({ params }: PageProps) {
               {overall !== null ? (
                 <ScoreGaugeAnimated
                   value={overall}
-                  status={scores ? overallStatus : null}
+                  status={hasScores ? overallStatus : null}
                   ariaLabel={`Score general ${overall} de 100, ${STATUS_LABEL[overallStatus]}`}
                 />
               ) : (
@@ -253,7 +188,7 @@ export default async function AuditReportPage({ params }: PageProps) {
                 Promedio ponderado de SEO técnico, rendimiento, on-page, datos estructurados y
                 AEO, calculado con los hallazgos de esta auditoría.
               </p>
-              {scores ? (
+              {hasScores ? (
                 <Badge variant={STATUS_BADGE_VARIANT[overallStatus]}>
                   {STATUS_LABEL[overallStatus]}
                 </Badge>
@@ -267,7 +202,7 @@ export default async function AuditReportPage({ params }: PageProps) {
           <h3 className={styles.sectionTitle}>Scores por categoría</h3>
           <div className={styles.categoryGrid}>
             {CATEGORY_ORDER.map((category, i) => {
-              const result = scores?.byCategory[category];
+              const result = byCategory[category];
               const status = result?.status ?? null;
               return (
                 <Reveal key={category} delay={Math.min(i, 3) * 60}>
@@ -286,23 +221,23 @@ export default async function AuditReportPage({ params }: PageProps) {
         </Reveal>
 
         {/* Cambios desde la auditoría anterior */}
-        {scores?.diff.previousAuditId && (
+        {diff.previousAuditId && (
           <Reveal as="section" className={styles.section} delay={120}>
             <h3 className={styles.sectionTitle}>Cambios desde la auditoría anterior</h3>
             <div className={styles.diffSummary}>
               <div className={styles.diffItem}>
                 <DiffBadge diff="new" />
-                <span className={styles.diffCount}>{scores.diff.newCount}</span>
+                <span className={styles.diffCount}>{diff.newCount}</span>
                 <span className={styles.diffItemLabel}>Nuevos</span>
               </div>
               <div className={styles.diffItem}>
                 <DiffBadge diff="persistent" />
-                <span className={styles.diffCount}>{scores.diff.persistentCount}</span>
+                <span className={styles.diffCount}>{diff.persistentCount}</span>
                 <span className={styles.diffItemLabel}>Persistentes</span>
               </div>
               <div className={styles.diffItem}>
                 <DiffBadge diff="resolved" />
-                <span className={styles.diffCount}>{scores.diff.resolvedCount}</span>
+                <span className={styles.diffCount}>{diff.resolvedCount}</span>
                 <span className={styles.diffItemLabel}>Resueltos</span>
               </div>
             </div>
@@ -409,15 +344,15 @@ export default async function AuditReportPage({ params }: PageProps) {
         <Reveal as="section" className={styles.section} delay={60}>
           <h3 className={styles.sectionTitle}>Detalle por categoría</h3>
           {CATEGORY_ORDER.map((category) => {
-            const issues = issuesByCategory.get(category) ?? [];
+            const issues = issuesByCategory[category] ?? [];
             if (issues.length === 0) return null;
             const problems = issues.filter(
               (i) => i.severity === "critical" || i.severity === "warning"
             );
             const passing = issues.filter((i) => i.severity === "ok");
 
-            const renderIssue = (issue: (typeof issues)[number]) => {
-              const url = issueUrl(issue);
+            const renderIssue = (issue: ReportIssue) => {
+              const url = issue.url;
               return (
                 <IssueDetail
                   key={issue.id}

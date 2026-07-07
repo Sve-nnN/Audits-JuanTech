@@ -35,6 +35,9 @@ importers:
       '@auditor/quota':
         specifier: workspace:*
         version: link:../../packages/quota
+      '@auditor/report-model':
+        specifier: workspace:*
+        version: link:../../packages/report-model
       '@auditor/scoring':
         specifier: workspace:*
         version: link:../../packages/scoring

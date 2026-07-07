@@ -15,6 +15,7 @@
     "@auditor/email": "workspace:*",
     "@auditor/queue": "workspace:*",
     "@auditor/quota": "workspace:*",
+    "@auditor/report-model": "workspace:*",
     "@auditor/scoring": "workspace:*",
     "geist": "^1.7.2",
     "lucide-react": "^1.23.0",
