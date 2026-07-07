@@ -122,6 +122,9 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1
     devDependencies:
+      '@auditor/scoring':
+        specifier: workspace:*
+        version: link:../scoring
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.0
