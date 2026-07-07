@@ -16,9 +16,9 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 
 ### Encabezados / Jerarquía (errores) — extiende ONPAGE-03
 
-- [ ] **HEAD-01**: El auditor detecta saltos de nivel en la jerarquía de encabezados (ej. H1 → H3 sin H2).
-- [ ] **HEAD-02**: El auditor detecta encabezados vacíos (H1–H6 sin texto).
-- [ ] **HEAD-03**: El auditor detecta encabezados fuera de orden y H1 que solo duplica el title.
+- [x] **HEAD-01**: El auditor detecta saltos de nivel en la jerarquía de encabezados (ej. H1 → H3 sin H2).
+- [x] **HEAD-02**: El auditor detecta encabezados vacíos (H1–H6 sin texto).
+- [x] **HEAD-03**: El auditor detecta encabezados fuera de orden y H1 que solo duplica el title.
 
 ### Detección de renderizado (CSR vs SSR)
 
@@ -69,9 +69,9 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 | CANON-02 | Phase 11 | Complete |
 | CANON-03 | Phase 11 | Complete |
 | CANON-04 | Phase 11 | Complete |
-| HEAD-01 | Phase 11 | Pending |
-| HEAD-02 | Phase 11 | Pending |
-| HEAD-03 | Phase 11 | Pending |
+| HEAD-01 | Phase 11 | Complete |
+| HEAD-02 | Phase 11 | Complete |
+| HEAD-03 | Phase 11 | Complete |
 | REPORT-03 | Phase 11 | Pending |
 | RENDER-01 | Phase 12 | Pending |
 | RENDER-02 | Phase 12 | Pending |

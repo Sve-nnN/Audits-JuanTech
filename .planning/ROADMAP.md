@@ -75,7 +75,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 **Plans**: 4 plans
 
 - [x] 11-01-PLAN.md — canonicalDeep SiteCheck (TECH-04 sub-tipado): destino noindex/3xx/4xx/5xx/cadena/cross-domain/relativo/múltiple/mismatch (CANON-01..04)
-- [ ] 11-02-PLAN.md — headingsCheck (ONPAGE-08): saltos de nivel, vacíos, fuera de orden, H1 duplica title (HEAD-01..03)
+- [x] 11-02-PLAN.md — headingsCheck (ONPAGE-08): saltos de nivel, vacíos, fuera de orden, H1 duplica title (HEAD-01..03)
 - [ ] 11-03-PLAN.md — Fix REPORT-03: source en PerfIssueDraft + mapPerfIssues + mapeo del worker
 - [ ] 11-04-PLAN.md — Guardarraíl SC#5: no-colapso de fingerprints + estabilidad de score de fixture
 
