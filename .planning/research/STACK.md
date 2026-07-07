@@ -1,8 +1,23 @@
-# Stack Research
+# Stack Research — v1.2 (render detection + report exports)
 
-**Domain:** Automated SEO/technical web-audit crawler (SaaS lead magnet), Screaming-Frog-like
-**Researched:** 2026-07-05
-**Confidence:** HIGH (core architecture, queue, hosting) / MEDIUM (ORM choice, AEO-specific tooling — no established standard yet)
+**Domain:** SEO/technical web-audit tool (lead magnet) — additive milestone on a shipped app
+**Researched:** 2026-07-06
+**Confidence:** HIGH (versions verified live via `npm view` 2026-07-06; integration verified against actual repo code)
+
+## Scope of this research
+
+ONLY the net-new capabilities for v1.2. Everything from v1.0/v1.1 (Crawlee crawl, checks, PSI, scoring, email, quota, design system) is validated and out of scope. Two axes of new stack:
+
+1. **Worker side** — add a selective Playwright render pass for CSR-vs-SSR detection (canonical/heading checks are pure logic on already-stored data, NO new deps).
+2. **Web side** — three export generators (PDF, PPTX, Markdown) inside an on-demand Next.js Node API route, reading from Postgres. NO Chromium on the web side.
+
+**Key repo facts that constrain the choices (verified in code):**
+- Raw HTML is *already persisted*: `Page.html String? @db.Text` (schema.prisma:101), written by the CheerioCrawler pass (crawl.ts:122). CSR/SSR detection only needs the *rendered* side — the raw side is free.
+- Sampling is already solved: `selectSample(pages, max)` in `packages/psi/src/sample.ts` (homepage-first + depth-spread, dedup, capped). Reuse it verbatim for the render sample — do NOT write a second sampler.
+- Report data all lives in Postgres: `Audit.scores`, `Audit.stats`, `Issue` rows, `PerfMetric` rows. Exports are pure read → serialize. No new tables, no blob storage.
+- Worker is a long-lived container (concurrency 2) — Chromium is fine there. Web is Vercel serverless — Chromium is NOT fine there.
+
+---
 
 ## Recommended Stack
 
@@ -10,116 +25,109 @@
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| **Crawlee** (`crawlee`, `@crawlee/cheerio`, `@crawlee/playwright`) | 3.17.x | Crawler orchestration engine | Purpose-built for exactly this problem: request queue with dedup, concurrency/autoscaling, retry/backoff, session pools, and a shared interface across a plain-HTTP crawler (Cheerio) and a browser crawler (Playwright). Building this by hand (custom fetch + Cheerio) means re-implementing queueing, retries, politeness/rate-limiting and dedup that Crawlee already solved — not worth it for a 500-URL/site tool that needs to be reliable. HIGH confidence: official Apify project, actively maintained, this exact "mix HTTP and browser crawling under one interface" is its flagship use case. |
-| **Cheerio** (bundled via `@crawlee/cheerio` or standalone `cheerio`) | 1.2.x | Fast HTML parsing (server-rendered HTML) | Default parser for every page. jQuery-like API, extremely fast, low memory (500+ pages/min on 1 CPU / 4GB RAM per Crawlee's own benchmarks). Use this for the first pass on every URL: status code, headers, canonical, meta tags, JSON-LD, internal links, robots directives. This matches what the reference report already uses (per PROJECT.md). |
-| **Playwright** | 1.61.x | JS-rendered DOM capture + Lighthouse/CWV pages | Use selectively, not for every URL. Two triggers: (1) pages the sitemap says exist but where the raw-HTML pass shows suspiciously thin/empty content (likely CSR/SPA) — render and re-diff vs raw HTML; (2) the pages selected for the Lighthouse/CWV sample. Don't run Playwright over all 500 URLs — it's 5-10x the memory/CPU cost of Cheerio for HTML extraction alone. |
-| **Next.js (App Router)** | 16.x | Frontend + thin API layer | Already decided by user. Runs on Vercel. Its role here is limited to: marketing pages, email capture form, audit report UI, and a small set of API routes/Server Actions that (a) enqueue jobs and (b) read audit results from Postgres. It never runs the crawl itself. |
-| **BullMQ** + **Redis** (`bullmq` 5.x, `ioredis` 5.x) | bullmq 5.79.x | Job queue between frontend and worker | Industry-standard Node queue on Redis: atomic Lua-script-based job state machine, retries with backoff, rate limiting, job progress events, delayed jobs (for the "1 per week per email" cooldown), and flow/parent-child jobs (useful for "1 job per URL batch" fan-out under one audit). Vercel's own docs and community guidance converge on the same pattern: enqueue from a Next.js route, process in a persistent worker process outside Vercel — Vercel functions cannot host a long-lived BullMQ `Worker` (no persistent process, no arbitrary outbound long connections in Fluid Compute the same way, and job runtime would exceed serverless timeouts anyway). |
-| **PostgreSQL** | 16/17 | Persistence: audits, issues, emails, verification tokens, rate-limit state | Relational data (audits → pages → issues, many-to-many categories/severities) with need for historical comparison queries (diffing two audits) is a textbook relational fit. Managed Postgres (Neon, Supabase, or Railway Postgres) gives you branching/pooling for the serverless Next.js side and a normal connection for the worker. |
-| **Prisma** | 7.x | ORM / schema / migrations | Recommend Prisma over Drizzle for this project specifically **despite** the general 2026 ecosystem trend toward Drizzle, because: (1) both frontend (Vercel serverless) and worker (long-lived Node process) share the same schema — Prisma's migration tooling and generated client reduce the two-codebases-one-schema drift risk; (2) the data model has real relations (audits, runs, pages, issues, categories, emails) where Prisma's relation queries and cascading migrations pay off; (3) Prisma 7 removed the old binary-engine cold-start penalty that used to be the main argument against it in serverless — the historical objection is largely gone. If Juan prefers less abstraction and thinner bundles, Drizzle is a fully legitimate MEDIUM-confidence alternative (see Alternatives). |
-| **Railway** (container hosting for worker) | — | Hosts the BullMQ worker + Playwright/Lighthouse container | Railway has first-class "background worker" service type (no HTTP port needed), a documented Playwright-in-Docker guide, usage-based billing that fits a bursty lead-magnet workload (idle most of the time, spikes during a crawl), and one-click Redis + Postgres add-ons in the same project. Fly.io is a reasonable alternative if Juan wants global edge placement or finer VM control; Render is more predictable/flat-priced but pricier for this bursty pattern and less battle-tested for Playwright specifically. Recommendation: Railway for MVP, revisit if the free-tier cost profile (many short bursts) makes Fly.io's per-second billing cheaper at scale. |
+| **playwright** | 1.61.1 | Render the CSR/SSR sample in the worker (headless Chromium) | Already the planned ENRICH engine; pin to **exactly** 1.61.1 to match the Docker base image `mcr.microsoft.com/playwright:v1.61.1-noble` (browser binaries are tied 1:1 to the npm version — a drift causes "executable doesn't exist" at runtime). Use the **raw `playwright` API** (`chromium.launch()` + one `BrowserContext`/page per sampled URL), **not** Crawlee's `PlaywrightCrawler` — see rationale below. HIGH. |
+| **@react-pdf/renderer** | 4.5.1 | Branded PDF export, generated in the Next.js Node API route | Pure-JS (no Chromium, no native binaries) → safe inside a Vercel serverless function, tiny cold start, well under the 250 MB unzipped bundle cap. React/JSX component model with flexbox layout + `Font.register` fits a branded, data-dense report (score gauge, category cards, issues table) far better than low-level PDF drawing. Renders straight to a Node stream/`Buffer` you return as the download `Response`. HIGH. |
+| **pptxgenjs** | 4.0.1 | PPTX (presentation) export in the same API route | The de-facto standard, actively maintained, **pure JS with zero native deps** (Vercel-safe). Produces `.pptx` as a Node `Buffer`/base64 in-process. Full feature set needed for a slide report: text, tables, images, and native charts (bar/pie/line) for the category scores. HIGH. |
+| **Markdown export** | — (hand-rolled) | LLM-optimized `.md` export | This is a serialization concern, not a library concern. Build the string directly from the DB rows (scores → headings, issues grouped by category/severity → sections with checkId, measuredValue, criterion, recommendation). A generic HTML→MD converter is the wrong tool — the source is structured data, not HTML. HIGH. |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `fast-xml-parser` | 5.9.x | Parse sitemap.xml / sitemap indexes | Sitemap discovery step: fetch `sitemap.xml`, parse `<urlset>`/`<sitemapindex>`, recurse into nested sitemaps. Faster and lighter than `xml2js`. |
-| `robots-parser` | 3.0.x | Parse and evaluate `robots.txt` | Needed both for crawl politeness (respect `Disallow`) and as a scored SEO check itself (robots.txt present/valid, sitemap referenced in robots.txt). Also reuse its group-matching logic to evaluate AI-crawler directives (GPTBot, Google-Extended, CCBot, etc.) for the AEO category. |
-| `unlighthouse` | latest (core, `@unlighthouse/core`) | Multi-page Lighthouse orchestration | Runs Lighthouse across the crawled URL set with a browser pool, giving lab CWV data (Performance score, LCP, CLS, INP, TTFB) without you hand-rolling Lighthouse-over-Playwright orchestration. Run it as a step inside the worker container (it embeds Puppeteer/Chrome under the hood — expect the same memory profile as Playwright: budget ~1-2GB and cap concurrency). For 500 URLs, sample rather than run Lighthouse on every page (see Pitfalls research) — Unlighthouse supports route grouping/pattern sampling for this. |
-| PageSpeed Insights API (`fetch` wrapper, no dedicated SDK needed) | v5 REST API | Field data (CrUX) + a second Lighthouse source | Free quota is 25,000 queries/day, 400 queries/100 seconds (per Google's published limits) — comfortably enough for occasional mobile+desktop checks on a sampled subset of URLs, not for 500 URLs × 2 strategies per audit. Use it for the audited site's home/representative pages to pull real CrUX field data (which Unlighthouse/local Lighthouse cannot provide, since that's lab-only). Cache results per (URL, strategy) with a TTL (e.g. 7 days) to respect quota and the weekly free-tier cadence. |
-| `p-queue` or Crawlee's built-in `autoscaledPool` | p-queue 9.x | Local concurrency control for the Unlighthouse/PSI sampling step | Crawlee already manages crawl concurrency; you need a *separate* concurrency limiter for the Lighthouse/PSI sampling pass (much lower concurrency than the crawl itself, since each Lighthouse run is CPU/memory heavy). |
-| `resend` (Resend SDK) | 6.x | Transactional email: double opt-in verification + audit-ready notification | Official Node SDK, has a documented double opt-in reference implementation (`resend/resend-double-opt-in-example` on GitHub) that matches this exact flow: submit email → send confirmation link → verify → unlock access. Also handles the "audit finished, here's your report" email for long-running crawls. |
-| `jsonwebtoken` or Postgres-stored random token | — | Email verification token | Use a signed, short-expiry token (or a random token row in Postgres with `expiresAt`) for the double opt-in link — don't roll a custom crypto scheme. |
-| `zod` | latest | Validate crawl input, API payloads, structured-data schema shapes | Validate the audit-submission form (URL, email) and validate/normalize JSON-LD extraction results before scoring against expected schema.org shapes. |
-| `bullmq` `FlowProducer` | (bundled in bullmq) | Fan-out per-audit job into sub-jobs | One BullMQ "flow" per audit: parent job (discover URLs, aggregate score) with child jobs per URL batch or per category (crawl batch, Lighthouse sampling, PSI calls) — gives you retry isolation and progress reporting per phase without a second queue library. |
+| **p-limit** (or reuse the worker's existing lane pattern) | 7.x (optional) | Cap render concurrency in the CSR/SSR pass | The render sample is only ~5 pages; the existing manual "lane" concurrency pattern in `apps/worker/src/index.ts` (see `runPerfSample`) already does this without a dep. Add `p-limit` only if you prefer it over hand-rolled lanes. Keep render concurrency at 1–2 (Chromium is memory-heavy). |
+| **turndown** | 7.2.4 | HTML→Markdown | **Probably NOT needed.** Listed only to explicitly reject it: the Markdown export is built from structured DB data, not by converting HTML. Include only if a future feature must serialize a raw HTML fragment to MD. |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| Docker (multi-stage build) | Container for the worker (Crawlee + Playwright + Unlighthouse + BullMQ worker) | Use the official `mcr.microsoft.com/playwright:v1.61.1-noble` base image (pin the tag to match your installed Playwright version exactly — mismatches cause "browser executable not found" errors). Set `--ipc=host` or mount a larger `/dev/shm` (Chromium defaults to 64MB shm and crashes without it); pass `--disable-dev-shm-usage` as a fallback if you can't control the host's shm size on the hosting platform. |
-| BullMQ Board / Bull Board | Queue observability dashboard | Cheap way to see in-flight/failed/delayed jobs during development and to debug stuck audits in production without extra tooling. |
-| Railway CLI + `railway.json` | Deploy/config as code for the worker service | Keep the worker's Dockerfile and Railway service config in-repo alongside the Next.js app (monorepo) for atomic deploys of both when the shared Prisma schema changes. |
+| Docker base image `mcr.microsoft.com/playwright:v1.61.1-noble` | Worker container base with Chromium + system deps preinstalled | Pin the tag to the exact `playwright` npm version. Chromium defaults to a 64 MB `/dev/shm` and crashes under load → run with `--ipc=host` (or mount larger `/dev/shm`), and pass `--disable-dev-shm-usage` as a launch arg fallback when you can't control host shm (Railway/Fly). Budget ~1–2 GB RAM headroom for the render pass on top of the crawl. |
+| Brand font files (Array / Khand / Geist) bundled in `apps/web` | `Font.register()` sources for @react-pdf so exported PDFs match the on-screen brand | Ship the `.ttf`/`.otf` in the app (the fonts already exist for v1.1). @react-pdf needs a file/URL it can load at render time inside the function. |
+
+---
 
 ## Installation
 
 ```bash
-# Frontend (Next.js app, Vercel)
-npx create-next-app@latest --typescript --app
-npm install prisma @prisma/client zod resend bullmq ioredis
+# Worker (apps/worker) — render pass
+pnpm --filter @auditor/worker add playwright@1.61.1
+# (browsers come from the Docker base image; no `playwright install` needed in prod)
 
-# Worker (separate package/container)
-npm install crawlee playwright fast-xml-parser robots-parser bullmq ioredis \
-  unlighthouse zod prisma @prisma/client
+# Web (apps/web) — export generators (pure JS, Vercel-safe)
+pnpm --filter @auditor/web add @react-pdf/renderer@4.5.1 pptxgenjs@4.0.1
 
-# Playwright browsers (worker Dockerfile, not needed on Vercel side)
-npx playwright install --with-deps chromium
-
-# Dev dependencies
-npm install -D typescript @types/node bull-board
+# Optional
+pnpm --filter @auditor/worker add p-limit@7      # only if not reusing the lane pattern
 ```
+
+No new packages for canonical checks, heading checks, or Markdown export.
+
+---
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|--------------------------|
-| Crawlee | Custom `fetch` + Cheerio, hand-rolled queue | Only if you want zero framework dependency and are prepared to build your own retry/concurrency/dedup logic. Not recommended here — Crawlee's request queue and session pool solve exactly the "crawl 500 URLs politely and reliably" problem this product needs. |
-| Crawlee (Playwright crawler for the render pass) | Puppeteer directly | Crawlee already wraps Puppeteer as an option; Playwright is preferred for multi-browser support (not needed here) but mainly for its more modern, actively developed API and first-class Lighthouse integration story via Unlighthouse. No strong reason to pick Puppeteer standalone. |
-| Prisma | Drizzle ORM | If Juan prioritizes smallest possible bundle/cold-start on the Vercel side and is comfortable writing more SQL-like queries by hand, Drizzle (0.45.x) is a legitimate, increasingly popular choice — the 2026 ecosystem trend is moving Prisma-to-Drizzle for exactly this reason. Given this project's worker-heavy architecture (cold start matters far less on a long-lived Railway container than on Vercel functions), Prisma's DX and migration tooling edge out Drizzle's edge-runtime advantages. Revisit if the Vercel side grows heavy read traffic and cold starts become measurable. |
-| Railway (worker hosting) | Fly.io | If you need multi-region placement (e.g., crawling from a region close to the audited site) or prefer machine-level control (start/stop VMs on demand, scale-to-zero more aggressively). Fly.io's per-second billing can beat Railway at very bursty/idle-heavy usage patterns. |
-| Railway (worker hosting) | Render | If predictable flat monthly pricing matters more than usage-based billing, and you don't mind less battle-tested Playwright-in-Docker documentation compared to Railway's dedicated guide. |
-| PageSpeed Insights API for field data | Direct CrUX API (`chromeuxreport.googleapis.com`) | If you only need raw CrUX field metrics without running Lighthouse at all (e.g., a lighter "just show me real CWV" mode) — same Google quota system, slightly different shape of response. |
+|-------------|-------------|-------------------------|
+| Raw `playwright` for the render sample | Crawlee `PlaywrightCrawler` (`@crawlee/playwright` 3.17.0) | Only if the render pass grows into a *second crawl* (link-discovery, dedup, retries, autoscaling over many URLs). For a **fixed 3–5 URL sample coming out of `selectSample`**, PlaywrightCrawler's request queue / autoscaled pool is pure overhead — one browser + a context per URL is simpler, lighter, and easier to reason about. Crawlee stays the engine for the *actual* 500-URL crawl (CheerioCrawler); it does not need to also own the tiny render sample. |
+| @react-pdf/renderer (PDF) | **Playwright/Chromium HTML→PDF** | Only on the **worker** side, never on Vercel. If you ever need pixel-perfect HTML/CSS fidelity to the live report page, render it in the worker container (which already has Chromium) and store the PDF — but that contradicts the user's "on-demand in the web route, not pre-generated" decision, so it stays a non-goal here. |
+| @react-pdf/renderer (PDF) | **pdfmake** 0.3.11 | If the report becomes dominated by very large, complex auto-paginating tables and you prefer a declarative document-definition JSON over JSX components. pdfmake's table engine is strong; @react-pdf wins on brand fonts + custom component layout (gauges, cards). |
+| @react-pdf/renderer (PDF) | **pdf-lib** 1.17.1 | Only for low-level PDF manipulation (stamping, merging, editing an existing PDF). Building a full multi-page report by manually positioning text/rects is far too tedious for this use case. |
+| @react-pdf/renderer (PDF) | **jsPDF** 4.2.1 | Client-side/browser PDF generation. Weaker server-side layout story and manual positioning; no advantage over @react-pdf for a server route. |
+| Hand-rolled Markdown | Any HTML→MD lib (turndown) | Only if serializing a raw HTML blob. The export source here is structured DB data. |
+
+---
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
-|-------|-----|--------------|
-| Running the crawl, Lighthouse, or Playwright inside a Vercel serverless/edge function | Vercel functions cap out around 300s by default (up to 800s only on Enterprise), have no persistent process, cap memory, and don't allow the long-lived BullMQ `Worker` loop or a Chromium/Lighthouse process at the scale a 500-URL audit needs. This is a hard architectural mismatch, confirmed by both Vercel's own docs and community threads on this exact pattern. | Run BullMQ producer (enqueue only) inside Next.js API routes/Server Actions on Vercel; run the BullMQ `Worker`, Crawlee, Playwright and Unlighthouse in the separate Railway/Fly container. |
-| Running full Lighthouse (via Unlighthouse or otherwise) on all 500 URLs per audit | Each Lighthouse run is CPU/memory heavy (roughly 1-2GB, tens of seconds per page); at 500 URLs this turns a "free lead magnet audit" into a very expensive compute bill and a very slow report. | Sample a representative subset (homepage, top-level category pages, a handful of template-representative pages) for Lighthouse/PSI; run the lightweight Cheerio pass for the technical/on-page/structured-data checks across all 500 URLs. |
-| Puppeteer as the primary rendering engine | Superseded by Playwright for new projects; Crawlee supports both, but Playwright has better multi-browser support and more active tooling ecosystem integration (Unlighthouse itself builds on Chrome via Lighthouse's own driver, not Puppeteer specifically, but the wider community default in 2026 is Playwright for new browser-automation code). | Playwright |
-| Un-pinned `microsoft/playwright` Docker base image tag (e.g. `:latest`) | Playwright requires the installed npm package version and the browser binaries baked into the image to match exactly; drifting tags cause "executable doesn't exist" failures after redeploys. | Pin the Docker base image tag to the exact Playwright npm version in use (e.g. `mcr.microsoft.com/playwright:v1.61.1-noble`) and bump both together. |
-| Hand-rolled cron/interval polling for the "1 audit/week/email" quota | Fragile, doesn't survive restarts cleanly, and duplicates what a database + delayed-job system already gives you for free. | Store `lastAuditAt` per verified email in Postgres and check/reject at enqueue time; optionally use a BullMQ delayed job or rate-limiter feature as a secondary guard against duplicate concurrent submissions. |
-| Treating Domain Rating / third-party paid metrics as part of crawler output | Explicitly out of scope per PROJECT.md — avoids a hard dependency on Ahrefs/Moz paid APIs for the core scored audit. | Keep PSI/CrUX + your own crawl-derived checks as the only inputs to the score; third-party authority metrics (if ever added) stay as optional context, not scored inputs. |
+|-------|-----|-------------|
+| **Chromium/Playwright/Puppeteer inside the Vercel export route** | Bundling `@sparticuz/chromium` (~50 MB+) + `puppeteer-core` blows up cold start and eats into the 250 MB unzipped function cap for zero benefit when a pure-JS lib produces the same download. The web function only reads DB + serializes. | @react-pdf/renderer + pptxgenjs (pure JS) |
+| **Pre-generating / storing export files** | User decision: exports are on-demand (click → generate → stream download). Adds storage, invalidation, and staleness problems for no gain. | Generate in-request from the DB, return as a streamed/`Buffer` `Response` with `Content-Disposition: attachment`. |
+| **`PlaywrightCrawler` for the render sample** | Request-queue/dedup/autoscaling machinery is unnecessary for a fixed <=5 URL list already produced by `selectSample`. | Raw `playwright` `chromium.launch()` + one context/page per URL, concurrency 1–2. |
+| **Un-pinned Playwright / mismatched Docker tag** | `playwright` npm version and the browser binaries in `mcr.microsoft.com/playwright:*` must match exactly or Chromium won't launch after a redeploy. | Pin both to `1.61.1` / `v1.61.1-noble`; bump them together. |
+| **Running Playwright over all 500 crawled URLs** | 5–10× the CPU/memory of the Cheerio pass; turns a free lead-magnet audit into a huge compute bill and a slow report. | Render only `selectSample(pages, N)` (reuse the PSI sampler); compare rendered DOM vs the already-stored `Page.html`. |
+| **A second sampler for the render pass** | Duplicates logic and risks divergence from the PSI sample. | Reuse `selectSample` from `@auditor/psi` (or lift it to a shared util if you don't want the psi dep in the render step). |
+| **New DB columns/tables for exports** | Exports are ephemeral reads. | Read existing `Audit.scores` / `Audit.stats` / `Issue` / `PerfMetric`. (A render-detection *check* will emit `Issue` rows through the existing pipeline — no schema change; optionally a boolean/summary on the page, but not required for exports.) |
+
+---
 
 ## Stack Patterns by Variant
 
-**If the audited site is very large (near or over the 500-URL free-tier cap):**
-- Use Crawlee's `RequestQueue` with a hard `maxRequestsPerCrawl` cap set to 500, and prioritize sitemap-declared URLs over discovered/crawled ones so the cap is spent on canonical content, not incidental link-crawl discoveries.
-- Because 500 pages of full Lighthouse would be prohibitively slow, sampling (see above) is not optional but required at this scale.
+**CSR/SSR render pass (worker):**
+- Slot it as a new step in `crawlAndCheck()` after the crawl, alongside the PSI sample (both consume `pages` and both use `selectSample`). Consider running render-detection and PSI over the *same* sample to launch Chromium once.
+- Compare rendered DOM against the stored `Page.html` (raw). Signal for CSR: rendered visible text / DOM node count materially exceeds the raw-HTML equivalent (e.g. raw `<body>` text length far below rendered `document.body.innerText`). Emit a normal `Issue` (new check id in `@auditor/checks`) so it flows through scoring/diff/reporting unchanged.
+- Launch args: `--disable-dev-shm-usage`; container run with `--ipc=host`. Reuse a single `Browser`, new `BrowserContext` per page, `context.close()` between pages to bound memory.
+- Keep it best-effort like the PSI pass: a render failure degrades that page's detection to "unknown", never fails the audit (mirror the try/catch around `runPerfSample`).
 
-**If a target site is heavily client-side rendered (CSR/SPA):**
-- Run the fast Cheerio pass first; if extracted content/title/meta looks empty or drastically shorter than the rendered `<body>` text length threshold, flag the page and re-fetch with the Playwright crawler for that URL only.
-- Don't default every URL to Playwright — this is the "raw HTML vs rendered HTML" comparison the reference report already calls for (per PROJECT.md), used selectively, not universally.
+**Export route (web):**
+- One Node-runtime API route (`export const runtime = "nodejs"`), query param or path segment selects `pdf | md | pptx`. Fetch the audit + issues + perf metrics once, branch to the matching generator, return the `Buffer`/stream with `Content-Disposition: attachment; filename="..."`.
+- @react-pdf: build a `<Document>` component tree, `renderToBuffer(doc)` → `Response`. Register brand fonts from bundled files.
+- pptxgenjs: `new pptxgen()`, add slides, `pptx.write({ outputType: "nodebuffer" })` → `Response`.
+- Markdown: template-string builder from the same fetched data; set `Content-Type: text/markdown`.
+- Generation is fast (seconds); default Vercel function duration is sufficient — no `maxDuration` bump expected, but set it explicitly if a very large issues table pushes render time.
 
-**If free-tier volume is low initially (early launch, few concurrent audits):**
-- A single small Railway worker instance is sufficient; BullMQ concurrency can stay low (e.g. 2-3 concurrent Playwright/Lighthouse jobs) to control memory.
-- Scale worker concurrency and/or instance count only once real usage data shows queue backlog.
+---
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
-|-----------|------------------|-------|
-| `playwright@1.61.1` | `mcr.microsoft.com/playwright:v1.61.1-noble` Docker image | Must match exactly — Playwright's browser download version is tied 1:1 to the npm package version. |
-| `crawlee@3.17.x` | `playwright@1.61.x`, `cheerio@1.2.x` | Crawlee's `@crawlee/playwright` and `@crawlee/cheerio` packages declare peer ranges on these — install via Crawlee's own package set rather than mixing arbitrary independent versions. |
-| `bullmq@5.79.x` | `ioredis@5.11.x` or `redis@>=5.0.0` | If using the `redis` npm client instead of `ioredis`, BullMQ requires `redis` v5+; `ioredis` is the more common/stable choice for BullMQ specifically. |
-| `prisma@7.x` | Node 18+ | Prisma 7 dropped the old binary-engine cold-start penalty; verify Railway's Node runtime version supports it (Node 20+ recommended for both frontend and worker for LTS alignment). |
-| `next@16.x` | `prisma@7.x` client only, not the worker's Crawlee/Playwright deps | Keep the worker as a separate package/deployable (even in a monorepo) so Next.js's Vercel build never tries to bundle Playwright/Crawlee, which would break the Vercel build or bloat function size. |
+|-----------|-----------------|-------|
+| `playwright@1.61.1` | `mcr.microsoft.com/playwright:v1.61.1-noble` | Must match exactly (browser binary ↔ npm version). |
+| `playwright@1.61.1` | `crawlee@3.17.0` (CheerioCrawler, existing) | Coexist fine — Crawlee does the HTTP crawl, raw Playwright does the render sample independently. No `@crawlee/playwright` needed unless you switch to PlaywrightCrawler. |
+| `@react-pdf/renderer@4.5.1` | `react@19` / `next@15` (web) | v4 supports React 19. Runs in the Node runtime, not edge. Pure JS — no bundler/native-binary issues on Vercel. |
+| `pptxgenjs@4.0.1` | Node 20+ | Pure JS, `outputType: "nodebuffer"` for server use. No native deps. |
+| Web function bundle | Vercel 250 MB unzipped cap | @react-pdf + pptxgenjs + fonts are a few MB total — comfortably within cap (the whole point of avoiding Chromium here). |
+
+---
 
 ## Sources
 
-- [Crawlee GitHub](https://github.com/apify/crawlee) — crawler engine architecture, HIGH confidence (official repo)
-- [Crawlee CheerioCrawler guide](https://crawlee.dev/js/docs/guides/cheerio-crawler-guide) — throughput/performance characteristics, HIGH confidence
-- [Unlighthouse docs](https://unlighthouse.dev/) — multi-page Lighthouse orchestration, bulk testing/sampling via `--maxRoutes`, HIGH confidence (official docs)
-- [BullMQ official site](https://bullmq.io/) and [npm](https://www.npmjs.com/package/bullmq) — current version 5.79.2, MIT license, no artificial concurrency limits, HIGH confidence
-- [Vercel community discussion #5050](https://github.com/vercel/community/discussions/5050) and [Next.js discussion #33989](https://github.com/vercel/next.js/discussions/33989) — confirms BullMQ workers cannot run inside Vercel functions, MEDIUM-HIGH confidence (community consensus + Vercel's own documented function timeout limits)
-- [Prisma vs Drizzle comparison](https://www.prisma.io/docs/orm/more/comparisons/prisma-and-drizzle) (official Prisma docs) — architecture/positioning, MEDIUM confidence (vendor-authored, cross-checked against independent 2026 comparison articles which agree on the general trend)
-- [Railway Playwright guide](https://docs.railway.com/guides/playwright) — official Docker/Playwright deployment guidance, HIGH confidence
-- [Railway vs Render vs Fly.io comparison articles, 2026](https://hostim.dev/blog/render-vs-railway-vs-fly-pricing/) — pricing/positioning, MEDIUM confidence (third-party, cross-checked across multiple independent sources that agree)
-- [Google PageSpeed Insights API discussion](https://groups.google.com/g/pagespeed-insights-discuss/c/dB7hWmGAGsw) — 25,000/day, 400/100s quota, MEDIUM confidence (community-reported, consistent with Google's documented behavior, some undocumented additional throttling reported)
-- [Playwright Docker docs](https://playwright.dev/docs/docker) — official image tagging/version-pinning guidance, HIGH confidence
-- [Resend double opt-in example repo](https://github.com/resend/resend-double-opt-in-example) — official Resend reference implementation for this exact flow, HIGH confidence
-- npm registry (`npm view <pkg> version`, checked 2026-07-05) — exact current published versions of crawlee, playwright, next, bullmq, ioredis, prisma, drizzle-orm, cheerio, resend, fast-xml-parser, robots-parser, p-queue, jsdom — HIGH confidence (live registry query)
+- `npm view <pkg> version` (live, 2026-07-06): playwright 1.61.1, crawlee/@crawlee/playwright 3.17.0, @react-pdf/renderer 4.5.1, pptxgenjs 4.0.1, pdfmake 0.3.11, pdf-lib 1.17.1, jspdf 4.2.1, turndown 7.2.4, @sparticuz/chromium 149.0.0 — HIGH (registry)
+- Repo code: `packages/db/prisma/schema.prisma` (Page.html, Issue, PerfMetric), `packages/psi/src/sample.ts` (selectSample), `apps/worker/src/index.ts` (runPerfSample pattern, best-effort/lane concurrency), `packages/crawler/src/crawl.ts` (raw HTML persisted) — HIGH (direct read)
+- Root `CLAUDE.md` stack table — Playwright Docker pinning + shm pitfalls, Vercel-vs-worker split — HIGH (project-authored, carried forward)
+- Playwright Docker docs (image tagging/version pinning), pptxgenjs / @react-pdf/renderer project docs — HIGH (official)
 
 ---
-*Stack research for: Automated SEO/technical web-audit crawler (lead magnet SaaS)*
-*Researched: 2026-07-05*
+*Stack research for: v1.2 render detection + report exports (additive milestone)*
+*Researched: 2026-07-06*
+</content>

@@ -1,164 +1,162 @@
 # Project Research Summary
 
-**Project:** Auditor Web (SEO/Técnico) — Lead Magnet para juan-tech.com
-**Domain:** Automated SEO/technical web-audit crawler SaaS (lead magnet), Screaming-Frog-like
-**Researched:** 2026-07-05
+**Project:** Auditor Web (SEO/Técnico) — milestone v1.2 (render detection + report exports)
+**Domain:** SEO/technical web-audit tool (lead magnet) — additive milestone on a shipped app
+**Researched:** 2026-07-06
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This is a well-established product category (technical SEO audit crawler à la Screaming Frog / Sitebulb / Ahrefs Site Audit / Semrush Site Audit) with two genuine twists: it's given away free as a lead-gen mechanism (email-gated, quota-limited) rather than sold as a subscription tool, and it adds a native "AI Visibility/AEO" scored category that none of the big incumbents ship yet. Experts build this category with a purpose-built crawler engine (Crawlee) doing sitemap-first discovery with link-crawl fallback, a fast Cheerio pass for the bulk of pages, selective Playwright rendering only where JS-rendering risk is detected, Lighthouse/PageSpeed Insights sampled (never run in full across every URL), and a background worker + queue architecture because a 500-URL audit with Lighthouse cannot fit inside serverless function limits. Vercel/Next.js hosts only the thin frontend and enqueues work; a separate long-lived container (Railway/Fly) runs the actual crawl.
+v1.2 is an **additive** milestone on an already-shipped, validated pipeline (crawl → checks → PSI → diff → score → persist) with a strict `apps/web` (Vercel) ↔ `apps/worker` (Railway/VPS container) boundary. Nothing about v1.0/v1.1 changes. The milestone bolts on four capabilities: CSR/SSR render detection (selective Playwright pass in the worker over a small sample), deeper canonical checks, heading-hierarchy checks, and on-demand report exports (PDF, Markdown-for-LLM, PPTX) generated in a Next.js Node API route with a top-right export button + type selector. All four research files were written by reading the actual repo, so confidence is high and grounded, not greenfield guesswork.
 
-The recommended approach is: Next.js (App Router, Vercel) for UI + thin API routes that only validate, check quota, and enqueue; a BullMQ+Redis queue; a Node worker container running Crawlee (Cheerio primary, Playwright selectively), Unlighthouse/PSI for performance (sampled, cached), and a pure-logic `checks-catalog` package for the actual SEO/on-page/schema/AEO rule set; Postgres (via Prisma) as the single source of truth for audits, pages, issues, emails, and quota, with progress written by the worker and read-only by the web tier (polling, upgrading to SSE later — no WebSockets). This mirrors the reference report's 5-category structure (Technical SEO, On-Page, Structured Data, Performance/CWV, AEO) and the explicit requirement to persist audits and diff runs.
+The recommended approach is deliberately conservative about the boundary. The two check extensions (canonical, headings) are **pure Cheerio logic over already-stored HTML** — zero infra, zero migration, lowest risk, so they ship first. CSR/SSR detection is the only feature that touches the worker and Docker: it needs a pinned Playwright base image, a new isolated `@auditor/render` package (worker-only, so Playwright never leaks into the Vercel build via the existing `web → checks → crawler` import path), and it must render only a small sample (reuse the existing `selectSample`), never all 500 URLs. The check itself stays pure — the worker renders and produces a `RenderSignal` artifact, a new `RENDER-01` check consumes it. Exports are pure reads: extract a shared `buildReportModel` first, then three pure serializers in a new `@auditor/export` package using **pure-JS libraries only** (`@react-pdf/renderer`, `pptxgenjs`, hand-rolled Markdown) — no Chromium anywhere near Vercel.
 
-The dominant risks are not stack-selection risks (that part is HIGH confidence and well-trodden) but correctness/credibility risks: a naive crawler getting IP-banned by WAF-protected real sites and reporting false "site is down" errors; Cheerio-only extraction producing false negatives on JS-rendered sites (directly undermining the "accurate and reliable" core value with an SEO-savvy target audience); Lighthouse's run-to-run variance and PSI's rate limits making the scoring model look unstable if not sampled/cached/averaged deliberately; and abuse of the free-tier gate (email plus-addressing, disposable domains, no rate limiting on verification) burning compute and email-sending reputation. All of these have clear, well-documented mitigations that should be built in from the start rather than retrofitted — retrofitting the Cheerio→Playwright gap and GDPR consent records post-launch are explicitly flagged as HIGH-cost fixes if skipped now.
+The key risks are all concentrated in CSR/SSR and exports. For rendering: image/npm version drift, Chromium `/dev/shm` OOM under concurrency=2 + existing PSI load, zombie browser processes on timeout/shutdown, and — most insidious — CSR false positives from an arbitrary raw-vs-rendered threshold that would embarrass the lead magnet by flagging SSR sites. Mitigate with pinned images, a global Chromium semaphore, `finally { browser.close() }`, empirically calibrated + documented thresholds (the SimHash=3 precedent), template-level verdicts, and always emitting a stable per-page `ok`/`warning` row so the diff doesn't churn. For exports: don't bundle Chromium into Vercel, truncate to top-N (a 200-page PDF is useless), embed a Unicode TTF for Spanish accents (`áéíóúñ¿¡`), and make an explicit access-control decision since the report is currently public-by-ID. A subtle cross-cutting risk: new multi-condition checks must **sub-type their fingerprints** or the fingerprint-keyed diff silently collapses distinct findings, and new per-page `ok` rows can dilute category scores — verify score drift on the juan-tech.com fixture.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Frontend: Next.js (App Router) on Vercel, doing only UI, thin API routes/Server Actions, and BullMQ producer calls — it never runs crawl/Lighthouse logic. Worker: a separate Node container (Railway recommended, Fly.io as an alternative for multi-region/finer VM control) running Crawlee (Cheerio primary engine, Playwright for selective JS-rendering checks and Lighthouse sampling), BullMQ `Worker` consuming jobs from Redis, Unlighthouse/PSI for Core Web Vitals, and Prisma against Postgres for persistence. This split exists because a 500-URL crawl + Lighthouse categorically exceeds Vercel serverless function time/memory/process-lifetime limits — confirmed by Vercel's own docs and community consensus, not just inferred.
+Only net-new dependencies; everything else is validated and out of scope. Two axes: a worker-side render pass and web-side export generators. All versions verified live via `npm view` on 2026-07-06 and cross-checked against actual repo code.
 
 **Core technologies:**
-- Crawlee (Cheerio + Playwright crawlers) — purpose-built request queue, dedup, retries, session pools; avoids hand-rolling a politeness/concurrency engine
-- BullMQ + Redis — job queue between Vercel and the worker, supports delayed jobs (weekly quota), flow/parent-child jobs (per-audit fan-out), progress events
-- PostgreSQL + Prisma — relational fit for audits→pages→issues with historical diff queries; Prisma chosen over Drizzle specifically because both deployables share one schema and Prisma 7 removed the old serverless cold-start penalty
-- Railway (worker hosting) — first-class background-worker service type, documented Playwright-in-Docker guide, usage-based billing fits a bursty lead-magnet load
-- unlighthouse + Google PageSpeed Insights API — sampled Lighthouse orchestration plus real CrUX field data; never run full Lighthouse across all 500 URLs (cost/variance both prohibitive)
-- Resend — transactional email with a documented double opt-in reference flow matching this exact requirement
+- **playwright 1.61.1** (worker) — render the CSR/SSR sample in headless Chromium. Use the **raw `playwright` API** (`chromium.launch()` + one context/page per sampled URL), NOT `PlaywrightCrawler` (request-queue/autoscaling is pure overhead for a fixed ≤5-URL sample). Pin **exactly** to match Docker base `mcr.microsoft.com/playwright:v1.61.1-noble`.
+- **@react-pdf/renderer 4.5.1** (web) — branded PDF in the Node API route. Pure-JS, no Chromium, tiny cold start, well under Vercel's 250 MB cap. JSX/flexbox layout fits a data-dense branded report; register brand fonts (Array/Khand/Geist) via `Font.register`.
+- **pptxgenjs 4.0.1** (web) — PPTX deck export. Pure-JS, zero native deps, native charts for category scores, `outputType: "nodebuffer"`.
+- **Markdown export** — hand-rolled string builder from DB rows (NOT an HTML→MD converter; the source is structured data). No dependency.
+
+No new packages for canonical checks, heading checks, or Markdown export. Optional `p-limit@7` only if not reusing the worker's existing lane concurrency pattern. See [STACK.md](./STACK.md).
 
 ### Expected Features
 
-**Must have (table stakes):** sitemap discovery + link-crawl fallback (robots.txt-respecting, rate-limited); core technical SEO checks (status codes, redirects, canonical, indexability, broken links/resources, mixed content, hreflang); on-page checks (title/meta/H1/alt/OG/lang); structured data (JSON-LD) presence + validation; Core Web Vitals via Lighthouse/PSI (sampled, mobile+desktop); overall + per-category scores with 3-tier severity (Critical/Warning/Notice, matching industry norm); prioritized issues table with measured value/source/criterion/recommendation per issue (fixed by the reference report format); email capture + double opt-in gating; quota enforcement (1/week/email, 500-URL cap); persistence of audits keyed to verified email + domain; background worker with progress reporting; basic run-to-run diffing (fixed/new/persisting issues).
+Categorized relative to a "Screaming Frog but more complete and automated" audit. See [FEATURES.md](./FEATURES.md).
 
-**Should have (competitive differentiators):** native AI Visibility/AEO scored category (AI-crawler robots.txt access is the highest-weight check; llms.txt should be low-weight/informational only — research shows 97% of llms.txt files get zero AI-crawler requests); run comparison/diffing as a weekly-return hook (no free-tier competitor does this well); raw-HTML-vs-rendered-HTML comparison (genuine technical differentiator, but expensive at scale — sample, don't run on all 500 URLs); historical trend view (falls out nearly free once diffing exists); branded, consultant-credible report design matching the reference report.
+**Must have (table stakes):**
+- **Heading hierarchy errors** (extend ONPAGE-03) — LOW complexity, pure Cheerio; every SEO+a11y tool reports this.
+- **Deeper canonical checks** (extend TECH-04) — MEDIUM; canonical→noindex/4xx/redirect/chains/cross-domain. Credibility for a technical-SEO tool.
+- **PDF export (branded)** — the default "deliverable" mental model for an audit.
+- **Export button top-right + type selector** — gates all exports; LOW, keyboard/ARIA accessible per the v1.1 baseline.
 
-**Defer (v2+):** paid tiers/unlimited audits; near-duplicate content detection (ship exact-match first); domain-ownership verification flow; multi-user/team accounts, white-label; API access; expanded AEO signals (E-E-A-T, citation-readiness — space too volatile to over-invest now); PDF/CSV export.
+**Should have (competitive differentiators):**
+- **Markdown-for-LLM export** — the standout. No mainstream SEO tool ships this; serves the "actionable" + AEO positioning directly. Cheapest to build, highest differentiation.
+- **CSR vs SSR detection** — premium JS-SEO capability, AEO-relevant (LLM crawlers don't run JS). Highest complexity, only worker/schema-touching feature.
+- **PPTX export (client-facing deck)** — turns a self-serve report into a consultant-grade artifact; 7–12 focused slides.
+
+**Defer (v2+):**
+- Additional export formats (DOCX/CSV) — format sprawl, only on demand.
+- Per-template CSR grouping UI in the on-screen report — start with export/issue reporting.
+- Rendering-based re-crawl of JS-only internal links — heavier, defer.
+
+**Explicit anti-features:** rendering all 500 URLs with Playwright, Chromium HTML→PDF on Vercel, WYSIWYG export builder, marking CSR as a hard score failure, async/queued export generation.
 
 ### Architecture Approach
 
-Two deployables in one monorepo (`apps/web`, `apps/worker`, shared `packages/db` + `packages/shared-types` + `packages/checks-catalog`), communicating only asynchronously via Redis (commands) and Postgres (state reads) — never direct HTTP/RPC between them. The "thin producer / fat consumer" pattern is non-negotiable: Vercel only validates, checks quota, writes the initial `audit` row, and enqueues; 100% of crawling, parsing, checking, and Lighthouse/PSI calls happen in the worker. Progress uses Postgres as the system of record (worker writes throttled progress fields; BullMQ/Redis is just transport) so the web tier has a single read path for both live-progress and final-report views. Polling is the shipped mechanism; SSE is an optional later upgrade; WebSockets are explicitly rejected as unjustified complexity.
+Integration, not re-design. The pipeline and the web/worker boundary MUST NOT change; everything is additive. CSR detection slots as a new pass **after `runCrawl`, before `runAllChecks`** so the verdict becomes an `Issue` through the existing registry/scoring/diff path for free. The worker renders and produces the artifact; a new pure `RENDER-01` check consumes it (browser lives in the worker, check stays pure data-in → IssueDraft-out). Exports extract a shared `buildReportModel` (used by both the report page and the export route to avoid query drift) feeding three pure serializers. See [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 **Major components:**
-1. URL Discovery — sitemap.xml (+ index recursion, gzip) parsing with robots.txt-aware fallback to link-crawl BFS, capped at 500 URLs
-2. Page fetch/parse — Cheerio-first extraction, selective Playwright rendering for JS-heavy/CSR pages detected by thin-content heuristics
-3. Check engine (`checks-catalog`) — pure-logic, testable rule set consuming normalized page data, producing severity-classified issues per category (technical-seo, on-page, structured-data, performance, aeo)
-4. Lighthouse/PSI orchestrator — sampled subset of URLs, cached by URL+strategy, decoupled from the main crawl so PSI rate-limit failures degrade gracefully rather than failing the whole audit
-5. Scoring + diff engine — aggregates category/overall scores from issue severities + PSI scores, computes run-to-run diffs via stable `(check_id, normalized_url)` fingerprints
+1. **`@auditor/render`** (NEW, worker-only) — `runRenderSample(pages) → Map<pageId, RenderSignal>`; isolates Playwright so it never reaches Vercel via `web → checks → crawler`.
+2. **`RENDER-01` check** (NEW, pure) — consumes `ctx.renderSignal`, emits CSR/SSR Issue; `PageCheckCtx`/registry get an optional `renderSignal` field.
+3. **`@auditor/export`** (NEW, web-only, pure) — owns `ReportModel` type + `toPdf/toMarkdown/toPptx`; depends only on pure-JS doc libs, never on crawler/checks-runtime/playwright.
+4. **`apps/web/lib/reportModel.ts`** (NEW) + **`/api/audits/[id]/export/route.ts`** (NEW, Node runtime) — shared fetch + thin format-dispatch adapter with download headers.
+5. **Extended `canonical.ts` / `h1.ts`** (MODIFIED, pure) — deeper rules; cross-page canonical cases as a SiteCheck.
+
+**Migrations: none mandatory.** Optional nullable `Page.renderVerdict` only if the pages-view wants a badge.
 
 ### Critical Pitfalls
 
-1. **Crawler gets IP-banned/blocked by WAF-protected real sites** — enforce per-domain (not global) concurrency caps, honest identifiable User-Agent, exponential backoff on 429/503, and classify WAF-challenge pages as "crawler blocked" rather than "broken page" in the report.
-2. **Cheerio-only extraction produces false negatives on JS-rendered sites** — this directly threatens the "accurate and reliable" core value with an SEO-savvy audience; detect raw-vs-rendered divergence as a first-class reportable finding, not just an internal fallback decision, and never present a Cheerio-only structured-data/on-page finding as definitive without disclosing extraction method.
-3. **Lighthouse variance + PSI rate limits treated naively** — single Lighthouse runs vary 5-10+ points run-to-run; running full Lighthouse across 500 URLs is both cost-prohibitive and rate-limit-prohibitive (PSI: 400 req/100s burst, ~25 free full-audits/day system-wide at 2 strategies × 500 URLs). Sample representative pages, cache aggressively by URL+strategy, disclose variance in the UI.
-4. **Queue jobs get stuck/zombied with no recovery path** — long external calls (target-site fetch, Lighthouse, PSI) are exactly the failure mode queues don't handle by default; requires explicit per-job/per-URL timeouts, stalled-job detection/requeue, and per-URL-granular resumability, validated via deliberate failure-injection (kill worker mid-job), not just happy-path testing.
-5. **Free-tier quota gate has abuse gaps** — plus-addressing, disposable-email domains, and no rate limiting on the verification-send endpoint itself all trivially bypass "1 audit/week/email"; normalize emails, blocklist disposable domains, rate-limit the verification endpoint independently of audit quota, and consider Turnstile on the public form.
+Top risks from [PITFALLS.md](./PITFALLS.md) (14 total documented, grounded in repo facts):
+
+1. **CSR false positives from an arbitrary threshold** — compare *meaningful content* (`extractVisibleText`, title/H1/main text presence in raw HTML), not byte length; calibrate empirically against known SSR (juan-tech.com) and CSR fixtures and **document the threshold** (SimHash=3 precedent); report a template-level verdict; only flag critical when content is genuinely absent pre-JS.
+2. **Chromium OOM / zombie browsers under concurrency=2 + PSI** — the worker already runs 2 jobs × PSI/Lighthouse. Use a **global Chromium semaphore** shared by PSI and CSR, `--disable-dev-shm-usage`, launch-per-sample-then-close, `finally { browser.close() }` on all paths, and extend `shutdown()` to close browsers.
+3. **Playwright Docker image/npm version drift** — no Dockerfile exists yet; build it FROM the exact pinned `mcr.microsoft.com/playwright:v1.61.1-noble`, bump image + npm atomically, add a CI version-match check.
+4. **Fingerprint collisions on multi-condition checks** — deeper canonical/heading checks emit several findings per page; reusing `pageFingerprint(CHECK_ID, url)` collapses them in the fingerprint-keyed diff (last wins, no unique constraint). **Sub-type fingerprints** (`TECH-04:chain`, `ONPAGE-03:level-skip`) via a shared util; keep the subtype content-independent.
+5. **Export route: Chromium in the Vercel bundle, unbounded volume, public-by-ID access, broken accents** — pure-JS generators only (verify `pnpm why playwright` empty in web); truncate to top-N with an explicit "showing N of M" note; make an explicit access-control + rate-limit decision (report is currently unauthenticated by-ID); embed a Unicode TTF and test `áéíóúñ¿¡`.
+
+Plus: **score dilution** from new per-page `ok` rows (verify score drift on the reference fixture; consider aggregate rows), **non-deterministic CSR diff churn** (always emit a stable per-page row so only severity changes), and **bot-detection/blocked renders** (degrade to "not determined", never a false flag or job failure).
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure (dependency-driven, matches Architecture doc's "Suggested Build Order" and Feature doc's dependency graph):
+Phase numbering continues from 11. Dependency logic: pure check extensions are safest → ship first; the render pass carries all the infra risk → do it deliberately in isolation; exports read existing data and benefit from render findings already existing → after render; the UI button is last.
 
-### Phase 1: Foundations — data model, monorepo, queue plumbing
-**Rationale:** Everything else depends on the shared schema existing, and proving the Vercel↔Redis↔worker↔Postgres wiring end-to-end (with a no-op job) de-risks the entire architecture before any crawl logic is written.
-**Delivers:** `packages/db` (Prisma schema: email, site, audit, page, issue, quota_usage), `packages/shared-types`, monorepo scaffolding (`apps/web`, `apps/worker`), a working enqueue→dequeue→mark-completed loop with polling-based progress.
-**Addresses:** Background worker/queue execution requirement.
-**Avoids:** Pitfall 10 (stuck/zombied jobs) — build stalled-job detection and per-job timeouts in from the start, not retrofitted.
+### Phase 11: Deeper checks (canonical + heading hierarchy)
+**Rationale:** Pure Cheerio logic over already-stored HTML, no infra, no migration, zero pipeline risk, independent of everything else. Immediate table-stakes value. Ship first to bank easy wins before the risky work.
+**Delivers:** Extended TECH-04 (canonical→noindex/4xx/redirect/chains/cross-domain, with cross-page cases as a SiteCheck) + extended ONPAGE-03 (multiple H1, skipped levels, empty headings, order).
+**Addresses:** Deeper canonical checks, heading hierarchy errors (both P1 table stakes).
+**Avoids:** Fingerprint collisions (Pitfall 6 — introduce the sub-typed fingerprint util here, up front) and score dilution (Pitfall 7 — verify score drift on the juan-tech.com fixture).
 
-### Phase 2: Core crawler engine — discovery, fetch, parse
-**Rationale:** Highest-risk piece of the whole product (real-world target-site variability, robots.txt edge cases, redirects, WAF blocking) — must be built and hardened against real sites before any checks are layered on top.
-**Delivers:** Sitemap discovery (+ index recursion, gzip, link-crawl fallback), robots.txt-compliant politeness with per-domain concurrency caps, redirect-chain + canonical tracking, Cheerio extraction with selective Playwright rendering for CSR-detected pages.
-**Uses:** Crawlee, Cheerio, Playwright, `fast-xml-parser`, `robots-parser`.
-**Avoids:** Pitfall 1 (IP bans), Pitfall 2 (robots.txt mishandling), Pitfall 3 (redirect/canonical conflation), Pitfall 8 (Cheerio-only false negatives), Pitfall 9 (memory blowups — validate against a real 500-URL load test before calling this phase done).
+### Phase 12: CSR/SSR render pass
+**Rationale:** The only feature touching the worker + Docker — the real integration risk. Land and verify it in isolation before building the export surface on top. Also the biggest architectural add (new package + Playwright + container).
+**Delivers:** `@auditor/render` package, worker render step (after crawl, before checks), `RENDER-01` pure check, `PageCheckCtx`/registry plumbing, pinned Playwright Dockerfile.
+**Uses:** playwright 1.61.1 + `mcr.microsoft.com/playwright:v1.61.1-noble` (STACK.md).
+**Implements:** `@auditor/render` + `RENDER-01` (ARCHITECTURE.md).
+**Avoids:** Pitfalls 1–5, 13, 14 — image pin, global Chromium semaphore, browser lifecycle/`finally`+shutdown, `selectSample` (never 500), calibrated + documented threshold, template-level verdict, stable per-page rows, graceful degradation on blocked renders.
 
-### Phase 3: Technical SEO + on-page checks
-**Rationale:** No external API dependency, validates the checks-catalog architecture and scoring inputs against real crawled data before adding Lighthouse/PSI complexity.
-**Delivers:** `packages/checks-catalog` technical-seo and on-page rule sets (status/redirects/canonical/broken links/duplicate title-meta/hreflang basic-presence/mixed content; title/meta/H1/alt/OG/lang).
-**Implements:** Check engine component.
-**Addresses:** Table-stakes technical SEO + on-page features from FEATURES.md.
+### Phase 13: Export foundation + serializers
+**Rationale:** Depends only on existing report data; sequencing after 12 means the first exported reports already carry CSR findings. Build serializers in ascending complexity (MD → PDF → PPTX) so the shared `ReportModel` + route are validated by the cheapest format first.
+**Delivers:** Extracted `buildReportModel`, `@auditor/export` package (pure), the Node export route with download headers, and the three serializers.
+**Uses:** @react-pdf/renderer 4.5.1, pptxgenjs 4.0.1, hand-rolled Markdown (STACK.md).
+**Implements:** `@auditor/export` + `reportModel.ts` + export route (ARCHITECTURE.md).
+**Avoids:** Pitfalls 8–12 — no Chromium in the web bundle (build guard), top-N truncation with omission note, explicit access-control + rate-limit decision, Unicode TTF for Spanish accents, pure package boundary.
 
-### Phase 4: Structured data + AEO checks
-**Rationale:** Additive, same pattern as Phase 3; shares JSON-LD parsing utility with the Structured Data category, and AEO is the product's key differentiator per FEATURES.md.
-**Delivers:** JSON-LD presence/validity checks, AI-crawler robots.txt directive checks (highest-weight AEO signal), llms.txt presence (low-weight/informational only), FAQPage/HowTo schema checks.
-**Addresses:** AEO differentiator category.
-
-### Phase 5: Performance/CWV integration
-**Rationale:** Deliberately last among check categories — it's the only external-API-dependent, rate-limited, cost-sensitive stage; by this point the rest of the pipeline is stable enough to isolate this as an independently-failing stage.
-**Delivers:** PSI API client with Redis caching (TTL ~7 days) and sampled-page selection (homepage + representative templates, not all 500 URLs); local Lighthouse/unlighthouse reserved as fallback only.
-**Avoids:** Pitfall 6 (Lighthouse variance/scale cost) and Pitfall 7 (PSI rate limits) — flagged for a dedicated technical spike, not just implementation.
-
-### Phase 6: Scoring, diffing, and report UI
-**Rationale:** Requires all check categories producing issue rows before a meaningful score/report can be built; run-diffing requires at least two completed audits and only reads existing `issue.fingerprint` data, so it's naturally late and low-risk to add.
-**Delivers:** Overall + per-category scores with status bands, severity-weighted scoring formula validated against the reference report (86/100) and Juan's expert sanity check, prioritized issues table UI, run-to-run diff (fixed/new/persisting) via `(check_id, normalized_url)` fingerprints.
-**Avoids:** Pitfall 13 (non-credible/unstable scoring) — explicit validation pass required before launch.
-
-### Phase 7: Email verification, quota, and compliance gate
-**Rationale:** Can be built in parallel with Phases 2-6 (only touches email/quota_usage tables and the enqueue endpoint), but must gate public launch.
-**Delivers:** Double opt-in flow (Resend), email normalization (+tag stripping, disposable-domain blocklist), rate-limited verification endpoint, GDPR consent record (separate from email field, versioned, with retention/deletion mechanism), ToS/acceptable-use text + domain opt-out mechanism on the submission form.
-**Avoids:** Pitfall 11 (quota bypass abuse), Pitfall 12 (GDPR afterthought — HIGH cost to fix post-launch), Pitfall 14 (legal/ToS exposure of crawling third-party sites).
+### Phase 14: Export UI
+**Rationale:** Depends on Phase 13's route existing. Pure UI wired to the route, no new data flow.
+**Delivers:** Top-right export button + PDF/Markdown/PPTX selector on the report header, keyboard/ARIA accessible, per-item loading/disabled state.
+**Addresses:** Export button + type selector (P1).
+**Avoids:** Double-submit of heavy requests (disable + spinner during generation).
 
 ### Phase Ordering Rationale
 
-- Crawler correctness (Phase 2) must precede checks (Phases 3-4) because every check consumes parsed page data — building checks against an unreliable crawler wastes effort re-validating against moving ground truth.
-- Performance/CWV (Phase 5) is deliberately last among check categories because it's the only stage with hard external rate limits and cost/variance risk — isolating it late means the rest of the pipeline is proven stable first, and a PSI outage or quota exhaustion degrades gracefully (partial report) instead of blocking everything.
-- Scoring/diffing (Phase 6) structurally requires every check category to exist first (score is a function of issue severities across all categories) and requires two completed audits to test diffing meaningfully.
-- Email/quota/compliance (Phase 7) is parallelizable with the core pipeline work but is a hard gate before any public launch — sequencing it last in the list doesn't mean building it last in time, it means treating it as a launch gate.
+- **Risk-ascending, then risk-isolated:** pure/safe (11) → highest-infra-risk in isolation (12) → read-only exports (13) → trivial UI (14). Phases 12 and 13 are technically independent (exports don't require render), but ordering render first means exported reports immediately include CSR findings and the risky Docker change is verified before the export surface expands.
+- **Shared primitives up front:** the sub-typed fingerprint util (Phase 11) and `buildReportModel` extraction (start of Phase 13) prevent drift/collisions across everything downstream.
+- **Boundary discipline throughout:** render stays worker-only (`@auditor/render`), exports stay web-only + pure (`@auditor/export`) — the whole risk model depends on Playwright never reaching Vercel and Chromium never entering the export route.
 
 ### Research Flags
 
 Phases likely needing deeper research during planning (`/gsd:plan-phase --research-phase <N>`):
-- **Phase 5 (Performance/CWV):** Lighthouse variance tuning and current PSI quota figures are explicitly flagged MEDIUM confidence and self-service-adjustable by Google — verify current documented limits at implementation time, and this is called out by the Pitfalls research as needing its own technical spike.
-- **Phase 3/4 (hreflang reciprocity check specifically):** reciprocity-graph validation logic is non-trivial (cross-domain/cross-subdomain target validation) — flagged MEDIUM confidence, needs deeper research before committing to a "full" implementation vs. a labeled "presence-only" v1.
-- **Phase 4 (near-duplicate content detection, if pulled into v1 scope):** shingling/SimHash tuning (shingle size, Hamming threshold) is domain-specific and needs empirical validation against labeled real-page samples — currently scoped to v1.x/defer, but flag if pulled earlier.
+- **Phase 12 (CSR/SSR render):** Highest-risk, novel infra. Needs empirical threshold calibration against SSR/CSR fixtures, container memory sizing under concurrency=2 + PSI, and the graceful-degradation/bot-detection path — all version- and environment-sensitive (MEDIUM-confidence areas in PITFALLS).
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Foundations):** BullMQ + Prisma + Next.js monorepo wiring is a well-documented, HIGH-confidence pattern (official docs, community consensus).
-- **Phase 2 (Core crawler):** Crawlee's Cheerio/Playwright split and robots.txt/sitemap handling are HIGH-confidence, well-established crawler-engineering patterns.
-- **Phase 7 (Email/quota):** double opt-in via Resend has an official reference implementation; the abuse-mitigation patterns (normalization, disposable-domain blocklists, rate limiting) are well-documented community practice.
+Phases with standard patterns (can skip research-phase):
+- **Phase 11 (deeper checks):** Pure logic extending existing checks; conventions and severities already specified in FEATURES.md.
+- **Phase 13 (exports):** Library choices decided (pure-JS), route pattern already exists in-repo, layouts/structures specified in FEATURES.md. The one open item (access control) is a product decision, not research.
+- **Phase 14 (export UI):** Reuses the v1.1 component library and a11y baseline.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Core architecture (Crawlee, BullMQ, Vercel/worker split) verified against official docs and live npm registry queries. ORM choice (Prisma vs Drizzle) and AEO-specific tooling are MEDIUM — no established standard yet for AEO checks specifically. |
-| Features | HIGH for table stakes | Cross-verified across Screaming Frog/Sitebulb/Ahrefs/Semrush official docs. MEDIUM for AEO/AI-visibility checks (fast-moving, less standardized — llms.txt low-impact finding is well-sourced though) and for lead-magnet gating mechanics (verified against general email-marketing best practice, not audit-tool-specific sources). |
-| Architecture | HIGH for component boundaries, queue pattern, data model. MEDIUM for Lighthouse orchestration specifics and PSI rate limits — explicitly flagged to re-verify against current Google docs at implementation time. |
-| Pitfalls | MEDIUM-HIGH | Mix of official docs (Lighthouse variability, GDPR) and well-established community consensus (crawler engineering, robots.txt RFC 9309, SimHash/shingling, BullMQ stalled-job config) — individually sourced and cross-checked, not single-source guesses. |
+| Stack | HIGH | Versions verified live via `npm view` 2026-07-06; integration verified against actual repo code. Pure-JS export libs and Playwright are ecosystem-standard. |
+| Features | HIGH | Checks/behavior verified against SEO conventions + W3C/WCAG; export libs against live npm; categorized against real competitors (Screaming Frog/Sitebulb). |
+| Architecture | HIGH | Grounded in direct reads of the v1.0/v1.1 codebase (worker, checks, registry, schema, report page); additive-only, boundary-preserving. |
+| Pitfalls | HIGH (integration) / MEDIUM (library specifics) | Integration/architecture pitfalls grounded in repo facts (fingerprints, scoring, worker lifecycle, public-by-ID). Playwright memory profile + PDF/PPTX i18n are ecosystem-standard but version-sensitive. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **PSI/Google Cloud quota figures:** self-service-adjustable by Google and only community-verified (MEDIUM confidence) — re-verify exact current limits in the Google Cloud Console before finalizing the Performance/CWV phase's sampling/caching design.
-- **hreflang reciprocity validation depth:** decide during Phase 3/4 planning whether v1 ships a "basic presence-only" check (cheaper, lower value) or invests in full reciprocity-graph validation (higher value, non-trivial cross-domain logic) — currently recommended as presence-only for v1 with explicit "basic check" labeling.
-- **Scoring formula weights:** table stakes is *having* a score; the exact category-weighting formula is explicitly called out as a product decision, not a researched fact — must be validated against the reference report (86/100) and Juan's own expert judgment before launch, per Pitfall 13.
-- **Rendered-HTML-vs-raw comparison scope:** PROJECT.md marks this "deseable," not committed; Feature/Architecture/Pitfalls research all converge on "sample, don't run on all 500 URLs" but the exact sampling strategy (which URLs, how many) is not yet decided — resolve during Phase 2 planning.
-- **GDPR/legal review:** flagged repeatedly as needing an actual (lightweight) legal review, not just engineering judgment, before public launch — schedule this explicitly as a pre-launch gate, not something GSD planning alone can close out.
+- **CSR threshold calibration:** No a-priori "correct" raw-vs-rendered ratio exists — must be tuned empirically against juan-tech.com (SSR) and a known CSR fixture during Phase 12, and the chosen value documented in a decision log (SimHash=3 precedent).
+- **Worker memory sizing:** Actual RAM ceiling for 2 concurrent audits × (render + PSI) is environment-specific; validate on the Railway/Fly instance under overlapping-audit load, not just in dev.
+- **Export access-control decision:** Product call needed — is the report intentionally public-by-shareable-link (defensible for a lead magnet) or should exports require the owning verified email? Decide and log before wiring the button; add rate limiting regardless. Never put PII (requester email, tokens) in export bodies.
+- **Score comparability:** v1.2 scores may not be directly comparable to pre-v1.2 audit history for the same site once new checks land; verify drift on the reference fixture and warn users/roadmap if category composition materially changes.
+- **Optional `Page.renderVerdict` column:** Deferred; add the nullable additive column only if the pages-view later wants a per-page CSR/SSR badge.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Crawlee GitHub / official docs](https://github.com/apify/crawlee) — crawler engine architecture
-- [BullMQ official docs](https://docs.bullmq.io/guide/workers) — queue/worker/progress patterns
-- [Lighthouse Variability — Google for Developers](https://developers.google.com/web/tools/lighthouse/variability) and [GoogleChrome/lighthouse variability.md](https://github.com/GoogleChrome/lighthouse/blob/main/docs/variability.md) — official Lighthouse variance documentation
-- [Railway Playwright guide](https://docs.railway.com/guides/playwright) — official Docker/Playwright deployment guidance
-- [Playwright Docker docs](https://playwright.dev/docs/docker) — image tagging/version-pinning
-- [Resend double opt-in example repo](https://github.com/resend/resend-double-opt-in-example) — official reference implementation
-- [Screaming Frog SEO Spider Configuration/General user guides](https://www.screamingfrog.co.uk/seo-spider/user-guide/configuration/) — official docs on robots.txt/crawl-speed/sitemap handling
-- [Ahrefs Health Score](https://help.ahrefs.com/en/articles/1424673-what-is-health-score-and-how-is-it-calculated-in-ahrefs-site-audit) and [Semrush Site Health Score](https://www.semrush.com/kb/114-total-score) — official vendor docs on scoring models
-- Reference report (juan-tech.com, 86/100) and PROJECT.md — internal artifacts, binding source of truth for report structure/scope
+- Repo direct reads — `apps/worker/src/index.ts`, `packages/checks/src/{types,registry,util}.ts`, `checks/tech/canonical.ts`, `checks/onpage/h1.ts`, `packages/scoring/src/{categoryScore,overallScore,diff}.ts`, `packages/db/prisma/schema.prisma`, `packages/psi/src/sample.ts`, `apps/web/app/audits/[id]/page.tsx`, `apps/web/app/api/audits/[id]/route.ts` — pipeline, boundaries, fingerprint format, scoring, public-by-ID access.
+- `npm view` live (2026-07-06) — playwright 1.61.1, @react-pdf/renderer 4.5.1, pptxgenjs 4.0.1, crawlee 3.17.0.
+- Root `CLAUDE.md` + `.planning/PROJECT.md` — Playwright Docker pinning, shm/`--ipc`, sample-not-all-500, web/worker boundary, v1.2 scope, exports on-demand in Node route.
+- W3C/WAI heading structure, llms.txt spec — heading a11y rules, Markdown-for-LLM format.
+- Playwright Docker docs, @react-pdf/renderer + pptxgenjs project docs.
 
 ### Secondary (MEDIUM confidence)
-- [Vercel community discussion #5050](https://github.com/vercel/community/discussions/5050) / [Next.js discussion #33989](https://github.com/vercel/next.js/discussions/33989) — BullMQ-cannot-run-on-Vercel-functions consensus
-- [Prisma vs Drizzle comparison](https://www.prisma.io/docs/orm/more/comparisons/prisma-and-drizzle) — vendor-authored, cross-checked against independent articles
-- [Railway vs Render vs Fly.io pricing comparisons, 2026](https://hostim.dev/blog/render-vs-railway-vs-fly-pricing/) — third-party, cross-checked
-- [Google PageSpeed Insights API quota discussions](https://groups.google.com/g/pagespeed-insights-discuss/c/dB7hWmGAGsw) and [bjb.dev practitioner report](https://bjb.dev/log/20221009-pagespeed-api/) — community-reported quota figures, flagged for re-verification
-- [Unlighthouse docs](https://unlighthouse.dev/) (API reference, PSI guide, bulk-testing recipe) — official docs, informs the anti-pattern of not treating unlighthouse as a drop-in library
-- [AI Rank Lab AEO Checklist](https://www.airanklab.com/blog/answer-engine-optimization-checklist-40-signals), [Digital Applied — Google on llms.txt](https://www.digitalapplied.com/blog/google-llms-txt-no-seo-value-lighthouse-audit-2026), [Emarketed — 97% of llms.txt unread](https://emarketed.com/aeo/llmstxt-files-go-unread-2026/) — cross-checked AEO/llms.txt findings
-- [Customer.io double opt-in best practices](https://customer.io/learn/deliverability/double-opt-in-best-practices), [iubenda](https://www.iubenda.com/en/blog/gdpr-double-opt-in-2/) and [TermsFeed](https://www.termsfeed.com/blog/gdpr-double-opt-in-email-marketing/) GDPR articles — compliance-focused, industry best-practice sources
+- Screaming Frog JS-rendering / "Show Differences" / JS Word Count; Prerender JS-SEO auditing — CSR/SSR detection conventions.
+- Canonical issue taxonomy (chains/→redirect/→noindex, top-5 GSC issue) — seranking / atroposdigital.
+- SEO audit deck structure (7–12 slides) — practitioner consensus.
+- Playwright/Chromium container memory profile + headless detection; PDFKit WinAnsi core-font i18n limitation — ecosystem-standard, version-sensitive.
 
 ### Tertiary (LOW confidence)
-- Domain-expert/community-consensus engineering knowledge (robots.txt RFC 9309 matching semantics, SimHash/shingling tuning, hreflang reciprocity requirements, SSRF risks) — well-established but not tied to a single dated source; verify against chosen library docs at build time
+- None — all findings grounded in repo code, live npm, or official/W3C sources.
 
 ---
-*Research completed: 2026-07-05*
+*Research completed: 2026-07-06*
 *Ready for roadmap: yes*

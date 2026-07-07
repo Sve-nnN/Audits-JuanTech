@@ -1,449 +1,413 @@
 # Pitfalls Research
 
-**Domain:** SEO/technical web-audit crawler (SaaS lead magnet) — sitemap crawler + per-page checks + Lighthouse/PSI + scoring + email-gated free tier + background worker/queue
-**Researched:** 2026-07-05
-**Confidence:** MEDIUM-HIGH (mix of Context7/official docs for Lighthouse/PSI/GDPR, MEDIUM for crawler-engineering patterns based on well-established community consensus, LOW-flagged where noted)
+**Domain:** Adding CSR/SSR detection + deeper canonical/heading checks + on-demand report export (PDF/Markdown-for-LLM/PPTX) to an existing pnpm+Turborepo SEO-audit tool (Next.js 15 web on Vercel + long-running BullMQ worker container) — milestone v1.2
+**Researched:** 2026-07-06
+**Confidence:** HIGH for the integration/architecture pitfalls (grounded in the actual repo: `apps/worker/src/index.ts`, `packages/checks/src/util.ts`, `packages/scoring/*`, Prisma schema, the report API route, and the pre-documented Playwright pitfalls in root `CLAUDE.md`). MEDIUM for external-library specifics (Playwright memory profile, PDF/PPTX lib i18n) which are ecosystem-standard but version-sensitive.
+
+---
+
+## System facts this analysis is built on (verified in-repo)
+
+- **Fingerprint format** (`packages/checks/src/util.ts`): `pageFingerprint(checkId, url)` = `` `${checkId}:${url}` ``; `siteFingerprint(checkId, scope)` = `` `${checkId}:${scope}` ``. There is **NO unique constraint** on `Issue.fingerprint` (schema only indexes `auditId`/`pageId`). The diff (`packages/scoring/src/diff.ts`) keys a `Map` by fingerprint — duplicate fingerprints silently collapse (last wins).
+- **Scoring** (`packages/scoring/src/categoryScore.ts`): health-ratio = average of per-issue health (ok=1, warning=0.5, critical=0), size-independent. Every existing check emits **one issue per page even when the result is "ok"** (see `canonical.ts` returning an `ok` row). Category weights (`overallScore.ts`): tech 0.30, perf 0.30, onpage 0.15, schema 0.10, aeo 0.15.
+- **Worker** (`apps/worker/src/index.ts`): `CONCURRENCY = 2`, `JOB_TIMEOUT_MS = 20min`, `lockDuration`/`stalledInterval` = JOB_TIMEOUT+60s. Graceful shutdown closes the BullMQ `Worker` and Prisma — **nothing closes a browser**. PSI already runs up to `MAX_PSI_PAGES=5` × 2 strategies at `PSI_CONCURRENCY=2` (Lighthouse = Chromium load) concurrently with 2 audit jobs.
+- **No Dockerfile exists anywhere** in the repo (`find -iname Dockerfile*` → empty). Worker currently runs as a plain Node process; there is no container definition to add Playwright to.
+- **`Page.html`** stores raw (Cheerio-pass) HTML as `@db.Text`. There is no rendered-HTML column.
+- **Report is public-by-ID**: `apps/web/app/api/audits/[id]/route.ts` and `/audits/[id]/page.tsx` do a bare `prisma.audit.findUnique({ where: { id } })` with **no email/ownership/verification check**. Anyone with the audit id sees the full report.
+
+---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Crawler gets blocked / IP-banned by target sites (no politeness controls)
+### Pitfall 1: Playwright Docker base-image tag not matching the installed `playwright` npm version
 
 **What goes wrong:**
-A naive crawler firing concurrent requests at a site (especially shared hosting, WAF-protected sites like Cloudflare/Sucuri, or WordPress with security plugins) triggers rate-limit blocks, CAPTCHA challenges, or outright IP bans mid-crawl. The audit then returns garbage: hundreds of false "500 error" or "blocked" issues that make the tool look broken, not the target site.
+Worker deploy crashes at runtime with `browserType.launch: Executable doesn't exist at /ms-playwright/chromium-XXXX/...`. The audit that triggers CSR detection dies; because CSR runs inside `crawlAndCheck()` under `withTimeout`, a throw there fails the whole job (unless isolated — see Pitfall 4).
 
 **Why it happens:**
-Teams build the crawler to maximize speed (concurrency = free win) and only discover the problem when auditing real-world sites behind Cloudflare/WAF, not on their own test sites which have no protection.
+Playwright's browser binaries are pinned 1:1 to the npm package version. The `mcr.microsoft.com/playwright:vX.Y.Z-noble` image ships only the browsers for that exact version. Using `:latest`, or bumping `playwright` in `package.json` without bumping the Dockerfile tag (or vice-versa), drifts them apart. Root `CLAUDE.md` already flags this as HIGH-confidence, but there is **no Dockerfile yet**, so this must be built correctly from scratch rather than maintained.
 
 **How to avoid:**
-- Enforce a configurable concurrency cap per-domain (not global) — e.g., max 2-5 concurrent requests to the same host regardless of overall worker concurrency.
-- Respect `Crawl-delay` if present in robots.txt (even though Google ignores it, WAFs often act on request rate, not on Google's identity).
-- Add exponential backoff on 429/503 responses, with a max-retry ceiling before marking the URL as "blocked" rather than "error" (different issue types — critical for report credibility).
-- Set an honest, identifiable User-Agent (e.g., `JuanTechAuditorBot/1.0 (+https://juan-tech.com/bot)`) — anonymous or spoofed UAs increase ban probability and are an ethical/legal liability.
-- Detect WAF challenge pages (Cloudflare "Checking your browser", CAPTCHA HTML signatures) and classify them as "crawler blocked" rather than counting them as broken pages in the score.
+- Create `apps/worker/Dockerfile` FROM `mcr.microsoft.com/playwright:v<exact>-noble`, pinned to the `playwright` version in `apps/worker/package.json`. Pin `playwright` (not `^`) and treat the two as one atomic bump.
+- Add a build-time assertion (script comparing `npx playwright --version` to the image tag) or a CI check.
 
 **Warning signs:**
-- Audit runs against real client sites show clusters of 403/429/503 mid-crawl that didn't happen on smaller test sites.
-- Support/feedback reports of "the tool says my site is down but it isn't."
+"Executable doesn't exist" / "browser not found" only after a redeploy; works locally (host has a matching browser cache) but fails in the container.
 
-**Phase to address:**
-Core crawler engine phase (before scoring/report phase) — this is foundational, not a polish item. Must exist before the tool is trusted on real third-party sites.
+**Phase to address:** The Playwright-infrastructure phase (worker containerization) — must land the Dockerfile before or with CSR detection.
 
 ---
 
-### Pitfall 2: robots.txt parsed naively (wrong precedence, wildcard/`$` handling, or ignored per-bot rules)
+### Pitfall 2: Chromium `/dev/shm` default (64MB) → tab crashes; container memory OOM with concurrency=2 + PSI
 
 **What goes wrong:**
-Common bugs: not handling `*` and `$` wildcards in `Disallow`/`Allow`, picking the wrong (shortest vs. most-specific) matching rule, ignoring `User-agent: *` fallback vs. a specific bot's own rules, or not re-fetching robots.txt per subdomain (each subdomain/scheme/port has its own robots.txt per the RFC). A worse failure: not checking robots.txt at all before crawling, which is both a compliance and an ethical/legal problem.
+Chromium crashes mid-render with `Target closed` / `Page crashed` (shm exhaustion), or the whole container is OOM-killed. This is amplified here: the worker runs **2 audit jobs concurrently**, and each already spins PSI/Lighthouse (Chromium-class load) at `PSI_CONCURRENCY=2`. Adding a Playwright browser per job on top can mean 4+ Chromium-ish processes at 1–2GB each on one small instance.
 
 **Why it happens:**
-robots.txt parsing looks trivial ("split by lines, match prefixes") but the actual matching algorithm (longest-matching-rule-wins with wildcard support, per RFC 9309) is easy to get subtly wrong, and there's no immediate visible failure — it just silently crawls disallowed paths.
+Chromium defaults `/dev/shm` to 64MB in containers; Playwright browsers are 1–2GB resident each. Nobody sizes the instance for *CSR render + PSI running simultaneously* because in dev they run serially with lots of RAM.
 
 **How to avoid:**
-- Use a maintained robots.txt parser library (e.g., Google's own open-sourced `robotstxt` parser semantics, or a well-tested npm package) instead of hand-rolling regex matching.
-- Fetch and cache robots.txt per origin (scheme+host+port) at crawl start, with its own timeout and fallback (no robots.txt = allow all; robots.txt fetch error 5xx = treat conservatively).
-- Respect the audit bot's own User-Agent rules if the site has bot-specific rules, falling back to `*`.
-- Surface "robots.txt blocks X URLs from your own sitemap" as an issue in the report itself (this is a real, valuable SEO finding, not just internal crawl logic).
+- Run browser with `--disable-dev-shm-usage` (or `--ipc=host` / larger `/dev/shm` if the host allows) — already documented in root `CLAUDE.md`.
+- **Gate total Chromium concurrency across the whole worker, not per-job.** Use a single shared `p-queue`/semaphore (concurrency 1–2) that BOTH the PSI pass and the CSR render pass draw from, so 2 audit jobs can't independently launch browsers. Or launch ONE shared browser and open contexts/pages per job.
+- Right-size the Railway/Fly instance for the worst case (2 jobs × render + PSI). Prefer **launching Playwright once per audit for the small sample, then closing it**, rather than a long-lived pool.
 
 **Warning signs:**
-- Crawler visits URLs listed in `Disallow` during QA against a site with a real robots.txt.
-- Sitemap-declared URLs silently disappear from the report with no explanation (should instead be flagged as "blocked by robots.txt, excluded from crawl and audit").
+`Page crashed`/`Target closed` under load but not in isolation; container restarts during the "analyzing" phase; memory graph sawtoothing to the ceiling when two audits overlap.
 
-**Phase to address:**
-Core crawler engine phase, alongside sitemap discovery — should ship in the same phase as URL discovery, not bolted on later.
+**Phase to address:** Playwright-infrastructure phase (container + concurrency gating), verified in the CSR-detection phase.
 
 ---
 
-### Pitfall 3: Redirect chains and canonical logic conflated or mishandled
+### Pitfall 3: Running Playwright on all 500 URLs instead of a small sample
 
 **What goes wrong:**
-Two separate bugs frequently get merged into one: (1) not following/recording redirect chains correctly (losing the origin URL, not detecting redirect loops, not flagging chains >2 hops as an issue), and (2) treating the HTTP redirect target as if it were the canonical tag, or vice versa — when in reality a URL can redirect AND have a different rel=canonical than its redirect target, and these are different SEO signals that must be reported separately (redirect = server-level, canonical = page-level signal that Google may or may not honor).
+A "free lead-magnet audit" turns into a 30–60min, high-cost compute job; likely blows `JOB_TIMEOUT_MS` (20min) and gets killed. Rendering 500 pages at ~2–10s each serially is minutes-to-hours.
 
 **Why it happens:**
-Both concepts collapse to "which URL does this really point to" in casual thinking, so implementations often store just one "resolved URL" field and lose the distinction, or infinite-loop on redirect cycles because there's no visited-set guard within the redirect-following logic itself (separate from the page-visited set).
+CSR detection conceptually applies to "every page", so the naive implementation renders the whole crawl. Root `CLAUDE.md` explicitly forbids this but the temptation is structural.
 
 **How to avoid:**
-- Model redirects and canonicals as two independent fields per crawled URL: `redirectChain: string[]` (with status codes 301/302/307/308 per hop) and `canonicalUrl: string | null` (parsed from `<link rel=canonical>` and/or HTTP `Link` header).
-- Cap redirect-following at a fixed hop limit (e.g., 5-10) and flag chains exceeding a shorter threshold (e.g., >2 hops) as a moderate SEO issue.
-- Detect redirect loops via a per-crawl visited-set scoped to the redirect-following function, not the page-crawl queue's visited set (they serve different purposes).
-- Report canonical mismatches explicitly: "self-referencing canonical," "canonical points elsewhere," "canonical points to non-200 URL," "canonical points to a URL blocked by robots.txt" — these are distinct, common real-world issues worth their own checks.
+- Reuse the existing sampling pattern (`selectSample` / `MAX_PSI_PAGES` in `apps/worker/src/index.ts`) — render a small representative set (homepage + a few template-representative pages), NOT the full crawl.
+- Better: **detect CSR at the template level, not per-page.** Render one representative page per URL-pattern group and generalize the verdict (see Pitfall 5).
+- Hard-cap rendered pages with a constant (mirror `MAX_PSI_PAGES`); make it configurable but low (e.g. 5–10).
 
 **Warning signs:**
-- Report shows only one "final URL" per page with no visibility into intermediate hops.
-- Crawler hangs or times out on a small number of URLs (likely a redirect loop with no guard).
+Audit duration jumps from minutes to tens of minutes after CSR lands; jobs start hitting the 20min timeout; Chromium instance count scales with crawl size.
 
-**Phase to address:**
-Core crawler engine + technical SEO checks phase.
+**Phase to address:** CSR-detection phase.
 
 ---
 
-### Pitfall 4: Duplicate/near-duplicate content detection is naively exact-match or algorithmically wrong (shingling/SimHash bugs)
+### Pitfall 4: Zombie browser processes — Playwright not closed on job failure/timeout/shutdown
 
 **What goes wrong:**
-Teams often start with exact-hash duplicate detection (MD5/SHA of raw HTML or extracted text), which misses near-duplicates (boilerplate-heavy pages, templated product pages differing only in a few words) — the actually valuable signal for SEO audits. When they move to shingling + SimHash/MinHash, common implementation bugs include: hashing the raw HTML (including nav/footer/header boilerplate) instead of extracted main content, using a shingle size (k) that's too small (creates false positives on any two pages sharing common phrases) or too large (misses genuine near-duplicates), and using a Hamming-distance threshold on SimHash fingerprints that hasn't been tuned/validated against real examples (arbitrary "distance < 3" without justification produces both false positives and negatives).
+Browser processes leak. `withTimeout` rejects the crawl+checks promise but does NOT kill work still running underneath it (the timeout only wins the `Promise.race`) — an in-flight `browser.launch()`/render keeps going with no handle to close it. Over hours the worker accumulates dead Chromium processes → memory climbs → OOM. Graceful shutdown (`worker.close()` + `prisma.$disconnect()`) never closes browsers, so SIGTERM during a render orphans them.
 
 **Why it happens:**
-Shingling/SimHash math is well-documented but the *practical* tuning (content extraction boilerplate removal, shingle size, similarity threshold) is domain- and corpus-specific and rarely covered in tutorials — teams copy the algorithm but not the tuning methodology.
+The current worker has no browser lifecycle because it has no browser. `withTimeout` was designed for cancel-agnostic async (crawl/PSI degrade gracefully); a browser is a real OS resource that must be explicitly closed in `finally`.
 
 **How to avoid:**
-- Extract main content (strip nav, header, footer, sidebar, cookie banners) before shingling — use a readability-style content extraction pass, not raw HTML/text.
-- Use word-level shingles (not character-level) of size 3-5 words for near-duplicate detection at the page level; validate against a manually-labeled sample of known-duplicate and known-distinct pages from real client sites before shipping.
-- Prefer SimHash over MinHash for this use case (simpler, well-suited for near-duplicate web page detection at scale) but validate the Hamming distance threshold empirically (start around distance ≤ 3 out of 64 bits, then tune against false-positive reports).
-- Report duplicate clusters (not just pairs) — group near-duplicate pages so the user sees "these 8 pages are near-duplicates" rather than 28 pairwise findings.
-- Keep this as a MEDIUM-confidence area: if timeline is tight, ship exact-duplicate detection (hash of extracted main content) first as an honest v1, and treat near-duplicate/SimHash as a clearly separated, later enhancement rather than rushing an untuned version that produces noisy false positives (which directly damages report credibility — the stated core value).
+- Wrap every browser in `try { ... } finally { await browser.close() }` **inside** the CSR step, not around the whole job. Guarantee close on the success, throw, AND timeout paths.
+- Prefer a **single browser launched and closed within the CSR sample function** (like `runPerfSample` scopes PSI), so its lifetime is bounded by that function.
+- Extend `shutdown()` to close any active browser before `process.exit`.
+- Add an `AbortSignal`/deadline to the render calls (`page.goto(url, { timeout })`) so a hung render self-terminates instead of relying on the outer `withTimeout`.
 
 **Warning signs:**
-- Two obviously different pages (e.g., homepage vs. contact page) flagged as near-duplicates → shingle size/threshold too loose or boilerplate not stripped.
-- Two obviously templated near-duplicate product pages NOT flagged → threshold too strict or content extraction stripped too much (leaving only boilerplate to compare).
+`ps` shows accumulating `chrome`/`headless_shell` processes; memory never returns to baseline between audits; OOM after N audits rather than during any single one.
 
-**Phase to address:**
-Should be a dedicated phase or clearly-scoped sub-phase after core crawling + basic technical checks are stable — don't bundle untuned near-duplicate detection into the first release of technical SEO checks.
+**Phase to address:** CSR-detection phase (lifecycle), Playwright-infrastructure phase (shutdown hook).
 
 ---
 
-### Pitfall 5: hreflang reciprocity and validation logic incomplete
+### Pitfall 5: CSR/SSR false positives — arbitrary raw-vs-rendered diff threshold, per-page noise
 
 **What goes wrong:**
-hreflang is one of the most commonly mis-implemented SEO signals in the wild, and audit tools that just check "does hreflang exist" without validating reciprocity produce a shallow, low-value check. Real requirements: every hreflang annotation must be reciprocal (if page A declares `hreflang=de` pointing to page B, page B must declare a hreflang pointing back to page A), there must be a self-referencing hreflang entry, language/region codes must be valid ISO 639-1 (+ optional ISO 3166-1 region), and `x-default` is optional but commonly expected. Missing reciprocity checks, or checking only within a single page's declared list without cross-referencing the target pages, produces false "all good" reports on broken hreflang setups (the #1 real-world hreflang bug).
+A mostly-SSR page with one JS-hydrated widget (or lazy-loaded below-the-fold content) gets flagged "client-side rendered", producing a wrong, embarrassing issue in a lead-magnet report. Or the verdict is noisy: the same page flips CSR↔SSR between runs because render timing/hydration is non-deterministic.
 
 **Why it happens:**
-Reciprocity checking requires crawling and cross-referencing potentially many other URLs (which may be on different subdomains/domains, e.g. site.com vs site.de), which is architecturally harder than a single-page check — teams either skip it or implement it against only the same-crawl page set and silently produce false negatives for cross-domain hreflang setups (e.g., site.com/en ↔ site.co.uk/en) that fall outside the crawled domain.
+The naive check compares raw HTML length vs rendered DOM length and thresholds it. Any threshold is arbitrary; hydration, lazy-loading, cookie banners, and A/B scripts all inflate the rendered side without meaning "CSR". This is the same "empirically pick a threshold" problem the project already solved once with the SimHash `threshold=3` decision in Phase 3 — it needs the same disciplined, documented calibration.
 
 **How to avoid:**
-- Build hreflang validation as a post-crawl aggregation step (after all pages are crawled), not a per-page synchronous check — collect all hreflang declarations crawl-wide, then validate the graph for reciprocity, self-reference, and valid language/region codes.
-- Explicitly scope what's checked: if hreflang points to a URL outside the crawled domain/sitemap, flag it as "external hreflang target — not verified" rather than silently passing or failing it. Be honest in the report about this boundary.
-- Validate codes against ISO 639-1/3166-1 lists, not just "is it a 2-5 character string."
-- Treat this as a MEDIUM-confidence, moderate-complexity check — don't let it block the first release of the technical SEO category; ship without hreflang or with a clearly-labeled "basic presence check only" and expand to full reciprocity validation in a following phase.
+- Compare **meaningful content**, not raw byte length: diff `extractVisibleText($raw)` vs the rendered visible text (reuse `extractVisibleText` from `packages/checks/src/util.ts`), and look at whether the *primary content* (title, H1, main text, structured data) exists in raw HTML — not total node count.
+- Calibrate the ratio threshold empirically against known SSR (juan-tech.com) and known CSR fixtures; **document the chosen threshold and rationale in a decision log**, exactly like the SimHash=3 precedent.
+- Report a **template-level verdict** ("this section of the site renders client-side"), not a per-page critical, to avoid one-off noise.
+- Grade severity conservatively: "content present in raw HTML but enhanced by JS" ≠ "content absent without JS". Only flag critical when meaningful content is genuinely missing pre-JS.
 
 **Warning signs:**
-- hreflang check always passes on multi-language sites where reciprocity is known-broken (test against a real multi-language client site with a deliberately broken hreflang setup).
+SSR reference sites showing CSR flags; verdict flips between two audits of an unchanged site; complaints that "my site IS server-rendered".
 
-**Phase to address:**
-Technical SEO checks phase, but flag for deeper research at implementation time (reciprocity graph logic is non-trivial).
+**Phase to address:** CSR-detection phase (threshold calibration + template-level verdict).
 
 ---
 
-### Pitfall 6: Lighthouse variance treated as ground truth without averaging, and cost/time at 500 URLs underestimated
+### Pitfall 6: New multi-condition checks colliding fingerprints → wrong diff + swallowed issues
 
 **What goes wrong:**
-Lighthouse scores vary run-to-run even on an unchanged page — Google's own docs and community sources report the median of 5 runs is roughly twice as stable as a single run, with typical swings of 5-10+ points from network jitter, third-party scripts, and CPU contention, and swings of 15+ points signaling a real non-deterministic factor worth isolating. Teams that run Lighthouse once per URL and treat that single score as authoritative will produce reports that look inconsistent or wrong when the user reruns the audit and gets a different score. Separately, running full Lighthouity audits (mobile + desktop, 4 categories incl. performance) against up to 500 URLs is expensive in both wall-clock time and compute — each Lighthouse run is itself 10-30+ seconds single-threaded (loads the page, throttles CPU/network, runs multiple trace passes), so 500 URLs × 2 device profiles run serially could take hours, and running many headless Chrome instances concurrently on a worker will blow memory/CPU on typical container sizes.
+Deeper canonical (chains, canonical→non-indexable, cross-domain, mismatch-with-final-URL) and heading checks (multiple H1, level skips, empty headings, wrong order) naturally emit **several distinct problems on the same page**. If they all reuse `pageFingerprint(CHECK_ID, url)` (as the current single-issue `canonical.ts` does), every sub-issue for a page shares one fingerprint. Consequences: (a) in the diff `Map` they collapse (last wins) so "3 new heading problems" counts as 1; (b) even without a DB unique constraint, `Issue.diffStatus` and the priority table treat them as one logical issue; (c) resolving one of three sub-problems can't be reflected in the diff.
 
 **Why it happens:**
-Lighthouse variance is well-known within the performance-tooling community but easy to overlook when building against a handful of test URLs where variance is barely noticeable; the 500-URL cost problem is easy to underestimate because dev/test crawls are usually run against 10-20 URLs, not the full free-tier ceiling.
+The existing checks return exactly one issue per page (early-return style), so the current fingerprint scheme has never needed sub-typing. Deeper checks break that assumption.
 
 **How to avoid:**
-- Do NOT run full Lighthouse (with its own network/CPU throttled page load) on all 500 URLs. Use PageSpeed Insights API (field data / CrUX where available) for URL-level performance scoring at scale, and reserve full local Lighthouse runs for a small representative sample (e.g., homepage + top N templates/page-types) — this is both cheaper and matches how the reference report likely works (PSI = Lighthouse + CrUX field data).
-- If running Lighthouse directly (via unlighthouse or Playwright+Lighthouse), cap concurrency conservatively (Lighthouse itself is single-threaded CPU-heavy per run — 2-4 concurrent Chrome instances is a realistic ceiling per worker vCPU, verify empirically against actual container specs) and budget wall-clock time accordingly in queue/job-timeout design.
-- Use simulated throttling (Lighthouse's default) rather than applied/RTT-based throttling for the bulk of pages — much faster, marginally less accurate.
-- If reporting a single performance score per page, be transparent in the report about single-run variance (e.g., "Performance scores can vary ±5-10 points between runs due to network conditions") rather than presenting it as a precise measurement — this is a credibility/trust issue given "accurate and reliable" is the stated core value.
-- Explicitly design the crawl/audit pipeline so performance auditing is decoupled from the page-content crawl (different concurrency limits, different queue, possibly different worker pool) — don't let Lighthouse's cost dictate crawl speed for the cheap technical/on-page checks.
+- Give each distinct condition its own **stable sub-typed fingerprint**: e.g. `` `${CHECK_ID}:${subtype}:${url}` `` (`TECH-04:chain`, `TECH-04:cross-domain`, `ONPAGE-03:multiple-h1`, `ONPAGE-03:level-skip`). Add a `subtype` helper to `util.ts` rather than hand-concatenating.
+- Keep the subtype label **stable and content-independent** — do NOT embed the measured value (e.g. the offending heading text) in the fingerprint, or fixing one typo churns the diff.
+- Since there's no unique constraint, collisions fail silently — add a dev-time assertion/test that a single page-check run never returns two issues with identical fingerprints.
 
 **Warning signs:**
-- Re-running the same audit on an unchanged site produces a visibly different performance score/grade (Bueno→Necesita mejora) between runs.
-- A 500-URL audit takes many hours or times out / OOMs the worker in testing.
+Diff counts lower than the visible issue count; fixing one of several page problems doesn't show as "resolved"; two issues in the priority table that "feel" like one row.
 
-**Phase to address:**
-Performance/CWV phase — flag explicitly for deeper research (this is exactly the kind of phase that needs its own focused technical spike given cost and reliability tradeoffs).
+**Phase to address:** Canonical-deepening phase and Heading-hierarchy phase (fingerprint design), with a shared util change up front.
 
 ---
 
-### Pitfall 7: PageSpeed Insights API rate limits/quota not architected around
+### Pitfall 7: Score dilution — new per-page "ok" issues swamp the tech/onpage categories
 
 **What goes wrong:**
-The PSI API has a documented free quota (historically 25,000 requests/day, 400 requests per 100 seconds per API key/project) that seems generous until multiplied by mobile+desktop strategy calls per URL (2x) across concurrent audits from multiple users — a single 500-URL audit run with both strategies is already 1,000 PSI calls, so ~25 free full-500-URL audits/day system-wide is the real ceiling, not per-user. Teams building against this without accounting for the per-100-seconds burst limit (400 req/100s ≈ 4 req/s sustained) get sporadic 429s mid-audit that silently degrade the report (missing CWV data for some URLs) unless explicitly handled.
+Because every check emits an `ok` row per page (verified in `canonical.ts`), adding 2–3 new per-page checks over a 500-page crawl injects ~1000–1500 `ok` rows into the `tech` (0.30) and `onpage` (0.15) categories. The health-ratio average is size-independent but **not check-count-independent**: a category with a handful of criticals plus a flood of new `ok` rows scores *higher* (criticals get diluted). Adding "more thorough" checks can paradoxically **raise** the score and hide real problems — or, if the new checks surface many criticals, sharply move the score in a way that makes v1.2 audits non-comparable to v1.0/v1.1 history.
 
 **Why it happens:**
-The daily quota looks large in isolation; the burst/rate-per-100-seconds limit and the multiplication by (URLs × 2 strategies × concurrent users) is easy to miss until real usage patterns emerge (e.g., a spike after a marketing push).
+The health-ratio model averages across *all* emitted check results including passes. More checks = more denominator. Nobody re-tunes weights when adding checks because scoring "just works".
 
 **How to avoid:**
-- Do not call PSI per-URL for full-crawl performance data at 500-URL scale — reserve PSI for a representative sample of pages (e.g., homepage, top templates, top N by internal link count) plus give the option to request full PSI data for specific pages the user cares about, and use local Lighthouse (or skip performance scoring) for the bulk.
-- Implement request queuing/throttling client-side matching or staying under the 400/100s burst limit, with exponential backoff on 429.
-- Cache PSI results per URL+strategy for a TTL (e.g., 24-72h) so re-audits or repeat requests for the same URL don't re-spend quota — directly useful given the "1 audit/week/email" free-tier design already implies re-audits of the same domains are common.
-- Request a quota increase from Google Cloud Console early (documented as generally granted for legitimate use cases) rather than discovering the ceiling in production.
-- Track quota consumption centrally (not per-worker) since multiple concurrent audit jobs share the same API key/project quota.
+- Decide deliberately whether new checks emit `ok` rows. Two consistent options: (a) keep emitting `ok` per page for UI completeness but accept/verify the dilution effect on a fixture; or (b) collapse a per-page check to **one aggregate result per category** so it contributes one denominator unit, not 500.
+- Re-run scoring against the juan-tech.com reference fixture BEFORE/AFTER adding checks and confirm the overall score doesn't drift unexpectedly (there's precedent: overall 91 vs reference 86 was a tracked decision).
+- If the new checks materially change category composition, revisit `CATEGORY_WEIGHTS` and **log the decision**.
+- Warn users/roadmap that v1.2 scores may not be directly comparable to pre-v1.2 audit history for the same site.
 
 **Warning signs:**
-- 429 responses from PSI appearing in logs during a single moderately-sized audit.
-- CWV data silently missing for a subset of URLs in a report with no visible explanation to the user.
+Overall score moves several points on an unchanged site after adding checks; a category with new criticals barely moves because ok-dilution absorbs them; historical diff shows a score jump with no site change.
 
-**Phase to address:**
-Performance/CWV phase, alongside Pitfall 6 — same technical spike.
-
-**Confidence:** MEDIUM (25,000/day, 400/100s figures confirmed via multiple 2025-dated sources; verify current values against official Google Cloud Console quota page at implementation time since these are self-service adjustable quotas that Google periodically revises).
+**Phase to address:** Each new-check phase (verify score impact on fixture); a scoring-recalibration checkpoint before milestone close.
 
 ---
 
-### Pitfall 8: Cheerio-only extraction misses JS-rendered content, silently producing false negatives
+### Pitfall 8: Vercel export route exceeds serverless timeout / memory / bundle limits
 
 **What goes wrong:**
-Cheerio parses raw server-delivered HTML only — it never executes JavaScript. On any site using client-side rendering for meaningful content (React/Vue SPAs, JS-injected structured data, JS-rendered titles/meta via client-side routing, lazy-loaded content, JS-based canonical tags), Cheerio-based checks will report false negatives: "missing H1," "no structured data," "no canonical tag" — when the content exists once JS executes, which is what Googlebot actually sees (Google renders JS for indexing in most cases). This is a well-documented, extremely common SaaS-audit-tool failure mode and directly undermines the "accurate and reliable" core value if the tool flags issues that don't actually exist for real users/Googlebot.
+Generating a PDF/PPTX for a large audit inside a Next.js Node API route on Vercel hits the function timeout (default ~10–60s depending on plan; 300s max only on higher tiers) or memory cap, returning a 504/OOM mid-download. Or the deploy itself breaks: pulling a heavy renderer into the web bundle blows the function size limit.
 
 **Why it happens:**
-Cheerio is fast and cheap (no browser needed), so it's the default choice for bulk crawling; the JS-rendering gap only becomes visible when auditing a real client site built with a modern JS framework, not on typical server-rendered test sites (e.g., WordPress) used during development.
+On-demand export reads hundreds of issues from Postgres and renders them synchronously in a short-lived function. Buffering a whole multi-hundred-page PDF/PPTX in memory before responding spikes RAM. And the classic trap: someone reaches for **Puppeteer/Chromium-based HTML→PDF**, which cannot and must not be bundled into a Vercel function (this is the exact serverless mismatch root `CLAUDE.md` calls out for the worker).
 
 **How to avoid:**
-- Explicitly detect raw-HTML vs. rendered-HTML divergence as a first-class feature (the project context already calls this out: "comparar HTML crudo vs renderizado") — this divergence itself is a valuable SEO finding to report ("your title tag differs between raw HTML and rendered DOM — this can cause indexing issues"), not just an internal implementation detail.
-- Use Playwright (headless Chromium) for the checks that matter most for JS-rendering-sensitive signals (title, meta description, H1, canonical, structured data, main content for duplicate detection) at least on a sample, or make rendered-mode the default extraction path with Cheerio only as a fast pre-pass/fallback.
-- Budget the cost: rendering with Playwright is far more expensive (memory, CPU, wall-clock) than Cheerio parsing — at 500 URLs this multiplies the same cost/scale problem as Lighthouse (Pitfall 6). Consider rendering only a sample or reusing Lighthouse's own Chrome trace/DOM snapshot (Lighthouse already renders the page) instead of a second separate Playwright pass, to avoid double-rendering every URL.
-- Never present a Cheerio-only finding as definitive without disclosing extraction method, especially for structured-data/on-page checks on sites that show signs of CSR (near-empty initial HTML body, heavy `<script>` bundle presence, common SPA framework signatures in HTML).
+- **Do NOT bundle Chromium/Playwright into the web deploy.** Use pure-JS generators: `pdfkit` or `@react-pdf/renderer` for PDF, `pptxgenjs` for PPTX, plain string building for Markdown. Keep them out of any shared package the worker also uses (see Pitfall 11).
+- Bound the work by **truncating/summarizing to top-N** (Pitfall 9) so the document is small and fast regardless of audit size.
+- **Stream** the response where the library supports it (pipe the generator to the Response body) instead of buffering the whole file; set `export const runtime = "nodejs"` (already the pattern in the report API route) and configure `maxDuration`.
+- Set correct download headers: `Content-Type` (`application/pdf`, `text/markdown; charset=utf-8`, `application/vnd.openxmlformats-officedocument.presentationml.presentation`) and `Content-Disposition: attachment; filename="..."`.
 
 **Warning signs:**
-- Report flags a modern JS-framework site (Next.js/React/Vue) as missing structured data, H1, or meta tags that are visibly present when viewing the page in a browser.
-- QA against a known SPA-based site produces a flood of false-positive "missing X" issues.
+504s on large-site exports but fine on small ones; Vercel "Function size exceeds limit" at build; cold-start latency spikes; `chromium` appearing in the web deploy's dependency tree.
 
-**Phase to address:**
-Core crawler engine / extraction phase — decide the Cheerio-vs-rendered architecture early since it affects the crawl pipeline's cost model and worker sizing for every later phase (Lighthouse, on-page, structured data).
+**Phase to address:** Export-infrastructure phase (route + library choice); revisited per export-format phase.
 
 ---
 
-### Pitfall 9: Memory blowups on large crawls (unbounded queues, DOM/response accumulation, no backpressure)
+### Pitfall 9: Export data volume — hundreds of issues → useless hundred-page PDF / over-long LLM Markdown
 
 **What goes wrong:**
-Common OOM causes in Node.js crawlers at few-hundred-URL scale: holding full HTML/DOM of every crawled page in memory simultaneously (instead of processing and discarding per-page), unbounded in-memory work queues (all 500 URLs enqueued immediately with no concurrency-aware backpressure), accumulating all findings/results in a single in-memory array before writing to storage (instead of streaming/incrementally persisting), and headless browser instances (Playwright/Lighthouse's Chrome) not being properly closed/recycled between pages, leaking browser processes and memory across a long crawl.
+A 500-page audit can have hundreds of issues. A faithful PDF/PPTX becomes a 200-page document or a 150-slide deck nobody reads. The Markdown-for-LLM export blows past model context windows, so the LLM silently truncates and gives partial fixes. Silent truncation is worse — the user thinks they got everything.
 
 **Why it happens:**
-Works fine at 10-20 test URLs; the failure only appears at higher URL counts or during long-running worker processes that accumulate state over many audits without process restarts — exactly the free-tier ceiling (500 URLs) this project targets.
+"Export the report" is read as "dump every row". No summarization layer exists between the DB and the document.
 
 **How to avoid:**
-- Process and persist per-page results incrementally (write to DB/queue immediately after each page, don't accumulate in a top-level array for the whole audit).
-- Use a bounded queue with real backpressure (BullMQ concurrency settings, not just "enqueue everything and let promises resolve whenever") — cap concurrent in-flight page fetches independent of total URL count.
-- Explicitly close/recycle Chrome/Playwright browser contexts per page or per N pages (don't open one context per URL without closing prior ones; reuse a browser instance across pages within one job, closing only pages/contexts, not the whole browser).
-- Set and test actual memory limits on the worker container against a real 500-URL audit before considering this phase done — don't extrapolate from a 20-URL test.
-- Consider streaming report generation (write issues to storage as detected) rather than building the full report object in memory and writing once at the end.
+- Design each export around **prioritization, not completeness**: top-N issues by severity/impact, grouped by category, with counts ("+142 more warnings"). PPTX especially should be an executive summary (score, category gauges, top issues), not per-issue slides.
+- For Markdown-for-LLM: budget a token ceiling, prefer critical+warning, structure as compact grouped sections, and **state explicitly in the document what was omitted** ("Showing top 50 of 312 issues") rather than truncating silently.
+- **Log/record what was dropped** so it's auditable, and expose the full count in the UI.
 
 **Warning signs:**
-- Worker container restarts/OOMs during audits above ~100-200 URLs even though small audits work fine.
-- Memory usage graphs climbing monotonically through a long crawl instead of plateauing.
+Exports with dozens of pages/slides; LLM given the .md returns fixes for only the first few issues; users asking "where are the rest of my issues".
 
-**Phase to address:**
-Background worker/queue phase — should be validated with a load test against the actual 500-URL ceiling before that phase is considered complete.
+**Phase to address:** Each export-format phase (define the top-N/summarization contract in the export-infrastructure phase so all three formats share it).
 
 ---
 
-### Pitfall 10: Queue jobs get stuck/zombied with no recovery path
+### Pitfall 10: Export route inherits public-by-ID access with no ownership/verification check
 
 **What goes wrong:**
-Long-running audit jobs (background worker processing hundreds of URLs with external calls to Lighthouse/PSI) are exactly the kind of job that dies silently: worker process crashes/OOMs mid-job (see Pitfall 9) leaving the job "active" in the queue forever (BullMQ and similar queues need explicit stalled-job detection/requeue config), a job hangs on a single unresponsive URL with no per-URL or per-job timeout, or a deploy/restart of the worker container loses in-flight jobs that weren't idempotently resumable. Users are left with an audit that shows "in progress" forever with no way to know it failed, and no automatic retry — directly damaging trust in a tool whose core value is reliability.
+The report is currently public-by-ID (no auth in `apps/web/app/api/audits/[id]/route.ts`). If the export route follows the same pattern, anyone with an audit id can download a branded PDF/PPTX of someone else's audit — including the audited domain and, depending on export contents, the requester's email. Worse, a scriptable export endpoint is a cheap way to harvest/DoS (each call is heavier than a JSON read).
 
 **Why it happens:**
-Job queues "just work" in happy-path testing (small crawls that finish in seconds); stuck-job handling only matters for the long-running, externally-dependent jobs this project specifically has (Lighthouse, PSI, third-party site fetches that can hang) — a class of failure that's easy to never trigger in dev.
+Copy-pasting the existing report route pattern carries its (deliberate, for public reports) lack of auth into a heavier, more sensitive surface.
 
 **How to avoid:**
-- Configure explicit per-job and per-URL timeouts (a single unresponsive target URL must not hang the entire audit job).
-- Configure stalled-job detection and automatic requeue (BullMQ's `stalledInterval`/`maxStalledCount` or equivalent) so a crashed worker's job gets picked up again rather than stuck in "active" state indefinitely.
-- Make job processing idempotent/resumable at the per-URL granularity (store progress per-URL, not just overall job status) so a requeued job doesn't restart the whole 500-URL crawl from zero.
-- Build a dead-letter/failed-state path with a max retry count, after which the job is marked "failed" and the user is shown a clear, honest status (not an infinite spinner) with an option to retry.
-- Add a heartbeat/progress mechanism so the frontend can show real progress and detect (from the user's perspective) a stalled audit versus a genuinely long one — directly relevant since the requirement is "report progress" for long audits.
-- Monitor queue depth and job age in production (alerting on jobs older than expected max audit duration) — don't rely only on user reports to discover stuck jobs.
+- **Make an explicit product decision** and log it: are reports intentionally public-by-ID (shareable link, ids are unguessable cuids) or should export require the owning verified email? Given this is a lead magnet, public-by-shareable-link is defensible for the *report*, but exports should at minimum be rate-limited.
+- Do NOT include PII (the requester's email, verification tokens) in any export body regardless.
+- Add lightweight abuse protection on the export route (per-IP/per-audit rate limit) since it's compute-heavier than the JSON report.
+- If ownership is required, gate on the verified-email → audit relationship already in the schema.
 
 **Warning signs:**
-- Audits occasionally sit at "in progress" indefinitely in manual testing, especially when deliberately killing the worker mid-job or pointing at a slow/hanging test URL.
-- Queue dashboard (if using Bull Board or similar) shows jobs stuck in "active" long after they should have completed.
+Export endpoint enumerable; exports containing emails; export traffic disproportionate to audit creation.
 
-**Phase to address:**
-Background worker/queue phase — this must be validated with deliberate failure-injection testing (kill worker mid-job, point at a hanging URL) before considering the phase done, not just happy-path testing.
+**Phase to address:** Export-infrastructure phase (access-control decision before wiring the button).
 
 ---
 
-### Pitfall 11: Email verification/double opt-in gate has abuse gaps (quota bypass via email variation, disposable emails, no rate limiting on the gate itself)
+### Pitfall 11: Boundary violation — worker-only deps (Crawlee/Playwright) leaking into `apps/web` via a shared export/types package
 
 **What goes wrong:**
-A free-tier gated by "1 audit/week/email" is trivially bypassable if the verification/quota logic doesn't account for: email aliasing (`user+audit1@gmail.com`, `user+audit2@gmail.com` — Gmail and many providers treat `+tag` addresses as the same inbox but a naive quota check treats them as different emails), disposable/temp-mail domains (10minutemail, etc. — anyone can generate infinite verified throwaway addresses), and no rate-limiting on the verification-request endpoint itself (an abuser can trigger thousands of verification emails to third-party addresses, which is both an abuse vector and a spam/deliverability risk that gets the sending domain blacklisted).
+A shared package (e.g. a new `@auditor/export` or reusing `@auditor/checks`/`@auditor/scoring` types) transitively imports Crawlee or Playwright, so the Vercel build tries to bundle them → build failure or a bloated function. Root `CLAUDE.md` explicitly warns Next.js's Vercel build must never pull in Playwright/Crawlee.
 
 **Why it happens:**
-The requirement "1 audit/week/email" is stated as a simple database constraint, but "email" as a uniqueness key is deceptively fuzzy — teams implement exact-string uniqueness and don't discover the plus-addressing/disposable-email bypass until the free tier is already being abused (URL-limit/compute cost, or the audited-site owner's server, absorbs the abuse).
+Export logic needs the audit's data *shapes* (issue/category/score types), which live in packages that ALSO contain crawl logic. A single deep import (`import { ... } from "@auditor/checks"`) can drag the whole dependency graph.
 
 **How to avoid:**
-- Normalize email addresses before uniqueness checks: strip `+tag` subaddressing for known providers (Gmail, Outlook support this convention) and lowercase/trim before storing/comparing.
-- Integrate a disposable-email-domain blocklist (maintained public lists exist, e.g., disposable-email-domains npm package) and reject or flag sign-ups from known temp-mail domains.
-- Rate-limit the "send verification email" endpoint itself, independent of the audit-quota logic — by IP and by target email — to prevent it being used as an email-bombing vector against third parties.
-- Consider CAPTCHA/bot-protection (e.g., Cloudflare Turnstile) on the initial audit-request form, since this is a public lead-magnet form that will attract scraping/abuse bots targeting the free compute (crawling + Lighthouse is expensive to run per request).
-- Log and monitor abuse patterns (many verification requests from one IP, many distinct emails auditing the same domain) even if not blocked outright in v1 — gives visibility to tighten rules later without redesigning storage.
+- Keep the export package **pure**: it should depend only on `@auditor/db` (Prisma types) and pure-JS document libs — never on `@auditor/crawler`, `@auditor/checks` runtime, `@auditor/psi`, or `playwright`.
+- Import only **types** from shared packages (`import type`), and ensure those type modules don't re-export runtime crawl code. Split a `types-only` entry point if needed.
+- Add a CI/build guard: assert the web bundle's dependency graph contains no `playwright`/`crawlee` (e.g. `pnpm why playwright` in the web workspace must be empty).
 
 **Warning signs:**
-- Same person appears able to audit the same site multiple times per week using trivially different email variants during adversarial QA.
-- Verification email volume spikes disproportionately relative to completed audits (sign of email-bombing abuse rather than real usage).
+Vercel build errors referencing Playwright/Chromium or native modules; web function bundle size jumping; `pnpm why crawlee` resolving inside `apps/web`.
 
-**Phase to address:**
-Email verification/quota phase — explicitly test with plus-addressing and a known disposable-domain during QA before shipping.
+**Phase to address:** Export-infrastructure phase (package boundary), enforced by a build guard.
 
 ---
 
-### Pitfall 12: GDPR/consent handling for stored emails treated as an afterthought
+### Pitfall 12: PDF/PPTX not rendering Spanish accents/ñ (font/encoding gotcha)
 
 **What goes wrong:**
-Storing emails + associated audit history + website ownership implication is personal data processing under GDPR (if any EU/UK visitors are expected, which is likely for any public web tool). Common gaps: no clear record of *what* the user consented to and *when* (GDPR requires provable consent — timestamp, IP, and the exact wording/version of terms shown at the time — not just "we have their email"), no data retention/deletion policy or mechanism (indefinite storage of emails + audit history with no way for a user to request deletion), and conflating "double opt-in confirms deliverability" with "double opt-in satisfies GDPR consent requirements" (they are related but not the same thing — GDPR does not technically mandate double opt-in, but it does mandate freely-given, specific, informed, unambiguous, and provable consent, which double opt-in helps evidence but doesn't automatically guarantee without proper consent-language and documentation).
+Report copy is Spanish-neutral with accents and ñ. Default PDF core fonts (PDFKit's Helvetica/WinAnsi) and careless PPTX text handling drop or mojibake `á é í ó ú ñ ¿ ¡` — the branded lead-magnet deliverable looks broken.
 
 **Why it happens:**
-Double opt-in is implemented primarily as an anti-abuse/deliverability mechanism (Pitfall 11), and teams assume that mechanism alone "handles GDPR" without separately implementing consent records, retention policy, and deletion capability.
+PDFKit's built-in AFM fonts are WinAnsi-encoded and don't cover the full range; you must embed a Unicode TTF. Some libs need explicit UTF-8 handling. The bug only shows on accented characters, which English-first testing misses.
 
 **How to avoid:**
-- Store a consent record separate from the email itself: timestamp of consent, the specific purpose/wording shown ("receive your audit report and occasional related emails from juan-tech.com" or whatever the actual copy is), and ideally IP address at time of consent — versioned if the consent copy ever changes.
-- Add a data retention policy (even a simple one, e.g., "unverified emails deleted after 7 days; verified emails + audit history retained until deletion requested") and implement the actual deletion mechanism, not just the policy document.
-- Provide a self-service or low-friction way for a user to request their data be deleted (a link in emails, or documented manual process for v1 given it's a small lead-magnet tool) — GDPR's right-to-erasure applies regardless of company size.
-- Do not silently reuse the "audit" email list for unrelated marketing without separate, specific consent for that purpose — GDPR requires purpose-specificity, so "consent to receive your audit" is not automatically "consent to receive a newsletter."
-- This is legal risk, not just engineering risk — flag this explicitly for a lightweight legal/compliance review before public launch rather than treating it as pure implementation detail.
+- **Embed a Unicode TTF** in the PDF (the project already self-hosts brand fonts — Array/Khand/Geist; register the Geist/appropriate TTF with the PDF lib) rather than relying on core fonts.
+- Verify with a fixture string containing `áéíóúñ¿¡` in every export format before shipping.
+- Ensure Markdown export sets `charset=utf-8` in `Content-Type`.
 
 **Warning signs:**
-- No dedicated consent-record table/field exists separate from the "email" column when reviewed at implementation time.
-- No documented or implemented process for a user to request deletion of their stored email/history.
+Missing glyphs, boxes, or garbled accents in generated PDFs/decks; only ASCII text renders correctly.
 
-**Phase to address:**
-Email verification/quota phase (data model) + explicit pre-launch compliance check as a gate before public release.
+**Phase to address:** PDF export phase and PPTX export phase (font embedding + accent fixture).
 
 ---
 
-### Pitfall 13: Scoring model produces non-credible results (false positives, opaque weighting, score instability undermines trust)
+### Pitfall 13: Non-deterministic CSR verdict churning the diff (new/resolved flapping)
 
 **What goes wrong:**
-The core value proposition is "accurate and reliable" — a scoring model that's internally inconsistent (e.g., re-running the same audit twice gives a different letter grade purely from Lighthouse variance — see Pitfall 6 — or from crawl non-determinism like timing out on different URLs each run) or opaque (a 0-100 score with no visible rationale for how category scores roll up, or issues weighted in ways that don't match real SEO impact, e.g., a missing alt attribute scored as severely as a missing canonical) destroys credibility fast, especially for an audience of SEO-savvy visitors (the target audience, given this is aimed at attracting clients to a technical SEO consultancy) who will immediately spot an inconsistent or naive scoring model and lose trust in the whole tool.
+If the CSR check only emits an issue *when CSR is detected* (problem-only, unlike the existing checks that always emit an `ok` row), then a page whose render is timing-sensitive can be flagged CSR in one audit and not the next. Because the diff is fingerprint-only, the issue appears as **`new`** one week and **`resolved`** the next on an unchanged site — false "you fixed it / it regressed" churn.
 
 **Why it happens:**
-Building a scoring model that "looks right" on a handful of demo sites is easy; building one that's stable, explainable, and matches expert SEO judgment across arbitrary real-world sites (different CMSs, different content types, different intentional tradeoffs like a site that deliberately blocks certain pages) is genuinely hard, and teams often ship a first-pass point-weighted system without validating it against sites where they already know the "correct" expert assessment.
+Playwright rendering isn't perfectly deterministic (network, hydration timing, lazy-load). Combined with an arbitrary threshold (Pitfall 5), the boundary cases flip.
 
 **How to avoid:**
-- Validate the scoring model against the existing reference report mentioned in project context (juan-tech.com audit, score 86/100) and against a handful of other real sites where Juan (as the domain expert) can sanity-check whether the score and issue severities match his own professional judgment — treat this as a required validation step, not optional polish.
-- Make severity/weighting transparent in the report itself (show *why* a category scored as it did, what issues contributed and their individual weight) rather than a black-box number — this builds trust and is itself a differentiator for an SEO-consultant-branded tool.
-- Decouple "flaky" signals (Lighthouse performance) from stable signals (structural technical SEO/on-page/schema checks) in how confidently they're presented — e.g., don't let performance-score noise from Pitfall 6 silently shift the overall score's "Bueno/Necesita mejora/Crítico" bucket between category boundaries on unchanged pages.
-- Avoid absolute false positives above all — a wrong "critical" flag on something that's actually fine (e.g., misdetecting JS-rendered content as missing, see Pitfall 8) is worse for trust than a missed issue, since users can verify false positives themselves instantly by viewing source/inspecting the page.
-- Build the score-diffing/persistence feature (comparing runs to detect fixed issues) with explicit tolerance for known-noisy metrics (e.g., don't report "performance regressed" based on a 3-point Lighthouse swing that's within normal variance).
+- Follow the existing convention: **always emit a stable issue row per sampled page** (ok OR critical) with a stable `pageFingerprint`, so the fingerprint persists across runs and only the severity changes (severity changes don't churn the fingerprint-based diff).
+- Render deterministically: wait for `networkidle`/a stable signal, fixed viewport, disable animations, consistent timeout.
+- Make the verdict template-level so a single flaky page doesn't flip a whole pattern.
 
 **Warning signs:**
-- Re-auditing the same unchanged site twice in a row produces a different score or bucket label.
-- Manual expert review (Juan checking a report against his own knowledge of a site) disagrees with the tool's severity assignment or overall score direction.
+Diff shows CSR issues as new/resolved on sites that didn't change; the same page's CSR verdict differs between two consecutive audits.
 
-**Phase to address:**
-Scoring/report phase — should include an explicit validation pass against known real sites before launch, and the run-diffing feature needs noise-tolerance logic when it's built.
+**Phase to address:** CSR-detection phase.
 
 ---
 
-### Pitfall 14: Legal/ToS exposure of crawling third-party sites without permission ignored
+### Pitfall 14: Bot detection / sites blocking headless Chromium
 
 **What goes wrong:**
-This tool crawls arbitrary third-party websites at a user's request, not sites the operator owns — this raises real (if generally low-enforcement-risk in practice for a legitimate SEO audit tool) legal exposure: many sites' Terms of Service explicitly prohibit automated crawling/scraping, aggressive or unthrottled crawling that causes measurable load/cost to a target site could theoretically raise CFAA-adjacent or trespass-to-chattels type concerns in some jurisdictions (historically litigated in scraping cases, e.g., hiQ v. LinkedIn line of cases in the US, though the legal landscape has evolved and mostly protects access to *publicly available* data), and there's a reputational/deliverability risk if the tool becomes known for aggressive crawling that gets IPs blocklisted or triggers abuse complaints to hosting providers.
+Some sites serve a challenge page, block, or serve different HTML to headless Chromium (Cloudflare, bot walls). The CSR check then compares raw HTML against a challenge/blocked page and produces a meaningless verdict (e.g. "all content is client-rendered" because the rendered DOM is a CAPTCHA).
 
 **Why it happens:**
-The product model (auditing on behalf of the URL's owner) creates an implicit assumption of authorization that isn't actually verified — the tool has no way to confirm the person submitting a URL actually owns/controls that site, and this is easy to overlook because the friendly framing ("audit your website") obscures that nothing structurally prevents someone from auditing a competitor's or unrelated third party's site.
+Playwright's default headless UA/fingerprint is detectable; the crawl (Cheerio) uses `DEFAULT_USER_AGENT` and may pass where headless render doesn't.
 
 **How to avoid:**
-- Add a lightweight ToS/acceptable-use statement the user agrees to when submitting a URL (asserting they have the right to have the site audited) — this doesn't eliminate risk but establishes reasonable-use intent and shifts some responsibility, standard practice for this category of tool (comparable public tools like PageSpeed Insights, GTmetrix, etc. operate this way).
-- Keep crawling strictly polite and rate-limited (Pitfall 1) — most real-world legal/abuse friction from crawling tools comes from *aggressive* behavior (causing measurable load/cost or bypassing explicit blocks), not from the mere act of fetching publicly available pages respecting robots.txt.
-- Respect robots.txt fully (Pitfall 2) as both a technical-quality and legal-hygiene measure — courts and platforms have generally treated robots.txt compliance as a meaningful signal of good-faith, non-abusive automated access.
-- Provide an easy way for a site owner to report/block unwanted audits of their domain (e.g., an opt-out/blocklist mechanism keyed by domain) — reduces complaint volume and demonstrates good faith.
-- This is a LOW-effort, LOW-complexity mitigation set (ToS checkbox + politeness + robots.txt respect + opt-out) that meaningfully reduces real-world risk without needing heavyweight legal engineering — flag for a brief actual-legal review (not just engineering judgment) before public launch given Juan's professional reputation is attached to the tool.
+- Use a consistent, honest UA (align with `DEFAULT_USER_AGENT`) and reasonable headers on the Playwright context.
+- **Detect the failure mode**: if the rendered page looks like a challenge (title/markers), or the render 403s/times out, **degrade gracefully** — emit "render unavailable, CSR not determined" rather than a false CSR flag (mirror how PSI degrades to "not available" instead of failing the audit).
+- Never let a blocked render fail the whole job (isolate like `runPerfSample`'s try/catch).
 
 **Warning signs:**
-- No ToS/acceptable-use text exists on the audit-submission form.
-- No mechanism exists for a third party to request their domain be excluded from audits.
+CSR flagged on well-known SSR sites behind Cloudflare; render results that look like CAPTCHA/challenge text; sudden 403s only on the render pass.
 
-**Phase to address:**
-Should be addressed at/before public launch (likely the same phase as the audit-submission UI) — low implementation cost, so no reason to defer.
+**Phase to address:** CSR-detection phase (graceful-degradation path).
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|-----------------|-----------------|
-| Exact-hash duplicate detection instead of shingling/SimHash | Ships faster, no tuning needed | Misses the most valuable near-duplicate findings (templated pages) | Acceptable for v1 if clearly labeled as "exact duplicates only"; upgrade in a later phase |
-| Cheerio-only extraction (no rendering) | Much cheaper/faster crawl | False negatives on any JS-framework site, directly hurts core "accurate" value prop | Never acceptable as the sole extraction method for on-page/structured-data checks; acceptable only as a fast first-pass with rendered fallback/comparison |
-| Running full Lighthouse per URL at 500-URL scale | Simple, one code path for all performance data | Blows time/cost budget, high variance noise at scale | Only acceptable for small audits (e.g., <20 URLs) or a sampled subset; never as default for full-quota audits |
-| Single Lighthouse run per URL, no averaging | Simpler pipeline, faster per-URL | Score instability undermines report credibility and run-diffing accuracy | Acceptable only if UI clearly discloses single-run variance; median-of-N preferred before general release |
-| No hreflang reciprocity check, presence-only | Ships hreflang check faster | Silently passes the most common real-world hreflang bug, shallow/low-value check | Acceptable as an explicitly-labeled "basic" v1 check; must be upgraded before marketing hreflang validation as a differentiator |
-| No stalled-job/timeout handling in queue (happy path only) | Faster to ship worker/queue phase | Audits silently hang forever on worker crash or hanging URL | Never acceptable beyond early internal dev/testing |
+|----------|-------------------|----------------|-----------------|
+| Render all 500 URLs "just to be safe" | Simplest to reason about | Timeouts, huge compute bill, killed jobs | Never — sample/template-level only |
+| Store full rendered HTML for every sampled page in a new DB column | Easy re-analysis/debug | `@db.Text` bloat on Neon; only need the diff result | Only if capped to the sample size AND actually needed; prefer storing the verdict + small diff metric, not the full DOM |
+| Reuse `pageFingerprint(CHECK_ID, url)` for multi-condition checks | Copy the existing check pattern | Diff collapse, swallowed sub-issues (Pitfall 6) | Never for multi-condition checks — sub-type the fingerprint |
+| Buffer the whole PDF/PPTX in memory then return | Trivial route code | Vercel memory spikes on large sites | Only with hard top-N truncation keeping docs small |
+| Copy the public-by-ID report pattern into the export route | Fast to ship | Unauthenticated heavy endpoint, possible PII exposure | Only after an explicit logged access-control decision + rate limit |
+| Long-lived Playwright browser pool in the worker | Avoids per-audit launch cost | Zombie/OOM risk with concurrency=2 + PSI | Prefer launch-per-audit-sample-then-close until real load data justifies pooling |
+| Emit `ok` rows for every new per-page check without checking score impact | Consistent with existing checks | Silent score dilution (Pitfall 7) | Only after verifying score drift on the reference fixture |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|----------------|-------------------|
-| Google PageSpeed Insights API | Calling PSI per-URL for all 500 URLs per audit, ignoring 400/100s burst limit | Sample-based PSI usage + caching + backoff; request quota increase early |
-| Lighthouse (local/unlighthouse) | Single run per page treated as ground truth | Median-of-N runs for critical pages; disclose variance in report |
-| Sitemap.xml parsing | Not handling sitemap index files (nested sitemaps), gzip-compressed sitemaps, or malformed XML gracefully | Support sitemap index recursion, gzip decoding, and fall back to link-crawl on parse failure rather than failing the whole audit |
-| robots.txt | Hand-rolled wildcard matching instead of RFC 9309-compliant longest-match logic | Use a maintained, spec-compliant parser library |
-| Email delivery (double opt-in) | No rate-limit on verification-send endpoint; usable as email-bombing vector | Rate-limit by IP and target email independently from audit quota logic |
-| BullMQ/Redis queue | Default stalled-job settings left unconfigured, assuming "it just retries" | Explicitly configure `stalledInterval`/`maxStalledCount`, per-job timeouts, and idempotent per-URL resumability |
+|-------------|----------------|------------------|
+| Playwright + Docker | `:latest` or drifting image/npm versions | Pin `mcr.microsoft.com/playwright:v<exact>-noble` = installed `playwright` version; bump atomically |
+| Playwright + existing PSI load | Counting browser concurrency per-job | Global semaphore shared by PSI + CSR passes; size instance for 2 jobs × (render + PSI) |
+| Playwright + `withTimeout` | Assuming the outer race cancels the render | Explicit `page.goto` timeout + `finally { browser.close() }`; add browser close to `shutdown()` |
+| Vercel Node route + PDF | Reaching for Puppeteer/Chromium HTML→PDF | Pure-JS `pdfkit`/`@react-pdf/renderer`; never bundle Chromium into web |
+| Vercel route + large file | Buffer entire file, no `maxDuration` | Stream response, set `maxDuration`, truncate to top-N |
+| pnpm workspace imports | Deep-importing `@auditor/checks`/`crawler` for types | `import type` only from a pure types entry; CI guard `pnpm why playwright` empty in web |
+| PDF lib + Spanish copy | Rely on core WinAnsi fonts | Embed Unicode TTF (reuse brand Geist TTF); test `áéíóúñ¿¡` |
+| Neon Postgres + rendered HTML | New `@db.Text` column per page | Store verdict/metric, not full DOM; cap to sample |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|-----------------|
-| Global (not per-domain) concurrency limit for page fetches | One slow/rate-limited target site starves the whole worker's throughput for unrelated audits sharing the worker | Per-domain concurrency cap independent of overall worker concurrency | Any multi-tenant worker running concurrent audits against different domains |
-| Rendering every URL with Playwright/Chrome | Memory/CPU exhaustion, audit takes hours | Render only a sample or reuse Lighthouse's own page load instead of a second full render pass | Above roughly 50-100 URLs on typical worker container sizing |
-| Accumulating all crawl results in memory before persisting | OOM crashes only on large audits, not small test ones | Incremental per-page persistence, streaming report generation | Around the 200-500 URL range depending on container memory |
-| Unbounded/no-timeout page fetch | Single hanging URL blocks/delays entire job | Explicit per-request and per-job timeouts | Any crawl hitting a slow/misconfigured/hanging server |
-| PSI called synchronously per URL in the main crawl loop | Crawl throughput bottlenecked by external API latency + rate limits, not by target site fetch speed | Decouple performance-data fetching into its own queue/step with independent concurrency and caching | As soon as audits scale beyond a handful of URLs needing PSI data |
+|------|----------|------------|----------------|
+| Playwright over full crawl | 20min timeout hits, cost spike | Sample/template-level render (≤5–10 pages) | Any site >~50 pages |
+| Concurrent browsers (2 jobs × render + PSI) | OOM, `Target closed` | Global Chromium semaphore, right-sized instance | As soon as 2 audits overlap |
+| Buffered large-audit export | Route 504/OOM | Stream + top-N truncation | Audits with hundreds of issues |
+| Markdown-for-LLM full dump | LLM silently truncates | Token budget + explicit omission note | Sites with >~50–100 issues |
+| Score dilution from new ok-rows | Score drifts up on unchanged site | Verify on fixture; consider aggregate rows | Large crawls (hundreds of pages) |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| No SSRF protection on user-submitted URLs | Crawler could be tricked into fetching internal/private network addresses (localhost, cloud metadata endpoints like 169.254.169.254, internal IP ranges) if a submitted URL redirects there | Validate and re-validate resolved IPs (including after each redirect hop) against a blocklist of private/internal ranges before fetching; block metadata-service IPs explicitly |
-| Email verification token predictable or non-expiring | Account/quota takeover, replay of old verification links | Use cryptographically random, single-use, time-limited verification tokens |
-| No CAPTCHA/bot protection on public audit-submission form | Automated abuse of expensive compute (crawl + Lighthouse) at scale, cost-based DoS | Add bot-protection (e.g., Turnstile) on submission and verification-request endpoints |
-| Storing raw crawled HTML/content indefinitely without review | Could inadvertently store sensitive data scraped from a third-party site (e.g., exposed PII on the audited page) with no retention limit | Apply a retention/expiry policy to raw crawl artifacts, not just to the audit summary/scores |
+| Export endpoint unauthenticated + unthrottled | Enumeration, cheap DoS (heavier than JSON), scraping | Explicit access-control decision + per-IP/per-audit rate limit |
+| PII (requester email, verification token) in export body | Data leak via shareable/enumerable link | Never include PII in exports; exports contain audit data only |
+| Rendering attacker-influenced URLs in Playwright | SSRF-ish/local-file access if `file://`/internal URLs slip in | Only render http(s) URLs already in the crawl set; block internal/loopback targets |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|-------------------|
-| No visible progress during long (500-URL) audits | User assumes the tool is broken/hung and abandons, especially since audits can legitimately take many minutes to hours | Real progress indicator (URLs crawled / total, current phase: crawling → performance → scoring) fed by the worker's heartbeat |
-| Presenting a single precise-looking score with no explanation of methodology | Erodes trust with SEO-savvy audience who can spot naive scoring | Show category breakdown, per-issue rationale/source, and explicit note on measurement variance for performance metrics |
-| Treating "blocked by robots.txt/WAF" the same as "broken page" in the report | User panics about false "your site is down" findings | Distinct issue categories/messaging for crawler-blocked vs. genuinely broken pages |
-| Silent quota rejection (no clear messaging on why a second audit this week is blocked) | Confusing dead-end, user thinks the tool is broken | Clear, specific message: "You can run another free audit for this email on [date]" |
+|---------|-------------|-----------------|
+| 200-page PDF / 150-slide PPTX | Unusable deliverable, hurts lead-magnet credibility | Executive summary + top-N with "+N more" |
+| Silent truncation of issues | User trusts an incomplete fix list | State "top N of M" in the document + UI |
+| Broken accents in branded PDF | Looks unprofessional in Spanish | Embed Unicode font; accent fixture test |
+| No loading/disabled state on export button while generating | Double-clicks, duplicate heavy requests | Disable button + spinner during generation |
+| CSR false positive on user's SSR site | User distrusts the whole audit | Conservative threshold + template-level verdict + "not determined" fallback |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **robots.txt compliance:** Often missing wildcard (`*`, `$`) matching and per-subdomain fetching — verify against a real site with a non-trivial robots.txt (wildcards, multiple user-agent blocks).
-- [ ] **Redirect/canonical handling:** Often missing redirect-loop guards and conflates redirect target with canonical — verify with a deliberately looping redirect and a page whose canonical differs from its redirect target.
-- [ ] **JS-rendering coverage:** Often silently Cheerio-only for "done" checks like structured data/meta tags — verify against a real Next.js/React/Vue-rendered site, not just server-rendered test sites.
-- [ ] **Lighthouse/PSI at scale:** Often only tested against 10-20 URLs — verify actual time, cost, and memory behavior against a real 500-URL sitemap before considering the phase done.
-- [ ] **Queue reliability:** Often only tested happy-path — verify by deliberately killing the worker mid-job and pointing at a hanging/slow URL to confirm stalled-job recovery and timeouts actually work.
-- [ ] **Email quota uniqueness:** Often only tested with distinct emails — verify plus-addressing (`user+1@gmail.com` vs `user+2@gmail.com`) and a disposable-email domain are handled as intended.
-- [ ] **Scoring stability:** Often only validated once against one demo site — verify by re-running the same audit twice and confirming the score/bucket doesn't flip from measurement noise alone.
-- [ ] **hreflang validation:** Often presence-only — verify reciprocity is actually checked against a real multi-language site with a deliberately broken (non-reciprocal) hreflang setup.
+- [ ] **Playwright container:** Often missing exact image/npm version pin — verify `browser.launch()` works in the deployed container, not just locally.
+- [ ] **Browser lifecycle:** Often missing `finally { browser.close() }` on timeout/failure paths and in `shutdown()` — verify no Chromium survives a failed/aborted job.
+- [ ] **CSR threshold:** Often missing empirical calibration + decision log — verify against a known SSR (juan-tech.com) and known CSR fixture.
+- [ ] **New checks' fingerprints:** Often reuse one fingerprint per page — verify each distinct condition has a stable sub-typed fingerprint and the diff counts them separately.
+- [ ] **Score impact:** Often unverified — run the reference fixture before/after and confirm intended score movement.
+- [ ] **Export route deps:** Often silently pull Chromium/Crawlee — verify `pnpm why playwright`/`crawlee` is empty in `apps/web`.
+- [ ] **Export volume:** Often dumps everything — verify top-N truncation and an explicit "omitted" note.
+- [ ] **Export headers:** Often missing `Content-Disposition`/correct `Content-Type` — verify the file actually downloads with a sane filename.
+- [ ] **Accents:** Often broken — verify `áéíóúñ¿¡` render in PDF and PPTX.
+- [ ] **Export auth:** Often copies public-by-ID blindly — verify the access-control decision is made and rate-limiting exists.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|------------------|
-| Crawler gets blocked mid-launch on real client sites | LOW | Add per-domain concurrency caps, backoff, and blocked-vs-broken classification retroactively; largely additive, doesn't require re-architecture |
-| Untuned/noisy near-duplicate detection shipped | MEDIUM | Re-tune shingle size/threshold against a labeled validation set; can be done without changing the crawl pipeline itself |
-| Cheerio-only extraction found to miss JS-rendered sites post-launch | HIGH | Requires adding a rendering path (Playwright) into the extraction pipeline and re-running affected checks — meaningful architecture change and cost re-budgeting |
-| Lighthouse/PSI cost blowup discovered post-launch | MEDIUM-HIGH | Retrofit sampling strategy (only audit a subset of URLs for performance) and caching; requires product-messaging change (explain why not every URL gets a full performance score) |
-| Stuck/zombie jobs discovered in production | MEDIUM | Add stalled-job detection/requeue config and per-job timeouts; may need a one-time cleanup script for currently-stuck jobs and user notification for affected audits |
-| Email quota bypass being actively exploited | LOW-MEDIUM | Add normalization + disposable-domain blocklist + rate limiting; retroactively can also add a manual review/ban list for already-abused emails/domains |
-| GDPR consent records missing for already-collected emails | HIGH (legal) | Requires legal guidance; likely needs a re-consent campaign or data purge for records lacking adequate consent evidence — expensive to fix after the fact, cheap to build in from the start |
+|---------|---------------|----------------|
+| Image/npm version drift | LOW | Re-pin Dockerfile tag to installed `playwright`, redeploy |
+| Zombie browsers / OOM | MEDIUM | Add `finally`-close + shutdown hook + global semaphore; restart worker |
+| CSR false positives shipped | MEDIUM | Recalibrate threshold, switch to template-level, re-run affected audits |
+| Fingerprint collisions shipped | MEDIUM | Sub-type fingerprints; historical diffs before the fix stay slightly off (data migration usually not worth it) |
+| Score drift from new checks | LOW–MEDIUM | Re-tune weights or collapse ok-rows; recompute is per-new-audit only |
+| Chromium bundled into Vercel | LOW | Swap to pure-JS PDF lib, purge dep, redeploy |
+| Broken accents in a shipped PDF | LOW | Embed Unicode font, regenerate on next export (exports are on-demand, no backfill needed) |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|-------------------|----------------|
-| Crawler blocked/banned (politeness) | Core crawler engine | Run audit against a real Cloudflare/WAF-protected client site with no bans/false "broken" reports |
-| robots.txt mishandling | Core crawler engine | Test against a site with wildcard rules and multiple user-agent blocks; verify blocked sitemap URLs are reported, not silently dropped |
-| Redirect chain / canonical conflation | Core crawler engine + technical SEO checks | Test with a redirect loop and a page with mismatched redirect target vs. canonical |
-| Duplicate/near-duplicate detection tuning | Dedicated sub-phase after core checks stabilize | Validate against a manually labeled set of known-duplicate and known-distinct real pages |
-| hreflang reciprocity | Technical SEO checks (flag for deeper research) | Test against a real multi-language site with an intentionally broken (non-reciprocal) setup |
-| Lighthouse variance & scale cost | Performance/CWV phase (flag for deeper research/spike) | Time and cost-test a full 500-URL audit before considering complete; re-run same audit twice, confirm acceptable score stability |
-| PSI rate limits/quota | Performance/CWV phase (same spike as above) | Simulate concurrent audits hitting PSI and confirm graceful backoff, no silent data loss |
-| Cheerio missing JS-rendered content | Core crawler engine / extraction phase | Audit a real Next.js/React/Vue site and confirm no false "missing" findings for rendered-only content |
-| Memory blowups at scale | Background worker/queue phase | Load-test a full 500-URL audit against real worker container memory limits |
-| Stuck/zombie queue jobs | Background worker/queue phase | Failure-inject: kill worker mid-job, use a hanging test URL, confirm recovery/requeue/timeout behavior |
-| Email quota/verification abuse | Email verification/quota phase | Adversarial QA with plus-addressing and disposable-domain emails |
-| GDPR/consent handling | Email verification/quota phase + pre-launch compliance gate | Confirm consent-record fields exist separate from email, retention policy documented, deletion path exists |
-| Scoring model credibility | Scoring/report phase | Validate against reference report (juan-tech.com, 86/100) and expert (Juan) sanity review; re-run stability test |
-| Legal/ToS of crawling third-party sites | Audit-submission UI phase (low-cost, address before public launch) | ToS/acceptable-use text present, opt-out/blocklist mechanism exists, robots.txt respected end-to-end |
+|---------|------------------|--------------|
+| 1 Image/npm version mismatch | Playwright-infrastructure (Dockerfile) | Container `browser.launch()` succeeds post-deploy; CI version-match check |
+| 2 shm/OOM with concurrency+PSI | Playwright-infrastructure | Two overlapping audits stay under memory ceiling |
+| 3 Render all 500 URLs | CSR-detection | Audit duration unchanged materially; rendered-page count capped |
+| 4 Zombie browsers | CSR-detection + shutdown hook | No Chromium survives failed/aborted/SIGTERM job |
+| 5 CSR false positives / threshold | CSR-detection | SSR fixture not flagged; threshold documented in decision log |
+| 6 Fingerprint collisions | Canonical-deepening + Heading-hierarchy (shared util first) | Test: no duplicate fingerprints per page; diff counts sub-issues separately |
+| 7 Score dilution | Each new-check phase + scoring checkpoint | Reference-fixture score drift within expected bounds |
+| 8 Vercel route limits | Export-infrastructure | Large-audit export completes under `maxDuration`; no Chromium in bundle |
+| 9 Export data volume | Export-infrastructure (shared top-N contract) | Docs stay small; omission note present |
+| 10 Export access control | Export-infrastructure | Access-control decision logged; rate limit active; no PII in body |
+| 11 Boundary violation | Export-infrastructure | `pnpm why playwright/crawlee` empty in web; build guard green |
+| 12 PDF/PPTX accents | PDF export + PPTX export | `áéíóúñ¿¡` fixture renders correctly |
+| 13 Non-deterministic CSR diff churn | CSR-detection | Stable per-page issue rows; unchanged site shows no CSR churn |
+| 14 Bot detection / blocked render | CSR-detection | Blocked render degrades to "not determined", never a false CSR flag or job failure |
 
 ## Sources
 
-- [Lighthouse Variability — Google for Developers](https://developers.google.com/web/tools/lighthouse/variability) (HIGH confidence — official docs)
-- [GoogleChrome/lighthouse variability.md — GitHub](https://github.com/GoogleChrome/lighthouse/blob/main/docs/variability.md) (HIGH confidence — official source)
-- [How to reduce variance between Lighthouse tests — DebugBear](https://www.debugbear.com/docs/reduce-lighthouse-variance) (MEDIUM confidence — reputable performance-tooling vendor)
-- [PageSpeed Insights API limits — Google Groups discussion](https://groups.google.com/g/pagespeed-insights-discuss/c/dB7hWmGAGsw) (MEDIUM confidence — community, cross-checked)
-- [PageSpeed Insights API secret rate limit — bjb.dev](https://bjb.dev/log/20221009-pagespeed-api/) (MEDIUM confidence — practitioner report, dated; verify current values in Cloud Console at implementation time)
-- [Building a Performance Monitoring Tool with PSI API — Positional](https://www.positional.com/blog/pagespeed-insights-api) (MEDIUM confidence)
-- [Does GDPR require double opt-in? — iubenda](https://www.iubenda.com/en/blog/gdpr-double-opt-in-2/) (MEDIUM-HIGH confidence — compliance-focused vendor, aligns with general GDPR consent-proof requirements)
-- [GDPR Double Opt-in for Email Marketing — TermsFeed](https://www.termsfeed.com/blog/gdpr-double-opt-in-email-marketing/) (MEDIUM confidence)
-- Domain-expert/community-consensus knowledge on crawler engineering (robots.txt RFC 9309 matching semantics, SimHash/shingling for near-duplicate detection, hreflang reciprocity requirements, SSRF risks in URL-fetching services, BullMQ stalled-job configuration) — MEDIUM confidence, well-established engineering practice not tied to a single dated source; flagged where implementation specifics should be verified against current library docs (e.g., BullMQ docs, a chosen robots.txt parser library's test suite) at build time.
+- Repo, HIGH confidence: `apps/worker/src/index.ts` (concurrency, timeout, shutdown, PSI pattern), `packages/checks/src/util.ts` (fingerprint format), `packages/checks/src/checks/tech/canonical.ts` (single-issue-per-page pattern + ok-row emission), `packages/scoring/src/{categoryScore,overallScore,diff}.ts` (health-ratio, weights, fingerprint-keyed diff), `packages/db/prisma/schema.prisma` (no unique on `Issue.fingerprint`, `Page.html` Text column), `apps/web/app/api/audits/[id]/route.ts` (public-by-ID, no auth).
+- Root `CLAUDE.md`, HIGH confidence (project-authored, pre-verified): Playwright Docker version pinning, `/dev/shm`/`--ipc=host`, Chromium 1–2GB memory, sampling-not-all-500, "never run Playwright/Lighthouse in a Vercel function", keep worker deps out of the Vercel bundle.
+- `.planning/PROJECT.md`, HIGH confidence: v1.2 scope, "aditivo, no romper pipeline", exports on-demand in Next.js Node route, SimHash threshold=3 empirical-calibration precedent, size-independent health-ratio scoring decision, Spanish-neutral copy constraint.
+- Playwright/Chromium container memory + headless detection behavior, MEDIUM confidence: ecosystem-standard, version-sensitive.
+- Pure-JS PDF/PPTX i18n (PDFKit WinAnsi core-font limitation, need embedded Unicode TTF), MEDIUM confidence: well-known library gotcha, verify against chosen lib version.
 
 ---
-*Pitfalls research for: SEO/technical web-audit crawler SaaS lead magnet*
-*Researched: 2026-07-05*
+*Pitfalls research for: adding CSR/SSR detection + deeper canonical/heading checks + report export to the Auditor v1.2 milestone*
+*Researched: 2026-07-06*
