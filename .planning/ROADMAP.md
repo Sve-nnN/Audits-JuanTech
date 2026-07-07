@@ -91,7 +91,11 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
   3. Si el render falla, se bloquea o hace timeout, el reporte muestra "no determinado" para esa página y la auditoría completa sin caerse.
   4. El worker ejecuta Playwright en un contenedor con imagen pinneada (`mcr.microsoft.com/playwright:v1.61.1-noble`), libera los navegadores en todos los caminos (sin procesos zombie ni OOM bajo concurrencia 2 + PSI) y Playwright nunca llega al bundle de Vercel (paquete `@auditor/render` worker-only).
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+- [ ] 12-01-PLAN.md — paquete @auditor/render + lógica pura de detección SSR/CSR (RENDER-01/02)
+- [ ] 12-02-PLAN.md — cliente Playwright (pool, timeout, cleanup en finally, concurrencia 2) + runRenderSample con degradación (RENDER-01/03)
+- [ ] 12-03-PLAN.md — integración en worker + Dockerfile pinneado + aserción Playwright fuera del bundle web (RENDER-01/03, SC#4)
 
 ### Phase 13: Fundación de export + serializers
 
@@ -151,7 +155,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 | 9. Librería de componentes | v1.1 | 6/6 | Complete ✅ | 2026-07-06 |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | v1.1 | 8/8 | Complete ✅ | 2026-07-06 |
 | 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 4/4 | Complete ✅ | 2026-07-07 |
-| 12. Detección de renderizado CSR/SSR | v1.2 | 0/? | Not started | - |
+| 12. Detección de renderizado CSR/SSR | v1.2 | 0/3 | Planned | - |
 | 13. Fundación de export + serializers | v1.2 | 0/? | Not started | - |
 | 14. Botón Exportar (UI) | v1.2 | 0/? | Not started | - |
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 0/? | Not started | - |
