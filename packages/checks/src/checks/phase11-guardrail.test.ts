@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as cheerio from "cheerio";
-import { diffIssues } from "@auditor/scoring";
+import { diffIssues, scoreCategory, type ScorableIssue } from "@auditor/scoring";
 import { canonicalDeep } from "./tech/canonicalDeep";
 import { headingsCheck } from "./onpage/headings";
 import { makePage } from "../testUtils";
@@ -55,5 +55,41 @@ describe("SC#5 guardrail — no-colapso de fingerprints (canonical + headings)",
       expect(diff.statusByFingerprint.get(fp)).toBe("new");
     }
     expect(diff.resolved).toEqual([]);
+  });
+});
+
+describe("SC#5 guardrail — estabilidad de score sobre fixture sana", () => {
+  it("canonicalDeep y headingsCheck no emiten filas ni desvían el score en una web correcta", () => {
+    // Fixture "limpia": canonical self-referente absoluta al mismo host +
+    // jerarquía H1→H2→H3 sin vacíos y H1 ≠ title.
+    const html =
+      '<html><head><title>Título distinto</title>' +
+      '<link rel="canonical" href="https://example.com/clean"></head>' +
+      "<body><h1>Tema principal</h1><h2>Sección</h2><h3>Detalle</h3></body></html>";
+    const page = makePage({ url: "https://example.com/clean", html });
+    const $ = cheerio.load(html);
+
+    const canonicalDeepIssues = canonicalDeep.run({ pages: [page], origin: ORIGIN, sitemapUrls: [] });
+    const headingIssues = headingsCheck.run({ page, $ });
+
+    // Ambos checks emiten CERO filas sobre la fixture sana.
+    expect(canonicalDeepIssues).toEqual([]);
+    expect(headingIssues).toEqual([]);
+
+    // canonicalDeep y headingsCheck solo emiten filas de PROBLEMA (no filas "ok"),
+    // por lo que una fixture sana no altera el denominador (nº de checks) del
+    // score: score(base) === score(base + filas nuevas), porque las nuevas son cero.
+    const baseIssues: ScorableIssue[] = [
+      { severity: "critical" },
+      { severity: "warning" },
+      { severity: "ok" },
+      { severity: "ok" },
+    ];
+
+    const before = scoreCategory(baseIssues);
+    const after = scoreCategory([...baseIssues, ...canonicalDeepIssues, ...headingIssues]);
+
+    expect(after.score).toBe(before.score);
+    expect(after.status).toBe(before.status);
   });
 });
