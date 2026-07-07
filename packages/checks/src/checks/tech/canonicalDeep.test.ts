@@ -117,6 +117,20 @@ describe("canonicalDeep (TECH-04 deep)", () => {
     expect(hit?.severity).toBe("warning");
   });
 
+  it("TECH-04:cross-domain — www vs no-www NO se marca cross-domain (WR-01)", () => {
+    const p = makePage({ url: "https://example.com/p", html: withCanonical("https://www.example.com/p") });
+    const issues = run([p]);
+    const hit = issues.find((i) => i.fingerprint.includes("TECH-04:cross-domain"));
+    expect(hit).toBeUndefined();
+  });
+
+  it("TECH-04:cross-domain — subdominio del mismo sitio NO se marca cross-domain (WR-01)", () => {
+    const p = makePage({ url: "https://blog.example.com/p", html: withCanonical("https://example.com/p") });
+    const issues = run([p]);
+    const hit = issues.find((i) => i.fingerprint.includes("TECH-04:cross-domain"));
+    expect(hit).toBeUndefined();
+  });
+
   it("TECH-04:multiple-conflicting — relativo+absoluto al MISMO destino NO se marca (WR-02)", () => {
     const html = `<html><head><link rel="canonical" href="/p"><link rel="canonical" href="https://example.com/p"></head><body>x</body></html>`;
     const p = makePage({ url: "https://example.com/p", html });

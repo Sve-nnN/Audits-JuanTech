@@ -3,7 +3,7 @@ import type { CheerioAPI } from "cheerio";
 import type { Page } from "@auditor/db";
 import type { IssueDraft, SiteCheck } from "../../types";
 import { pageFingerprint } from "../../util";
-import { normalizeUrl } from "@auditor/crawler";
+import { normalizeUrl, sameRegistrableDomain } from "@auditor/crawler";
 
 const CHECK_ID = "TECH-04";
 
@@ -130,10 +130,13 @@ export const canonicalDeep: SiteCheck = {
       const canonicalUrl = normalizeUrl(primary, url) ?? primary;
       const selfUrl = normalizeUrl(url) ?? url;
 
-      // TECH-04:cross-domain (WARNING) — host del destino != host de la página.
+      // TECH-04:cross-domain (WARNING) — destino en OTRO dominio registrable.
+      // Compara por dominio registrable (no host exacto) para no marcar como
+      // cross-domain la canonicalización legítima www↔no-www ni entre
+      // subdominios del mismo sitio (blog.example.com → example.com).
       const targetHost = safeHost(canonicalUrl);
       const pageHost = safeHost(selfUrl);
-      if (targetHost && pageHost && targetHost !== pageHost) {
+      if (targetHost && pageHost && !sameRegistrableDomain(canonicalUrl, selfUrl)) {
         issues.push({
           checkId: CHECK_ID,
           category: "tech",
