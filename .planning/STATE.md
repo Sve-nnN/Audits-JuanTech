@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
 status: planning
-stopped_at: Roadmap v1.2 creado (ROADMAP.md fases 11-15 + REQUIREMENTS.md traceability 19/19)
-last_updated: "2026-07-07T02:06:15.742Z"
-last_activity: 2026-07-07 — Roadmap v1.2 creado (fases 11-15), 19/19 requisitos mapeados
+stopped_at: 11-03 completado (fix REPORT-03 source URL en issues de Rendimiento/CWV)
+last_updated: "2026-07-07T02:12:00.000Z"
+last_activity: 2026-07-07 — 11-03 REPORT-03: PerfIssueDraft.source poblado + worker mapea draft.source
 progress:
   total_phases: 1
   completed_phases: 0
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 ## Current Position
 
 Phase: 11 of 15 (Checks más profundos — canonical + headings + fix dato CWV)
-Plan: 11-02 completado (2 de 4 planes de la fase)
+Plan: 11-03 completado (3 de 4 planes de la fase)
 Status: In progress — siguiente plan de la fase 11
-Last activity: 2026-07-06 — 11-02 headingsCheck (ONPAGE-08) implementado y registrado; HEAD-01..03 cubiertos
+Last activity: 2026-07-07 — 11-03 REPORT-03: source con la URL analizada en issues de Rendimiento/CWV
 
-Progress: [█████░░░░░] 50% (fase 11)
+Progress: [████████░░] 75% (fase 11)
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [█████░░░░░] 50% (fase 11)
 | Phase 10 P08 | ~12 min | 1 task | 3 files |
 | Phase 11 P01 | ~12 min | 2 tasks | 3 files |
 | Phase 11 P02 | ~6 min | 2 tasks | 3 files |
+| Phase 11 P03 | ~5 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Report gauge count-up feeds interpolated value into ScoreGauge; reduced-motion final value
 - [Phase 10]: 10-08: skip-to-content global en layout (no solo reporte); breadcrumb de pages a --accent-text; barra A11Y/responsive/motion validada en las 6 pantallas
 - [Phase 11]: 11-02: headings = nuevo checkId ONPAGE-08 con fingerprint sub-tipado (skip/empty/order/h1-dup-title), una fila por subtipo; ONPAGE-03 (conteo/unicidad H1) intacto; todas WARNING
+- [Phase 11]: 11-03 (REPORT-03): PerfIssueDraft gana source?: string; mapPerfIssues lo puebla con la url en todas las ramas; worker mapea source: draft.source ?? null en lugar del null hardcodeado
 
 ### Pending Todos
 
@@ -119,6 +121,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06 — Completado 11-02-PLAN.md (headingsCheck ONPAGE-08)
-Stopped at: 11-02 completado; siguiente plan de la fase 11
+Last session: 2026-07-07 — Completado 11-03-PLAN.md (fix REPORT-03 source URL en issues perf)
+Stopped at: 11-03 completado; siguiente plan de la fase 11
 Resume file: None

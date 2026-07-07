@@ -38,7 +38,7 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 
 - [ ] **REPORT-01**: En "Issues prioritarios", los issues se agrupan por tipo en dropdowns (ej. "Imágenes sin alt text" agrupa todas las páginas afectadas), ordenados por severidad y cantidad, para que la tabla no se vea saturada.
 - [ ] **REPORT-02**: En "Detalle por categoría", dentro de problemas y correctos los issues se agrupan por tipo en dropdowns y se ordenan de forma consistente.
-- [ ] **REPORT-03**: Los issues de Rendimiento/CWV muestran la URL de la página analizada (hoy aparece "—"); corrige el dato faltante en la capa que genera los issues perf.
+- [x] **REPORT-03**: Los issues de Rendimiento/CWV muestran la URL de la página analizada (hoy aparece "—"); corrige el dato faltante en la capa que genera los issues perf.
 - [ ] **REPORT-04**: En la lista de páginas rastreadas + grafo de entidades, cada página muestra el estado de su JSON-LD (correcto / advertencia / error) en la misma lista.
 
 ## v2 Requirements (deferidos)
@@ -72,7 +72,7 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 | HEAD-01 | Phase 11 | Complete |
 | HEAD-02 | Phase 11 | Complete |
 | HEAD-03 | Phase 11 | Complete |
-| REPORT-03 | Phase 11 | Pending |
+| REPORT-03 | Phase 11 | Complete |
 | RENDER-01 | Phase 12 | Pending |
 | RENDER-02 | Phase 12 | Pending |
 | RENDER-03 | Phase 12 | Pending |
