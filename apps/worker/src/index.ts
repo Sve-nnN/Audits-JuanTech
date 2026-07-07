@@ -365,7 +365,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
         severity: draft.severity,
         fingerprint: draft.fingerprint,
         measuredValue: draft.measuredValue ?? null,
-        source: null as string | null,
+        source: draft.source ?? null,
         criterion: draft.criterion ?? null,
         scope: null as string | null,
         recommendation: draft.recommendation ?? null,
