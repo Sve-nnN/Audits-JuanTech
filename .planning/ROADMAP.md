@@ -150,7 +150,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 | 8. Fundamentos de marca — fuentes y design system | v1.1 | 5/5 | Complete ✅ | 2026-07-06 |
 | 9. Librería de componentes | v1.1 | 6/6 | Complete ✅ | 2026-07-06 |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | v1.1 | 8/8 | Complete ✅ | 2026-07-06 |
-| 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 1/4 | In Progress|  |
+| 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 4/4 | Complete ✅ | 2026-07-07 |
 | 12. Detección de renderizado CSR/SSR | v1.2 | 0/? | Not started | - |
 | 13. Fundación de export + serializers | v1.2 | 0/? | Not started | - |
 | 14. Botón Exportar (UI) | v1.2 | 0/? | Not started | - |
