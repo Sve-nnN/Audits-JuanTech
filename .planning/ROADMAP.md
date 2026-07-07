@@ -69,7 +69,11 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
   3. El reporte lista errores de jerarquía de encabezados: saltos de nivel (H1→H3 sin H2), headings vacíos, headings fuera de orden, múltiples H1 y H1 que sólo duplica el title.
   4. Cada issue de Rendimiento/CWV muestra la URL de la página analizada (ya no aparece "—").
   5. Los múltiples hallazgos por página no se colapsan en el diff (fingerprints sub-tipados, p. ej. `TECH-04:chain`) y el score de la fixture juan-tech.com no se desvía de forma inesperada por las nuevas filas.
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 11-01-PLAN.md — canonicalDeep SiteCheck (TECH-04 sub-tipado): destino noindex/3xx/4xx/5xx/cadena/cross-domain/relativo/múltiple/mismatch (CANON-01..04)
+- [ ] 11-02-PLAN.md — headingsCheck (ONPAGE-08): saltos de nivel, vacíos, fuera de orden, H1 duplica title (HEAD-01..03)
+- [ ] 11-03-PLAN.md — Fix REPORT-03: source en PerfIssueDraft + mapPerfIssues + mapeo del worker
+- [ ] 11-04-PLAN.md — Guardarraíl SC#5: no-colapso de fingerprints + estabilidad de score de fixture
 
 ### Phase 12: Detección de renderizado CSR/SSR
 **Goal**: La auditoría determina, sobre una muestra representativa, si cada página se renderiza server-side o client-side comparando HTML crudo vs DOM renderizado, y lo reporta como riesgo sin comprometer la estabilidad del pipeline ni la frontera web/worker.
@@ -130,7 +134,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 | 8. Fundamentos de marca — fuentes y design system | v1.1 | 5/5 | Complete ✅ | 2026-07-06 |
 | 9. Librería de componentes | v1.1 | 6/6 | Complete ✅ | 2026-07-06 |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | v1.1 | 8/8 | Complete ✅ | 2026-07-06 |
-| 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 0/? | Not started | - |
+| 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 0/4 | Not started | - |
 | 12. Detección de renderizado CSR/SSR | v1.2 | 0/? | Not started | - |
 | 13. Fundación de export + serializers | v1.2 | 0/? | Not started | - |
 | 14. Botón Exportar (UI) | v1.2 | 0/? | Not started | - |
