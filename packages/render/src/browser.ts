@@ -80,8 +80,14 @@ export async function snapshotPage(
 
     const raw = await withTimeout(
       (async () => {
+        // `load` (not `networkidle`): by the load event the framework bundle has
+        // downloaded and run, so a CSR SPA has already rendered content into the
+        // DOM — enough to compare raw vs rendered. `networkidle` waits for the
+        // network to go quiet, which long-polling / analytics / websockets keep
+        // busy, forcing a timeout that wrongly degrades the page to
+        // "no determinado" (WR-1). The 15s hard bound still caps a true hang.
         await page.goto(url, {
-          waitUntil: "networkidle",
+          waitUntil: "load",
           timeout: RENDER_TIMEOUT_MS,
         });
         return page.evaluate((): { title: string; h1: string; text: string } => {
