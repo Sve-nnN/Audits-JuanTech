@@ -6,6 +6,7 @@ import { altTextCheck } from "./altText";
 import { openGraphCheck } from "./openGraph";
 import { contentLengthCheck } from "./contentLength";
 import { langCheck } from "./lang";
+import { headingsCheck } from "./headings";
 
 export const onPageChecks: PageCheck[] = [
   titleCheck,
@@ -15,6 +16,7 @@ export const onPageChecks: PageCheck[] = [
   openGraphCheck,
   contentLengthCheck,
   langCheck,
+  headingsCheck,
 ];
 
 export {
@@ -25,4 +27,5 @@ export {
   openGraphCheck,
   contentLengthCheck,
   langCheck,
+  headingsCheck,
 };
