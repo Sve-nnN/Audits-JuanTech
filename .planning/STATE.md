@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
 status: planning
-stopped_at: 11-03 completado (fix REPORT-03 source URL en issues de Rendimiento/CWV)
-last_updated: "2026-07-07T02:12:00.000Z"
-last_activity: 2026-07-07 — 11-03 REPORT-03: PerfIssueDraft.source poblado + worker mapea draft.source
+stopped_at: 11-04 completado — Fase 11 completa (4/4 planes); guardarraíl SC#5 blindado
+last_updated: "2026-07-07T02:20:00.000Z"
+last_activity: 2026-07-07 — 11-04 SC#5: no-colapso integrado canonical+headings + estabilidad de score
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 1
-  percent: 0
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 ## Current Position
 
 Phase: 11 of 15 (Checks más profundos — canonical + headings + fix dato CWV)
-Plan: 11-03 completado (3 de 4 planes de la fase)
-Status: In progress — siguiente plan de la fase 11
-Last activity: 2026-07-07 — 11-03 REPORT-03: source con la URL analizada en issues de Rendimiento/CWV
+Plan: 11-04 completado (4 de 4 planes de la fase — Fase 11 COMPLETA)
+Status: Fase 11 completa — lista para verificación de fase / siguiente: Phase 12
+Last activity: 2026-07-07 — 11-04 SC#5: guardarraíl integrado no-colapso + estabilidad de score
 
-Progress: [████████░░] 75% (fase 11)
+Progress: [██████████] 100% (fase 11)
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [████████░░] 75% (fase 11)
 | Phase 11 P01 | ~12 min | 2 tasks | 3 files |
 | Phase 11 P02 | ~6 min | 2 tasks | 3 files |
 | Phase 11 P03 | ~5 min | 2 tasks | 3 files |
+| Phase 11 P04 | ~6 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,7 @@ Recent decisions affecting current work:
 - [Phase 10]: 10-08: skip-to-content global en layout (no solo reporte); breadcrumb de pages a --accent-text; barra A11Y/responsive/motion validada en las 6 pantallas
 - [Phase 11]: 11-02: headings = nuevo checkId ONPAGE-08 con fingerprint sub-tipado (skip/empty/order/h1-dup-title), una fila por subtipo; ONPAGE-03 (conteo/unicidad H1) intacto; todas WARNING
 - [Phase 11]: 11-03 (REPORT-03): PerfIssueDraft gana source?: string; mapPerfIssues lo puebla con la url en todas las ramas; worker mapea source: draft.source ?? null en lugar del null hardcodeado
+- [Phase 11]: 11-04 (SC#5): guardarraíl integrado phase11-guardrail.test.ts — canonical (TECH-04:*) + headings (ONPAGE-08:*) en la misma página no colapsan en diffIssues (fingerprints únicos) y fixture sana no desvía el score; @auditor/scoring añadido como devDependency de @auditor/checks (workspace)
 
 ### Pending Todos
 
@@ -121,6 +123,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07 — Completado 11-03-PLAN.md (fix REPORT-03 source URL en issues perf)
-Stopped at: 11-03 completado; siguiente plan de la fase 11
+Last session: 2026-07-07 — Completado 11-04-PLAN.md (guardarraíl SC#5); Fase 11 completa (4/4)
+Stopped at: 11-04 completado — Fase 11 completa; siguiente: verificación de fase / Phase 12
 Resume file: None

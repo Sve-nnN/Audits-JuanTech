@@ -43,7 +43,7 @@ Detalle completo: `.planning/milestones/v1.1-ROADMAP.md`. Audit: `.planning/mile
 
 Aditivo sobre v1.0/v1.1 — el pipeline validado no se rompe. Secuencia de riesgo ascendente (según research SUMMARY): checks puros primero (canonical + headings, cero infra), luego el pase de render CSR/SSR (única pieza que toca worker + Docker) en aislamiento, después la fundación de export (lecturas puras de datos ya persistidos con libs JS puras, sin Chromium en Vercel), el botón de export como UI fina sobre la route, y por último la agrupación/indicadores del reporte (categoría REPORT nueva, fuera del sketch original de research).
 
-- [ ] **Phase 11: Checks más profundos (canonical + headings) + fix dato CWV** — Reglas Cheerio puras sobre HTML ya almacenado: canonicals profundos, jerarquía de encabezados y la URL faltante en issues de rendimiento
+- [x] **Phase 11: Checks más profundos (canonical + headings) + fix dato CWV** — Reglas Cheerio puras sobre HTML ya almacenado: canonicals profundos, jerarquía de encabezados y la URL faltante en issues de rendimiento
 - [ ] **Phase 12: Detección de renderizado CSR/SSR** — Pase selectivo de Playwright (muestra, worker-only) que reporta SSR vs CSR con degradación limpia
 - [ ] **Phase 13: Fundación de export + serializers** — `buildReportModel` compartido + paquete `@auditor/export` puro + route Node que genera PDF / Markdown-LLM / PPTX
 - [ ] **Phase 14: Botón Exportar (UI)** — Control arriba a la derecha del reporte con selector de tipo, accesible y con estado de carga
@@ -77,7 +77,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 - [x] 11-01-PLAN.md — canonicalDeep SiteCheck (TECH-04 sub-tipado): destino noindex/3xx/4xx/5xx/cadena/cross-domain/relativo/múltiple/mismatch (CANON-01..04)
 - [x] 11-02-PLAN.md — headingsCheck (ONPAGE-08): saltos de nivel, vacíos, fuera de orden, H1 duplica title (HEAD-01..03)
 - [x] 11-03-PLAN.md — Fix REPORT-03: source en PerfIssueDraft + mapPerfIssues + mapeo del worker
-- [ ] 11-04-PLAN.md — Guardarraíl SC#5: no-colapso de fingerprints + estabilidad de score de fixture
+- [x] 11-04-PLAN.md — Guardarraíl SC#5: no-colapso de fingerprints + estabilidad de score de fixture
 
 ### Phase 12: Detección de renderizado CSR/SSR
 
