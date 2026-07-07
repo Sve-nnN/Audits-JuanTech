@@ -45,4 +45,20 @@ describe("mapPerfIssues (PERF-02/04)", () => {
     const second = mapPerfIssues({ url: "https://example.com/", mobile, desktop });
     expect(first.map((i) => i.fingerprint)).toEqual(second.map((i) => i.fingerprint));
   });
+
+  it("stamps every draft with source = analyzed url (REPORT-03)", () => {
+    const url = "https://example.com/pagina-analizada";
+    const issues = mapPerfIssues({ url, pageId: "page-1", mobile, desktop });
+    expect(issues.length).toBeGreaterThan(0);
+    for (const issue of issues) {
+      expect(issue.source).toBe(url);
+    }
+  });
+
+  it("stamps source on the early-return 'not available' issue (no mobile/desktop)", () => {
+    const url = "https://example.com/broken";
+    const issues = mapPerfIssues({ url, mobile: null, desktop: null });
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.source).toBe(url);
+  });
 });
