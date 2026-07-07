@@ -113,7 +113,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 
 Plans:
 - [x] 13-01-PLAN.md — Paquete @auditor/report-model (buildReportModel) + refactor de page.tsx a single source of truth
-- [ ] 13-02-PLAN.md — Paquete @auditor/export: cap top-N compartido + serializers Markdown-LLM y PPTX
+- [x] 13-02-PLAN.md — Paquete @auditor/export: cap top-N compartido + serializers Markdown-LLM y PPTX
 - [ ] 13-03-PLAN.md — Serializer PDF con @react-pdf/renderer + fuente de marca embebida (acentos/ñ)
 - [ ] 13-04-PLAN.md — Route Node GET /api/audits/[id]/export (3 formatos) + guardarrail de frontera Chromium
 
@@ -162,7 +162,7 @@ Plans:
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | v1.1 | 8/8 | Complete ✅ | 2026-07-06 |
 | 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 4/4 | Complete ✅ | 2026-07-07 |
 | 12. Detección de renderizado CSR/SSR | v1.2 | 3/3 | Complete ✅ | 2026-07-07 |
-| 13. Fundación de export + serializers | v1.2 | 1/4 | In Progress | - |
+| 13. Fundación de export + serializers | v1.2 | 2/4 | In Progress | - |
 | 14. Botón Exportar (UI) | v1.2 | 0/? | Not started | - |
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 0/? | Not started | - |
 
