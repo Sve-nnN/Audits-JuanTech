@@ -109,7 +109,13 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
   3. Una petición devuelve un PPTX de 7–12 slides con score general, scores por categoría e issues priorizados.
   4. Los tres formatos acotan el volumen a top-N issues con una nota explícita "mostrando N de M" y no incluyen PII (email/token); `pnpm why playwright` en el paquete web queda vacío (cero Chromium en Vercel).
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — Paquete @auditor/report-model (buildReportModel) + refactor de page.tsx a single source of truth
+- [ ] 13-02-PLAN.md — Paquete @auditor/export: cap top-N compartido + serializers Markdown-LLM y PPTX
+- [ ] 13-03-PLAN.md — Serializer PDF con @react-pdf/renderer + fuente de marca embebida (acentos/ñ)
+- [ ] 13-04-PLAN.md — Route Node GET /api/audits/[id]/export (3 formatos) + guardarrail de frontera Chromium
 
 ### Phase 14: Botón Exportar (UI)
 
