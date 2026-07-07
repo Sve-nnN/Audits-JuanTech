@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
-status: planning
-last_updated: "2026-07-07T01:17:23.866Z"
+status: ready-to-plan
+last_updated: "2026-07-07T02:00:00.000Z"
 last_activity: 2026-07-07
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Sin milestone abierto. v1.0 y v1.1 shipped. Próximo: deploy a producción + v2 (monetización/enriquecimiento) — arrancar con `/gsd:new-milestone`.
+**Current focus:** v1.2 Detección de renderizado + exportación de reportes (Phases 11-15). Roadmap creado, 19/19 requisitos mapeados. Próximo: `/gsd:plan-phase 11`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-07 — Milestone v1.2 started
+Phase: 11 of 15 (Checks más profundos — canonical + headings + fix dato CWV)
+Plan: — (sin planificar)
+Status: Ready to plan
+Last activity: 2026-07-07 — Roadmap v1.2 creado (fases 11-15), 19/19 requisitos mapeados
+
+Progress: [░░░░░░░░░░] 0% (v1.2)
 
 ## Performance Metrics
 
@@ -80,6 +82,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 3: SimHash Hamming threshold=3 (tuneable) para near-duplicate content; validar empíricamente contra juan-tech.com
 - [Phase 7]: Interfaces de storage (VerificationStore, AuditCountStore) para probar lógica de tokens/cuota 100% offline; dev-mode expone devVerifyUrl en request-verification para probar el flujo sin bandeja de entrada real.
 - [Roadmap v1.1]: Fases 8-10 anexadas (fundamentos de marca → librería de componentes → pantallas+copy+motion+a11y). UI-only, no toca pipeline de v1.0.
+- [Roadmap v1.2]: Fases 11-15 anexadas en riesgo ascendente: checks puros (canonical/headings + fix CWV) → render CSR/SSR (worker-only) → fundación export (libs JS puras, sin Chromium en Vercel) → botón export → UX reporte (agrupación/JSON-LD). Aditivo, no rompe el pipeline validado.
 - [Phase ?]: 09-05: EmptyState/ErrorState y CategoryAccordion (composites wave 3) sobre details/summary nativos; EmptyState consume Button, acordeón consume Badge; tokens-only, cero hex
 - [Phase ?]: IssuesTable estado vacio remapea text-muted a success
 - [Phase ?]: 10-07: History desacoplado de home.module.css con history.module.css propio; locale fecha es neutro; STATUS_LABEL desde labels.ts
@@ -112,6 +115,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06T16:20:00.000Z
-Stopped at: Completed 10-08-PLAN.md (barrido final A11Y/responsive/motion)
+Last session: 2026-07-07T02:00:00.000Z
+Stopped at: Roadmap v1.2 creado (ROADMAP.md fases 11-15 + REQUIREMENTS.md traceability 19/19)
 Resume file: None

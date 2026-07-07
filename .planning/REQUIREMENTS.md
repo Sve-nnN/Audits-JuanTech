@@ -65,31 +65,39 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CANON-01 | — | Pending |
-| CANON-02 | — | Pending |
-| CANON-03 | — | Pending |
-| CANON-04 | — | Pending |
-| HEAD-01 | — | Pending |
-| HEAD-02 | — | Pending |
-| HEAD-03 | — | Pending |
-| RENDER-01 | — | Pending |
-| RENDER-02 | — | Pending |
-| RENDER-03 | — | Pending |
-| EXPORT-01 | — | Pending |
-| EXPORT-02 | — | Pending |
-| EXPORT-03 | — | Pending |
-| EXPORT-04 | — | Pending |
-| EXPORT-05 | — | Pending |
-| REPORT-01 | — | Pending |
-| REPORT-02 | — | Pending |
-| REPORT-03 | — | Pending |
-| REPORT-04 | — | Pending |
+| CANON-01 | Phase 11 | Pending |
+| CANON-02 | Phase 11 | Pending |
+| CANON-03 | Phase 11 | Pending |
+| CANON-04 | Phase 11 | Pending |
+| HEAD-01 | Phase 11 | Pending |
+| HEAD-02 | Phase 11 | Pending |
+| HEAD-03 | Phase 11 | Pending |
+| REPORT-03 | Phase 11 | Pending |
+| RENDER-01 | Phase 12 | Pending |
+| RENDER-02 | Phase 12 | Pending |
+| RENDER-03 | Phase 12 | Pending |
+| EXPORT-01 | Phase 13 | Pending |
+| EXPORT-02 | Phase 13 | Pending |
+| EXPORT-03 | Phase 13 | Pending |
+| EXPORT-05 | Phase 13 | Pending |
+| EXPORT-04 | Phase 14 | Pending |
+| REPORT-01 | Phase 15 | Pending |
+| REPORT-02 | Phase 15 | Pending |
+| REPORT-04 | Phase 15 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 19 total
-- Mapped to phases: 0 (roadmap pendiente)
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19 ✅
+- Unmapped: 0
+
+**Por fase:**
+- Phase 11 (checks profundos + fix CWV): CANON-01..04, HEAD-01..03, REPORT-03 (8)
+- Phase 12 (render CSR/SSR): RENDER-01..03 (3)
+- Phase 13 (fundación export): EXPORT-01, EXPORT-02, EXPORT-03, EXPORT-05 (4)
+- Phase 14 (botón Exportar): EXPORT-04 (1)
+- Phase 15 (UX reporte): REPORT-01, REPORT-02, REPORT-04 (3)
 
 ---
 *Requirements defined: 2026-07-06*
-*Last updated: 2026-07-06 after initial definition (milestone v1.2)*
+*Last updated: 2026-07-07 — roadmap v1.2 creado, 19/19 requisitos mapeados a fases 11-15*
+</content>
