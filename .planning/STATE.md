@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
 status: executing
-stopped_at: 12-01 completado — @auditor/render + detección pura SSR/CSR (1/3 planes de la fase 12)
-last_updated: "2026-07-07T03:02:00.000Z"
-last_activity: 2026-07-07 — 12-01: paquete @auditor/render + detectRenderVerdict puro (SSR→ok, CSR→warning, nunca critical)
+stopped_at: 12-02 completado — cliente Playwright (pool/timeout/cleanup) + runRenderSample (2/3 planes de la fase 12)
+last_updated: "2026-07-07T03:10:00.000Z"
+last_activity: 2026-07-07 — 12-02: pool Playwright (snapshotPage 15s + cleanup en finally) + runRenderSample best-effort (degrada a "no determinado", nunca lanza)
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 ## Current Position
 
 Phase: 12 of 15 (Detección de renderizado CSR/SSR)
-Plan: 12-01 completado (1 de 3 planes de la fase 12)
-Status: Fase 12 en progreso — siguiente: 12-02 (cliente Playwright pool/timeout/cleanup + runRenderSample)
-Last activity: 2026-07-07 — 12-01: @auditor/render + detectRenderVerdict puro (unit-testeado, cero Playwright)
+Plan: — (12-02 completado, 2 de 3 planes de la fase 12)
+Status: Fase 12 en progreso — siguiente: 12-03 (integración en worker + Dockerfile pinneado + aserción Playwright fuera del bundle web)
+Last activity: 2026-07-07 — 12-02: pool Playwright + runRenderSample best-effort (15 tests verdes, sin Chromium real en CI)
 
-Progress: [███░░░░░░░] 33% (fase 12)
+Progress: [███████░░░] 67% (fase 12)
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Progress: [███░░░░░░░] 33% (fase 12)
 | Phase 11 P03 | ~5 min | 2 tasks | 3 files |
 | Phase 11 P04 | ~6 min | 2 tasks | 2 files |
 | Phase 12 P01 | ~4 min | 2 tasks | 6 files |
+| Phase 12 P02 | ~4 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,7 @@ Recent decisions affecting current work:
 - [Phase 11]: 11-02: headings = nuevo checkId ONPAGE-08 con fingerprint sub-tipado (skip/empty/order/h1-dup-title), una fila por subtipo; ONPAGE-03 (conteo/unicidad H1) intacto; todas WARNING
 - [Phase 11]: 11-03 (REPORT-03): PerfIssueDraft gana source?: string; mapPerfIssues lo puebla con la url en todas las ramas; worker mapea source: draft.source ?? null en lugar del null hardcodeado
 - [Phase 11]: 11-04 (SC#5): guardarraíl integrado phase11-guardrail.test.ts — canonical (TECH-04:*) + headings (ONPAGE-08:*) en la misma página no colapsan en diffIssues (fingerprints únicos) y fixture sana no desvía el score; @auditor/scoring añadido como devDependency de @auditor/checks (workspace)
+- [Phase 12]: 12-02 (RENDER-01/03): capa Playwright en @auditor/render — launchBrowser (1 Chromium, args low-shm) + snapshotPage (context fresco, timeout 15s vía goto + Promise.race, context.close en finally en TODOS los caminos, T-12-03/04); runRenderSample best-effort reusa selectSample(MAX_RENDER_PAGES=10, indep. de PSI), lanes=RENDER_CONCURRENCY(2), degrada cualquier throw/block/timeout a undeterminedVerdict, NUNCA rechaza; snapshot inyectable → tests sin Chromium real (15 verdes); playwright pineado 1.61.1 solo en render; @auditor/psi añadido como dep de render; DOM lib en tsconfig para page.evaluate
 - [Phase 12]: 12-01 (RENDER-01/02): nuevo paquete worker-only @auditor/render (cheerio, cero Playwright); detectRenderVerdict puro compara raw Page.html vs RenderedSnapshot (title/H1/texto + ratio<0.60→CSR); severidad SSR→ok/CSR→warning, NUNCA critical; category "aeo"; fingerprint RENDER-01:<verdict>:<url>; RenderIssueDraft local decoplado de @auditor/checks; undeterminedVerdict() para degradación de 12-02; RENDER_CSR_RATIO=0.60 tuneable
 
 ### Pending Todos
@@ -125,6 +127,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07 — Completado 12-01-PLAN.md (@auditor/render + detección pura SSR/CSR)
-Stopped at: 12-01 completado — siguiente: 12-02 (cliente Playwright + runRenderSample con degradación)
+Last session: 2026-07-07 — Completado 12-02-PLAN.md (pool Playwright + runRenderSample best-effort)
+Stopped at: 12-02 completado — siguiente: 12-03 (integración en worker + Dockerfile pinneado + aserción Playwright fuera del bundle web)
 Resume file: None

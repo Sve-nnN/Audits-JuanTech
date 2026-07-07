@@ -24,7 +24,7 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 
 - [ ] **RENDER-01**: El auditor determina, sobre una muestra representativa, si cada página se renderiza server-side o client-side (compara HTML crudo vs DOM renderizado con Playwright) y lo reporta como issue.
 - [ ] **RENDER-02**: Cuando contenido clave (título, H1, texto principal) falta en el HTML crudo y solo aparece tras render, el auditor lo marca como riesgo SEO/AEO con severidad acorde (no lo trata como falla dura del score).
-- [ ] **RENDER-03**: La detección degrada limpiamente: si el render falla, se bloquea o hay timeout, reporta "no determinado" sin tumbar la auditoría.
+- [x] **RENDER-03**: La detección degrada limpiamente: si el render falla, se bloquea o hay timeout, reporta "no determinado" sin tumbar la auditoría.
 
 ### Exportación de reportes
 
@@ -73,9 +73,9 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 | HEAD-02 | Phase 11 | Complete |
 | HEAD-03 | Phase 11 | Complete |
 | REPORT-03 | Phase 11 | Complete |
-| RENDER-01 | Phase 12 | In progress (12-01: lógica de detección pura) |
+| RENDER-01 | Phase 12 | In progress (12-01: detección pura; 12-02: pool Playwright + runRenderSample) |
 | RENDER-02 | Phase 12 | In progress (12-01: severidad SSR→ok/CSR→warning) |
-| RENDER-03 | Phase 12 | Pending |
+| RENDER-03 | Phase 12 | Complete (12-02: degradación best-effort a "no determinado", nunca lanza) |
 | EXPORT-01 | Phase 13 | Pending |
 | EXPORT-02 | Phase 13 | Pending |
 | EXPORT-03 | Phase 13 | Pending |
