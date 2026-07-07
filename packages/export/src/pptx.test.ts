@@ -14,7 +14,7 @@ describe("toPptx slide-count floor/ceiling", () => {
   it("SPARSE audit (0 issues) produces exactly 7 slides", async () => {
     const model = buildModel({ candidates: [] });
     const deck = buildPptxDeck(model);
-    expect(deck.slides.length).toBe(7);
+    expect(deck.slideCount).toBe(7);
     const buf = await toPptx(model);
     expect(await countSlidesInBuffer(buf)).toBe(7);
   });
@@ -22,15 +22,15 @@ describe("toPptx slide-count floor/ceiling", () => {
   it("typical audit produces between 7 and 12 slides", async () => {
     const model = buildModel({ candidatesCount: 12 });
     const deck = buildPptxDeck(model);
-    expect(deck.slides.length).toBeGreaterThanOrEqual(7);
-    expect(deck.slides.length).toBeLessThanOrEqual(12);
+    expect(deck.slideCount).toBeGreaterThanOrEqual(7);
+    expect(deck.slideCount).toBeLessThanOrEqual(12);
   });
 
   it("large audit (>50 candidates) stays <= 12 slides", async () => {
     const model = buildModel({ candidates: makeCandidates(80) });
     const deck = buildPptxDeck(model);
-    expect(deck.slides.length).toBeLessThanOrEqual(12);
-    expect(deck.slides.length).toBeGreaterThanOrEqual(7);
+    expect(deck.slideCount).toBeLessThanOrEqual(12);
+    expect(deck.slideCount).toBeGreaterThanOrEqual(7);
   });
 
   it("emits a valid PPTX ZIP (PK signature) that is not empty", async () => {
