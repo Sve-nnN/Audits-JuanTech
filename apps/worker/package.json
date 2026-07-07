@@ -15,6 +15,7 @@
     "@auditor/db": "workspace:*",
     "@auditor/psi": "workspace:*",
     "@auditor/queue": "workspace:*",
+    "@auditor/render": "workspace:*",
     "@auditor/scoring": "workspace:*",
     "bullmq": "^5.34.0",
     "ioredis": "5.10.1"

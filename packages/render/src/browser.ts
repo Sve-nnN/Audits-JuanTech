@@ -84,12 +84,27 @@ export async function snapshotPage(
           waitUntil: "networkidle",
           timeout: RENDER_TIMEOUT_MS,
         });
-        return page.evaluate(() => {
-          const h1 = document.querySelector("h1");
+        return page.evaluate((): { title: string; h1: string; text: string } => {
+          // The callback is serialized and executed inside the browser, where
+          // `document` is a real global. We reach it via `globalThis` with a
+          // minimal local shim so this file never requires the ambient DOM lib
+          // in consumers that typecheck this package's source (e.g. the worker,
+          // whose tsconfig lib is Node-only). This keeps DOM types isolated to
+          // @auditor/render without leaking a browser lib into the worker.
+          const doc = (
+            globalThis as unknown as {
+              document: {
+                title: string;
+                body: { innerText: string } | null;
+                querySelector(selector: string): { textContent: string | null } | null;
+              };
+            }
+          ).document;
+          const h1 = doc.querySelector("h1");
           return {
-            title: document.title ?? "",
+            title: doc.title ?? "",
             h1: h1?.textContent ?? "",
-            text: document.body?.innerText ?? "",
+            text: doc.body?.innerText ?? "",
           };
         });
       })(),

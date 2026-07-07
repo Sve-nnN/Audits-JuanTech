@@ -25,6 +25,11 @@ import {
   type Category,
   type CategoryScoreResult,
 } from "@auditor/scoring";
+import {
+  runRenderSample,
+  type RenderIssueDraft,
+  type RenderSamplePage,
+} from "@auditor/render";
 
 // Phase 2: the worker now runs a real bounded crawl (Crawlee CheerioCrawler,
 // see @auditor/crawler) for each audit job — discover URLs (sitemap or
@@ -337,6 +342,33 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       };
     }
 
+    // Phase 12 (RENDER-01/03): selective Playwright render pass over a small
+    // representative sample (never the full crawl — see @auditor/render
+    // `runRenderSample`, which reuses `selectSample` with its own cap). It
+    // classifies each sampled page SSR/CSR (raw `Page.html` vs rendered DOM)
+    // and emits "aeo" issues. Best-effort AND double-guarded: `runRenderSample`
+    // already degrades any per-page failure/timeout to "undetermined" without
+    // throwing, and this try/catch is a belt-and-suspenders wrapper so that
+    // even a catastrophic render-layer failure (e.g. Chromium won't launch)
+    // never fails the audit — the crawl/checks/PSI results we already have are
+    // preserved and the audit still reaches status `done` (SC#3).
+    let renderIssues: RenderIssueDraft[] = [];
+    try {
+      const renderPages: RenderSamplePage[] = pages.map((page) => ({
+        id: page.id,
+        url: page.url,
+        finalUrl: page.finalUrl,
+        statusCode: page.statusCode,
+        contentType: page.contentType,
+        depth: page.depth,
+        html: page.html,
+      }));
+      renderIssues = await runRenderSample({ auditId, pages: renderPages });
+    } catch (error) {
+      console.error(`[worker] render sample failed for audit ${auditId}:`, error);
+      renderIssues = [];
+    }
+
     // Normalize both draft shapes (IssueDraft from @auditor/checks, and the
     // narrower PerfIssueDraft from @auditor/psi, which has no source/scope)
     // into the same row shape before persisting, to keep `Issue.createMany`
@@ -357,6 +389,23 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
         recommendation: draft.recommendation ?? null,
       })),
       ...perfIssues.map((draft) => ({
+        auditId,
+        pageId: draft.pageId ?? null,
+        checkId: draft.checkId,
+        category: draft.category,
+        title: draft.title,
+        severity: draft.severity,
+        fingerprint: draft.fingerprint,
+        measuredValue: draft.measuredValue ?? null,
+        source: draft.source ?? null,
+        criterion: draft.criterion ?? null,
+        scope: null as string | null,
+        recommendation: draft.recommendation ?? null,
+      })),
+      // Phase 12: render issues (category "aeo") flow through the exact same
+      // diff → Issue.createMany → aeo scoring path as every other issue. A
+      // CSR warning gives partial aeo credit, never a hard score failure.
+      ...renderIssues.map((draft) => ({
         auditId,
         pageId: draft.pageId ?? null,
         checkId: draft.checkId,

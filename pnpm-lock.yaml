@@ -87,6 +87,9 @@ importers:
       '@auditor/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@auditor/render':
+        specifier: workspace:*
+        version: link:../../packages/render
       '@auditor/scoring':
         specifier: workspace:*
         version: link:../../packages/scoring
