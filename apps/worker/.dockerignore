@@ -1,0 +1,22 @@
+# Never copy installed deps or build output into the image context — the image
+# installs and builds from a clean state. Keeps the build context small and
+# avoids leaking host-specific artifacts.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/.git
+**/.env
+**/.env.*
+**/*.log
+
+# Other apps/artifacts that have no place in the worker image (Playwright must
+# never be bundled alongside the Vercel web app).
+apps/web
+
+# Local/editor noise
+.DS_Store
+**/.vscode
+**/.idea
+scratchpad
