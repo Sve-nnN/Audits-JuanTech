@@ -27,7 +27,7 @@ El reporte se genera on-demand en tres formatos (PDF con branding, Markdown-para
 
 ### Route + branding + frontera
 - Route: `GET /api/audits/[id]/export?format=pdf|md|pptx`, runtime **Node** (no edge; `export const runtime = "nodejs"`), responde el archivo con `Content-Disposition: attachment` y el `Content-Type` correcto por formato.
-- Branding PDF (EXPORT-01): embeber la fuente de marca (convertir `Array-Regular.woff2` a TTF/OTF, formato que `@react-pdf/renderer` soporta) para headings; body en fuente estándar segura. Acentos y ñ correctos (áéíóúñ¿¡) — validar con contenido en español.
+- Branding PDF (EXPORT-01): respetar los roles tipográficos validados de v1.1 (preferencia de Juan, memoria `array-no-titulos`): **headings en Khand**, **body en Geist Sans** (Array NO va en títulos; queda reservada a usos display puntuales). Embeber Khand + Geist Sans como TTF/OTF (formato que `@react-pdf/renderer` soporta; ambas son Google Fonts con cobertura Latin completa). Acentos y ñ correctos (áéíóúñ¿¡) — validar tanto en body como en el texto de HEADINGS renderizado con Khand (p.ej. "Scores por categoría").
 - Frontera Chromium: aserción/test de que `@auditor/export` (y por transitividad la route) no arrastra Playwright/Chromium al bundle web — equivalente a `pnpm why playwright` vacío en el paquete web. Reusar/extender el guardarraíl de Phase 12 (`scripts/assert-no-playwright-in-web.mjs`).
 - Acceso a la route: misma visibilidad que el reporte (accesible por `auditId`, sin auth extra en free tier — el reporte ya es accesible así en `page.tsx`). Sin exponer PII (email/token) en la respuesta ni en los archivos.
 
