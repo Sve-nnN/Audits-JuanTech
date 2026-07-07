@@ -12,7 +12,8 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "db:push": "pnpm --filter @auditor/db db:push",
-    "db:generate": "pnpm --filter @auditor/db db:generate"
+    "db:generate": "pnpm --filter @auditor/db db:generate",
+    "assert:web-boundary": "node scripts/assert-no-playwright-in-web.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.0",
