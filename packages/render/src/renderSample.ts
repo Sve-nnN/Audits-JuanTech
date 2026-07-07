@@ -57,12 +57,16 @@ export async function runRenderSample({
   if (sample.length === 0) return [];
 
   // Lazily-launched, shared browser for the default (non-injected) path.
-  let browser: Awaited<ReturnType<typeof launchBrowser>> | undefined;
+  // Memoize the launch PROMISE (not the resolved value): under concurrency 2
+  // both lanes can evaluate `if (!browser)` before either launch resolves and
+  // each would launch its own Chromium, orphaning one (OOM over real audits).
+  // `??=` on the promise guarantees exactly one launch shared by all lanes.
+  let browserPromise: ReturnType<typeof launchBrowser> | undefined;
   const render: SnapshotFn =
     snapshot ??
     (async (url) => {
-      if (!browser) browser = await launchBrowser();
-      return snapshotPage(browser, url);
+      browserPromise ??= launchBrowser();
+      return snapshotPage(await browserPromise, url);
     });
 
   const issues: RenderIssueDraft[] = [];
@@ -101,9 +105,11 @@ export async function runRenderSample({
     );
   } finally {
     // Close the shared browser on every path (success or total failure).
-    if (browser) {
+    // Close via the SAME memoized promise so the single launched browser is
+    // the one closed — no second, unreferenced Chromium can survive.
+    if (browserPromise) {
       try {
-        await browser.close();
+        await (await browserPromise).close();
       } catch {
         // Never let a cleanup error mask the best-effort result.
       }

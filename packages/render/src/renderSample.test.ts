@@ -1,8 +1,21 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, type Mock } from "vitest";
 import { runRenderSample, MAX_RENDER_PAGES } from "./renderSample";
 import type { RenderSamplePage } from "./renderSample";
 import { RENDER_CHECK_ID } from "./detect";
 import type { RenderedSnapshot } from "./types";
+import { launchBrowser, snapshotPage } from "./browser";
+
+// Mock the browser module so the DEFAULT (non-injected) render path can be
+// exercised without launching real Chromium in CI. Only `launchBrowser` and
+// `snapshotPage` are stubbed; everything else keeps its real implementation.
+vi.mock("./browser", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./browser")>();
+  return {
+    ...actual,
+    launchBrowser: vi.fn(),
+    snapshotPage: vi.fn(),
+  };
+});
 
 /** Builds `n` distinct 2xx HTML sample pages (page 0 is the homepage). */
 function makePages(n: number): RenderSamplePage[] {
@@ -141,5 +154,29 @@ describe("runRenderSample", () => {
     const issues = await runRenderSample({ auditId: "a", pages: [], snapshot });
     expect(issues).toEqual([]);
     expect(snapshot).not.toHaveBeenCalled();
+  });
+
+  it("default path: launchBrowser is called EXACTLY ONCE across a multi-page concurrent sample (no race, no orphan Chromium)", async () => {
+    // Drive the REAL default render closure (no injected `snapshot`) so the
+    // memoized-promise launch logic is under test. `launchBrowser` resolves on
+    // a later tick so both concurrency lanes reach the `??=` before it settles —
+    // this is exactly the race that used to launch (and orphan) a 2nd browser.
+    const close = vi.fn().mockResolvedValue(undefined);
+    const fakeBrowser = { close } as unknown as Awaited<
+      ReturnType<typeof launchBrowser>
+    >;
+    (launchBrowser as Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => setTimeout(() => resolve(fakeBrowser), 5)),
+    );
+    (snapshotPage as Mock).mockImplementation(async () => richSnapshot());
+
+    const pages = makePages(6);
+    const issues = await runRenderSample({ auditId: "a", pages });
+
+    expect((launchBrowser as Mock).mock.calls.length).toBe(1);
+    expect(snapshotPage).toHaveBeenCalledTimes(6);
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(issues.length).toBe(6);
   });
 });
