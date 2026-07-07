@@ -18,6 +18,8 @@ export interface PerfIssueDraft {
   recommendation?: string;
   fingerprint: string;
   pageId?: string;
+  /** URL of the analyzed page; propagated so the report shows it (REPORT-03). */
+  source?: string;
 }
 
 const STRATEGY_LABEL: Record<PsiStrategy, string> = {
@@ -118,6 +120,7 @@ export function mapPerfIssues(result: PagePerfResult): PerfIssueDraft[] {
         recommendation:
           "PageSpeed Insights no devolvió resultados para esta página en este análisis. Se reintentará en la próxima auditoría.",
         pageId,
+        source: url,
         fingerprint: `PERF-01-unavailable:${url}`,
       },
     ];
@@ -152,6 +155,7 @@ export function mapPerfIssues(result: PagePerfResult): PerfIssueDraft[] {
       criterion: spec.criterion,
       recommendation: spec.recommendation,
       pageId,
+      source: url,
       fingerprint: `${spec.checkId}:${url}`,
     });
   }
@@ -182,6 +186,7 @@ export function mapPerfIssues(result: PagePerfResult): PerfIssueDraft[] {
       recommendation:
         "Reducí el trabajo de JavaScript en respuesta a interacciones del usuario (clicks, taps) para que la página responda más rápido.",
       pageId,
+      source: url,
       fingerprint: `PERF-02-INP:${url}`,
     });
   } else {
@@ -195,6 +200,7 @@ export function mapPerfIssues(result: PagePerfResult): PerfIssueDraft[] {
       recommendation:
         "No hay suficiente tráfico real (CrUX) para esta página todavía. Esta métrica se completará automáticamente cuando haya datos de campo disponibles.",
       pageId,
+      source: url,
       fingerprint: "PERF-02-INP:" + url,
     });
   }
