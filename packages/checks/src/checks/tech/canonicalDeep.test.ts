@@ -117,6 +117,14 @@ describe("canonicalDeep (TECH-04 deep)", () => {
     expect(hit?.severity).toBe("warning");
   });
 
+  it("TECH-04:multiple-conflicting — relativo+absoluto al MISMO destino NO se marca (WR-02)", () => {
+    const html = `<html><head><link rel="canonical" href="/p"><link rel="canonical" href="https://example.com/p"></head><body>x</body></html>`;
+    const p = makePage({ url: "https://example.com/p", html });
+    const issues = run([p]);
+    const hit = issues.find((i) => i.fingerprint.includes("TECH-04:multiple-conflicting"));
+    expect(hit).toBeUndefined();
+  });
+
   it("skip silencioso — destino same-domain ausente del set no genera issue", () => {
     const p = makePage({ url: "https://example.com/p", html: withCanonical("https://example.com/no-existe") });
     const issues = run([p]);

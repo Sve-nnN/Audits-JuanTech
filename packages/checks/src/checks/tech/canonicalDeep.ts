@@ -67,8 +67,11 @@ export const canonicalDeep: SiteCheck = {
       const url = page.finalUrl ?? page.url;
       const fp = (subtype: string) => pageFingerprint(`${CHECK_ID}:${subtype}`, url);
 
-      // TECH-04:multiple-conflicting (WARNING) — >1 tag with distinct hrefs.
-      const distinctHrefs = new Set(hrefs);
+      // TECH-04:multiple-conflicting (WARNING) — >1 tag con destinos distintos.
+      // Normaliza cada href (resuelto contra la URL de la página) antes de
+      // deduplicar: el mismo destino escrito como relativo+absoluto o con/sin
+      // barra final NO debe contar como conflicto.
+      const distinctHrefs = new Set(hrefs.map((h) => normalizeUrl(h, url) ?? h));
       if (distinctHrefs.size > 1) {
         issues.push({
           checkId: CHECK_ID,
