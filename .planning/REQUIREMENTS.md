@@ -73,8 +73,8 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 | HEAD-02 | Phase 11 | Complete |
 | HEAD-03 | Phase 11 | Complete |
 | REPORT-03 | Phase 11 | Complete |
-| RENDER-01 | Phase 12 | Pending |
-| RENDER-02 | Phase 12 | Pending |
+| RENDER-01 | Phase 12 | In progress (12-01: lógica de detección pura) |
+| RENDER-02 | Phase 12 | In progress (12-01: severidad SSR→ok/CSR→warning) |
 | RENDER-03 | Phase 12 | Pending |
 | EXPORT-01 | Phase 13 | Pending |
 | EXPORT-02 | Phase 13 | Pending |

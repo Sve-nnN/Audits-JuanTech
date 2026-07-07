@@ -93,7 +93,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 
 **Plans**: 3 plans
 
-- [ ] 12-01-PLAN.md — paquete @auditor/render + lógica pura de detección SSR/CSR (RENDER-01/02)
+- [x] 12-01-PLAN.md — paquete @auditor/render + lógica pura de detección SSR/CSR (RENDER-01/02)
 - [ ] 12-02-PLAN.md — cliente Playwright (pool, timeout, cleanup en finally, concurrencia 2) + runRenderSample con degradación (RENDER-01/03)
 - [ ] 12-03-PLAN.md — integración en worker + Dockerfile pinneado + aserción Playwright fuera del bundle web (RENDER-01/03, SC#4)
 
@@ -155,7 +155,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 | 9. Librería de componentes | v1.1 | 6/6 | Complete ✅ | 2026-07-06 |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | v1.1 | 8/8 | Complete ✅ | 2026-07-06 |
 | 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 4/4 | Complete ✅ | 2026-07-07 |
-| 12. Detección de renderizado CSR/SSR | v1.2 | 0/3 | Planned | - |
+| 12. Detección de renderizado CSR/SSR | v1.2 | 1/3 | In progress | - |
 | 13. Fundación de export + serializers | v1.2 | 0/? | Not started | - |
 | 14. Botón Exportar (UI) | v1.2 | 0/? | Not started | - |
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 0/? | Not started | - |
