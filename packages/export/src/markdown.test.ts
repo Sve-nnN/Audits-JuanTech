@@ -61,7 +61,7 @@ describe("toMarkdown", () => {
 
   it("emits at most EXPORT_TOP_N issue sections", () => {
     const md = toMarkdown(buildModel({ candidates: makeCandidates(80) }));
-    const sections = md.match(/CHECK-\d{3}/g) ?? [];
+    const sections = md.match(/^### \d+\. /gm) ?? [];
     expect(sections.length).toBeLessThanOrEqual(EXPORT_TOP_N);
   });
 });
