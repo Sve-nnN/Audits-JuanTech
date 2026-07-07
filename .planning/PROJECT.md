@@ -8,14 +8,24 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
-## Current Milestone: ninguno abierto — v1.0 y v1.1 shipped
+## Current Milestone: v1.2 Detección de renderizado + exportación de reportes
 
-**Estado:** v1.0 MVP (pipeline funcional) y v1.1 (overhaul de UI/UX y marca) están shipped (ambos 2026-07-06). No hay milestone en curso.
+**Goal:** Ampliar la auditoría con detección CSR/SSR y checks más profundos de canonicals/headings, y permitir exportar el reporte en 3 formatos (PDF, Markdown para LLM, PPTX) desde un botón en el reporte.
 
-**Próximo trabajo previsto** (scope por definir vía `/gsd:new-milestone`, sin roadmap todavía):
-- **Deploy a producción:** web → Vercel; worker → Railway/VPS; Resend con dominio verificado (hoy dev-mode loguea el link); revisión GDPR ligera como compuerta pre-lanzamiento.
+**Target features:**
+- **Detección CSR vs SSR** — raw HTML (Cheerio) vs DOM renderizado (Playwright) sobre una muestra; nuevo check de renderizado. Agrega Playwright al worker (previsto como ENRICH).
+- **Canonicals (más profundo)** — ampliar TECH-04: cadenas de canonical, canonical a no-indexable, cross-domain, mismatch con URL final.
+- **Headings (errores de jerarquía)** — ampliar más allá de ONPAGE-03 (H1): múltiples H1, saltos de nivel, headings vacíos, orden.
+- **Export PDF** — reporte descargable con branding.
+- **Export .md optimizado para LLM** — Markdown estructurado para que un LLM entienda y aplique los fixes.
+- **Export PPTX** — reporte como presentación.
+- **Botón Exportar** arriba a la derecha del reporte con selector de tipo.
+
+**Key context:** Aditivo sobre v1.0/v1.1 — el pipeline validado no se rompe. Exports generados on-demand en route Node de Next.js (sin tocar worker/cola). Numeración de fases continúa desde la 11.
+
+**Trabajo previsto posterior** (fuera de este milestone):
+- **Deploy a producción:** web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera.
 - **v2 monetización:** planes de pago, auditorías/URLs ilimitadas, Stripe.
-- **v2 enriquecimiento (ENRICH):** Playwright raw-vs-rendered sobre muestra, export PDF / reporte compartible con branding, SSE, Domain Rating como contexto.
 
 **Cierre v1.1:** design system tokenizado + 4 fuentes de marca, librería de componentes reutilizable y las 6 pantallas rediseñadas con copy humanizado, motion sutil y accesibilidad AA. UI-only: el pipeline crawl/checks/PSI/scoring/email de v1.0 quedó intacto. Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.1-ROADMAP.md`.
 
