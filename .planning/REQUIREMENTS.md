@@ -9,10 +9,10 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 
 ### Canonicals (profundo) — extiende TECH-04
 
-- [ ] **CANON-01**: El auditor detecta canonical que apunta a una URL no indexable (noindex) y lo reporta como crítico.
-- [ ] **CANON-02**: El auditor detecta canonical que apunta a una redirección (3xx) o a un 4xx/5xx, y cadenas de canonical (canonical→canonical).
-- [ ] **CANON-03**: El auditor detecta canonical cross-domain y mismatch entre el canonical y la URL final resuelta de la página.
-- [ ] **CANON-04**: El auditor detecta múltiples canonicals conflictivos en una página, canonical relativo (no absoluto) y el conflicto canonical + noindex.
+- [x] **CANON-01**: El auditor detecta canonical que apunta a una URL no indexable (noindex) y lo reporta como crítico.
+- [x] **CANON-02**: El auditor detecta canonical que apunta a una redirección (3xx) o a un 4xx/5xx, y cadenas de canonical (canonical→canonical).
+- [x] **CANON-03**: El auditor detecta canonical cross-domain y mismatch entre el canonical y la URL final resuelta de la página.
+- [x] **CANON-04**: El auditor detecta múltiples canonicals conflictivos en una página, canonical relativo (no absoluto) y el conflicto canonical + noindex.
 
 ### Encabezados / Jerarquía (errores) — extiende ONPAGE-03
 
@@ -65,10 +65,10 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CANON-01 | Phase 11 | Pending |
-| CANON-02 | Phase 11 | Pending |
-| CANON-03 | Phase 11 | Pending |
-| CANON-04 | Phase 11 | Pending |
+| CANON-01 | Phase 11 | Complete |
+| CANON-02 | Phase 11 | Complete |
+| CANON-03 | Phase 11 | Complete |
+| CANON-04 | Phase 11 | Complete |
 | HEAD-01 | Phase 11 | Pending |
 | HEAD-02 | Phase 11 | Pending |
 | HEAD-03 | Phase 11 | Pending |
@@ -86,11 +86,13 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 | REPORT-04 | Phase 15 | Pending |
 
 **Coverage:**
+
 - v1.2 requirements: 19 total
 - Mapped to phases: 19 ✅
 - Unmapped: 0
 
 **Por fase:**
+
 - Phase 11 (checks profundos + fix CWV): CANON-01..04, HEAD-01..03, REPORT-03 (8)
 - Phase 12 (render CSR/SSR): RENDER-01..03 (3)
 - Phase 13 (fundación export): EXPORT-01, EXPORT-02, EXPORT-03, EXPORT-05 (4)
