@@ -18,3 +18,10 @@ export {
   RENDER_TIMEOUT_MS,
   RENDER_CONCURRENCY,
 } from "./browser";
+
+export { runRenderSample, MAX_RENDER_PAGES } from "./renderSample";
+export type {
+  RenderSamplePage,
+  SnapshotFn,
+  RunRenderSampleArgs,
+} from "./renderSample";
