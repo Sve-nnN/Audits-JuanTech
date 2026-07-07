@@ -44,7 +44,7 @@ Detalle completo: `.planning/milestones/v1.1-ROADMAP.md`. Audit: `.planning/mile
 Aditivo sobre v1.0/v1.1 — el pipeline validado no se rompe. Secuencia de riesgo ascendente (según research SUMMARY): checks puros primero (canonical + headings, cero infra), luego el pase de render CSR/SSR (única pieza que toca worker + Docker) en aislamiento, después la fundación de export (lecturas puras de datos ya persistidos con libs JS puras, sin Chromium en Vercel), el botón de export como UI fina sobre la route, y por último la agrupación/indicadores del reporte (categoría REPORT nueva, fuera del sketch original de research).
 
 - [x] **Phase 11: Checks más profundos (canonical + headings) + fix dato CWV** — Reglas Cheerio puras sobre HTML ya almacenado: canonicals profundos, jerarquía de encabezados y la URL faltante en issues de rendimiento
-- [ ] **Phase 12: Detección de renderizado CSR/SSR** — Pase selectivo de Playwright (muestra, worker-only) que reporta SSR vs CSR con degradación limpia
+- [x] **Phase 12: Detección de renderizado CSR/SSR** — Pase selectivo de Playwright (muestra, worker-only) que reporta SSR vs CSR con degradación limpia
 - [ ] **Phase 13: Fundación de export + serializers** — `buildReportModel` compartido + paquete `@auditor/export` puro + route Node que genera PDF / Markdown-LLM / PPTX
 - [ ] **Phase 14: Botón Exportar (UI)** — Control arriba a la derecha del reporte con selector de tipo, accesible y con estado de carga
 - [ ] **Phase 15: UX del reporte — agrupación e indicadores** — Issues agrupados por tipo en dropdowns + estado JSON-LD por página en la lista de páginas
@@ -95,7 +95,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 
 - [x] 12-01-PLAN.md — paquete @auditor/render + lógica pura de detección SSR/CSR (RENDER-01/02)
 - [x] 12-02-PLAN.md — cliente Playwright (pool, timeout, cleanup en finally, concurrencia 2) + runRenderSample con degradación (RENDER-01/03)
-- [ ] 12-03-PLAN.md — integración en worker + Dockerfile pinneado + aserción Playwright fuera del bundle web (RENDER-01/03, SC#4)
+- [x] 12-03-PLAN.md — integración en worker + Dockerfile pinneado + aserción Playwright fuera del bundle web (RENDER-01/03, SC#4)
 
 ### Phase 13: Fundación de export + serializers
 
@@ -155,7 +155,7 @@ Próximo trabajo previsto tras v1.2 (scope por definir vía `/gsd:new-milestone`
 | 9. Librería de componentes | v1.1 | 6/6 | Complete ✅ | 2026-07-06 |
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | v1.1 | 8/8 | Complete ✅ | 2026-07-06 |
 | 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 4/4 | Complete ✅ | 2026-07-07 |
-| 12. Detección de renderizado CSR/SSR | v1.2 | 2/3 | In progress | - |
+| 12. Detección de renderizado CSR/SSR | v1.2 | 3/3 | Complete | - |
 | 13. Fundación de export + serializers | v1.2 | 0/? | Not started | - |
 | 14. Botón Exportar (UI) | v1.2 | 0/? | Not started | - |
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 0/? | Not started | - |
