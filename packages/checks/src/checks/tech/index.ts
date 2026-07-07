@@ -1,6 +1,7 @@
 import type { PageCheck, SiteCheck } from "../../types";
 import { httpStatusCheck } from "./httpStatus";
 import { canonicalCheck } from "./canonical";
+import { canonicalDeep } from "./canonicalDeep";
 import { indexabilityCheck } from "./indexability";
 import { redirectsCheck } from "./redirects";
 import { viewportCheck } from "./viewport";
@@ -26,11 +27,13 @@ export const techSiteChecks: SiteCheck[] = [
   duplicateContentCheck,
   orphanPagesCheck,
   hreflangCheck,
+  canonicalDeep,
 ];
 
 export {
   httpStatusCheck,
   canonicalCheck,
+  canonicalDeep,
   indexabilityCheck,
   redirectsCheck,
   viewportCheck,
