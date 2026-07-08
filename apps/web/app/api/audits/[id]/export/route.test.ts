@@ -13,9 +13,11 @@ import { GET } from "./route";
 const mockedBuild = vi.mocked(buildReportModel);
 
 // PII that would live in the database but must NEVER reach an export response.
-// Held in ADJACENT scope only — deliberately absent from the ReportModel.
-const FIXTURE_EMAIL = "fixture@example.com";
-const FIXTURE_TOKEN = "tok_secret_do_not_leak_1234567890";
+// Sentinel values injected as ADJACENT, non-whitelisted fields on the model the
+// route hands to the real serializers (see `leakyModel`), so the leak assertion
+// can actually fail if a serializer ever dumps the whole object.
+const PII_CANARY_EMAIL = "pii-leak-canary@example.com";
+const PII_CANARY_TOKEN = "SECRET_TOKEN_CANARY";
 const ACCENTS = "áéíóúñ¿¡";
 
 /** Minimal but complete ReportModel fixture (zero PII by construction). */
@@ -71,6 +73,28 @@ function fixtureModel(): ReportModel {
     totalPriorityCandidates: 1,
     issuesByCategory: emptyByCat,
   };
+}
+
+/**
+ * `fixtureModel()` with adjacent PII columns (email / emailId / token /
+ * verificationToken) attached to `audit` and every issue — the shape a DB row
+ * would have if the whitelist slipped. The response must strip all of them.
+ */
+function leakyModel(): ReportModel {
+  const model = fixtureModel();
+  const inject = (target: object): void => {
+    const rec = target as Record<string, unknown>;
+    rec.email = PII_CANARY_EMAIL;
+    rec.emailId = "email-1";
+    rec.token = PII_CANARY_TOKEN;
+    rec.verificationToken = PII_CANARY_TOKEN;
+  };
+  inject(model.audit);
+  for (const issue of model.priorityCandidates) inject(issue);
+  for (const list of Object.values(model.issuesByCategory)) {
+    for (const issue of list) inject(issue);
+  }
+  return model;
 }
 
 /** Build a GET request/ctx pair for the route. */
@@ -150,11 +174,11 @@ describe("GET /api/audits/[id]/export", () => {
     expect(res.status).toBe(404);
   });
 
-  it("never leaks PII (email/token) into the Markdown body", async () => {
-    mockedBuild.mockResolvedValue(fixtureModel());
+  it("strips adjacent PII (email/token) from the Markdown response body", async () => {
+    mockedBuild.mockResolvedValue(leakyModel());
     const res = await invoke("abc123", "md");
     const text = await res.text();
-    expect(text).not.toContain(FIXTURE_EMAIL);
-    expect(text).not.toContain(FIXTURE_TOKEN);
+    expect(text).not.toContain(PII_CANARY_EMAIL);
+    expect(text).not.toContain(PII_CANARY_TOKEN);
   });
 });

@@ -153,9 +153,20 @@ describe("buildReportModel", () => {
   });
 
   it("never leaks PII (email/token) in the serialized model", async () => {
-    const detailIssues = [makeIssue()];
+    // Sentinel PII on the audit row + issues, in fields OUTSIDE buildReportModel's
+    // whitelist (emailId is a real FK column; email/verificationToken/token are
+    // adjacent columns). buildReportModel must map only whitelisted fields, so
+    // none of this may reach the model — making this a real leak detector.
+    const CANARY_EMAIL = "pii-leak-canary@example.com";
+    const CANARY_TOKEN = "SECRET_TOKEN_CANARY";
+    const audit = makeAudit({
+      emailId: "email-1",
+      email: { address: CANARY_EMAIL, verificationToken: CANARY_TOKEN },
+      verificationToken: CANARY_TOKEN,
+    });
+    const detailIssues = [makeIssue({ email: CANARY_EMAIL, token: CANARY_TOKEN })];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    auditFindUnique.mockResolvedValueOnce(makeAudit() as any);
+    auditFindUnique.mockResolvedValueOnce(audit as any);
     issueFindMany
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .mockResolvedValueOnce(detailIssues as any)
@@ -165,8 +176,12 @@ describe("buildReportModel", () => {
     const model = await buildReportModel("audit-1");
     const serialized = JSON.stringify(model);
 
-    expect(serialized).not.toMatch(/"email"/i);
-    expect(serialized).not.toMatch(/token/i);
-    expect(serialized).not.toContain("@");
+    // No PII KEY leaks — a plain /"email"/ would miss a leaked "emailId" key, so
+    // match the whole family of PII key names (email/emailId/token/verification*).
+    expect(serialized).not.toMatch(/"(email\w*|token\w*|verification\w*)"/i);
+    // No PII VALUE leaks. (Dropped the brittle not.toContain("@"): legit model
+    // content — a mailto: link or a URL with userinfo — may contain "@".)
+    expect(serialized).not.toContain(CANARY_EMAIL);
+    expect(serialized).not.toContain(CANARY_TOKEN);
   });
 });

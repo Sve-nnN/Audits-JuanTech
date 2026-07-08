@@ -2,22 +2,26 @@ import { describe, it, expect } from "vitest";
 import JSZip from "jszip";
 import { toMarkdown } from "./markdown";
 import { toPptx } from "./pptx";
-import { buildModel, makeIssue } from "./test-fixtures";
+import {
+  buildModel,
+  buildModelWithLeakedPii,
+  makeIssue,
+  PII_CANARY_EMAIL,
+  PII_CANARY_TOKEN,
+} from "./test-fixtures";
 
 /**
  * EXPORT-05 PII guardrail (guardarrail doble: cap top-N + cero PII).
  *
- * This test proves that the export pipeline NEVER leaks PII (email /
- * verification token) into any output (Markdown, PPTX), even though such PII
- * exists elsewhere in the database. We simulate that by holding a fixture email
- * and token in ADJACENT scope — deliberately NOT part of the ReportModel that
- * the serializers receive — and asserting they never surface. We also assert
+ * This test proves the export pipeline NEVER leaks PII into any output. The PII
+ * is injected as ADJACENT, non-whitelisted fields on the very objects the
+ * serializers receive (`buildModelWithLeakedPii` attaches email / emailId /
+ * token / verificationToken to `audit` and every issue). Because the serializers
+ * must render only whitelisted fields, the canaries must be stripped — so unlike
+ * the old "assert a literal that was never in the model" check, THIS assertion
+ * can actually fail if a serializer ever dumps the whole object. We also assert
  * accents/ñ survive intact in both outputs.
  */
-
-// PII that lives in the "database" but is NOT part of the serialized ReportModel.
-const FIXTURE_EMAIL = "fixture@example.com";
-const FIXTURE_TOKEN = "tok_secret_do_not_leak_1234567890";
 
 const ACCENTS = "áéíóúñ¿¡";
 
@@ -49,17 +53,18 @@ function accentedModel() {
 }
 
 describe("zero-PII guardrail (EXPORT-05)", () => {
-  it("Markdown output contains no fixture email or token", () => {
-    const md = toMarkdown(accentedModel());
-    expect(md).not.toContain(FIXTURE_EMAIL);
-    expect(md).not.toContain(FIXTURE_TOKEN);
+  it("Markdown strips adjacent PII (email/token) attached to the model", () => {
+    const md = toMarkdown(buildModelWithLeakedPii());
+    expect(md).not.toContain(PII_CANARY_EMAIL);
+    expect(md).not.toContain(PII_CANARY_TOKEN);
   });
 
-  it("PPTX output contains no fixture email or token", async () => {
-    const buf = await toPptx(accentedModel());
+  it("PPTX strips adjacent PII (email/token) attached to the model", async () => {
+    const buf = await toPptx(buildModelWithLeakedPii());
     const text = await extractPptxText(buf);
-    expect(text).not.toContain(FIXTURE_EMAIL);
-    expect(text).not.toContain(FIXTURE_TOKEN);
+    // Check both rendered text and the raw slide XML (defense in depth).
+    expect(text).not.toContain(PII_CANARY_EMAIL);
+    expect(text).not.toContain(PII_CANARY_TOKEN);
   });
 
   it("Markdown preserves accents and ñ (áéíóúñ¿¡)", () => {

@@ -109,3 +109,38 @@ export function buildModel(opts: BuildModelOptions = {}): ReportModel {
     issuesByCategory,
   };
 }
+
+/**
+ * Sentinel PII values that must NEVER surface in any serialized output. Distinct,
+ * unmistakable strings so a leak is unambiguous in an assertion failure.
+ */
+export const PII_CANARY_EMAIL = "pii-leak-canary@example.com";
+export const PII_CANARY_TOKEN = "SECRET_TOKEN_CANARY";
+
+/**
+ * A `ReportModel` whose `audit` and every issue carry ADJACENT PII columns
+ * (email / emailId / token / verificationToken) attached as extra, non-schema
+ * fields — exactly the shape a DB row would have if the whitelist ever slipped.
+ *
+ * This makes the zero-PII guardrail a REAL leak detector: the serializers must
+ * render only whitelisted fields, so a serializer that ever dumps the whole
+ * object (JSON.stringify, object spread) would surface the canaries and fail the
+ * test. Unlike the old "assert an arbitrary literal that was never in the model"
+ * pattern, this assertion CAN fail.
+ */
+export function buildModelWithLeakedPii(opts: BuildModelOptions = {}): ReportModel {
+  const model = buildModel(opts);
+  const inject = (target: object): void => {
+    const rec = target as Record<string, unknown>;
+    rec.email = PII_CANARY_EMAIL;
+    rec.emailId = "email-1";
+    rec.token = PII_CANARY_TOKEN;
+    rec.verificationToken = PII_CANARY_TOKEN;
+  };
+  inject(model.audit);
+  for (const issue of model.priorityCandidates) inject(issue);
+  for (const list of Object.values(model.issuesByCategory)) {
+    for (const issue of list) inject(issue);
+  }
+  return model;
+}
