@@ -30,6 +30,15 @@ function isFormat(value: string | null): value is ExportFormat {
   return value === "pdf" || value === "md" || value === "pptx";
 }
 
+/**
+ * Sanitize an arbitrary id into a header/filesystem-safe filename segment.
+ * Strips anything outside `[A-Za-z0-9._-]` so a crafted route param cannot
+ * inject a quote/CR/LF into the `Content-Disposition` header value.
+ */
+function sanitizeFilenameSegment(value: string): string {
+  return value.replace(/[^A-Za-z0-9._-]/g, "") || "id";
+}
+
 /** Sanitize the audited domain into a filesystem/header-safe filename token. */
 function slugifyDomain(domain: string): string {
   return (
@@ -82,7 +91,7 @@ export async function GET(
       return NextResponse.json({ error: "Audit not found" }, { status: 404 });
     }
 
-    filename = `auditoria-${slugifyDomain(model.audit.domain)}-${id}.${ext}`;
+    filename = `auditoria-${slugifyDomain(model.audit.domain)}-${sanitizeFilenameSegment(id)}.${ext}`;
 
     if (format === "md") {
       body = toMarkdown(model);
