@@ -82,6 +82,9 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  // Guard síncrono contra doble envío: el estado `loading` se actualiza async,
+  // así que dos activaciones en el mismo tick podrían colarse antes del re-render.
+  const inFlightRef = useRef(false);
 
   // El Button primitivo no expone ref; recuperamos el trigger por id para el
   // manejo de foco (patrón establecido en el codebase, cf. 10-02).
@@ -126,7 +129,10 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
 
   const runExport = useCallback(
     async (option: ExportOption) => {
-      if (loading) return; // guard: bloquea doble/multi envío (T-14-02, SC#3).
+      // guard: bloquea doble/multi envío (T-14-02, SC#3). El ref es síncrono y
+      // estable en el closure; `loading` queda como respaldo legible.
+      if (inFlightRef.current || loading) return;
+      inFlightRef.current = true;
       setErrorMsg(null);
       setOpen(false);
       setLoading(true);
@@ -152,6 +158,7 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
         setErrorMsg(ERROR_MSG);
       } finally {
         if (objectUrl) URL.revokeObjectURL(objectUrl); // T-14-04.
+        inFlightRef.current = false;
         setLoading(false);
       }
     },
