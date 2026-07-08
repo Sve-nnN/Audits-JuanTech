@@ -144,7 +144,13 @@ Plans:
   2. En "Detalle por categoría", tanto en problemas como en correctos los issues se agrupan por tipo en dropdowns con orden consistente.
   3. En la lista de páginas rastreadas + grafo de entidades, cada página muestra el estado de su JSON-LD (correcto / advertencia / error) en la misma lista.
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — Helpers puros en @auditor/report-model: groupIssuesByType (orden severidad→cantidad) + jsonLdStateForPage (4 estados)
+- [ ] 15-02-PLAN.md — Componente IssueTypeGroup + cableado en "Issues prioritarios" y "Detalle por categoría" (REPORT-01/02)
+- [ ] 15-03-PLAN.md — Badge JSON-LD de 4 estados por página en la lista de páginas (REPORT-04)
+
 **UI hint**: yes
 
 ## Progress
