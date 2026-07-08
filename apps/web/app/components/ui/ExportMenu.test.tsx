@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ExportMenu } from "./ExportMenu";
 
@@ -33,11 +33,12 @@ beforeEach(() => {
   URL.revokeObjectURL = vi.fn();
   clickSpy = vi.fn();
   // Interceptar el click del enlace temporal (evita navegación jsdom).
-  HTMLAnchorElement.prototype.click = clickSpy;
+  HTMLAnchorElement.prototype.click = clickSpy as unknown as () => void;
   global.fetch = vi.fn().mockResolvedValue(okResponse());
 });
 
 afterEach(() => {
+  cleanup(); // globals off → sin auto-cleanup; desmontar entre tests.
   vi.restoreAllMocks();
 });
 
@@ -115,7 +116,7 @@ describe("ExportMenu", () => {
     await user.keyboard("{ArrowDown}");
     await user.click(screen.getByRole("menuitem", { name: /^PDF$/i }));
     await waitFor(() => expect(fetchMock()).toHaveBeenCalledTimes(1));
-    expect(fetchMock().mock.calls[0][0]).toContain(
+    expect(fetchMock().mock.calls[0]?.[0]).toContain(
       `/api/audits/${AUDIT_ID}/export?format=pdf`
     );
     expect(URL.createObjectURL).toHaveBeenCalled();
@@ -129,7 +130,7 @@ describe("ExportMenu", () => {
     await user.click(trigger);
     await user.click(screen.getByRole("menuitem", { name: /Markdown/i }));
     await waitFor(() => expect(fetchMock()).toHaveBeenCalledTimes(1));
-    expect(fetchMock().mock.calls[0][0]).toContain("export?format=md");
+    expect(fetchMock().mock.calls[0]?.[0]).toContain("export?format=md");
   });
 
   it("Presentación (PPTX) usa format=pptx", async () => {
@@ -139,7 +140,7 @@ describe("ExportMenu", () => {
     await user.click(trigger);
     await user.click(screen.getByRole("menuitem", { name: /Presentación/i }));
     await waitFor(() => expect(fetchMock()).toHaveBeenCalledTimes(1));
-    expect(fetchMock().mock.calls[0][0]).toContain("export?format=pptx");
+    expect(fetchMock().mock.calls[0]?.[0]).toContain("export?format=pptx");
   });
 
   it("un segundo disparo mientras está en loading NO produce un segundo fetch", async () => {
