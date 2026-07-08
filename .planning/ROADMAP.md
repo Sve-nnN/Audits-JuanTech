@@ -94,7 +94,11 @@ Plans:
   2. El hallazgo se reporta siempre con severidad `warning` (nunca `critical` automático).
   3. El check no marca como mismatch páginas confirmadas como renderizadas por JS en la muestra CSR/SSR de v1.2, evitando falsos positivos.
 
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+
+- [ ] 17-01-PLAN.md — Check SD-06 (schemaContentMismatchCheck) + contrato renderVerdictByPageId en @auditor/checks
+- [ ] 17-02-PLAN.md — Reordenar runRenderSample antes de runAllChecks en el worker, exponer RenderIssueDraft.verdict
 
 ### Phase 18: Diagnósticos de Lighthouse desde PSI
 
@@ -164,7 +168,7 @@ Próximo trabajo previsto tras v1.3 (scope por definir vía `/gsd:new-milestone`
 | 14. Botón Exportar (UI) | v1.2 | 1/1 | Complete ✅ | 2026-07-08 |
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 3/3 | Complete ✅ | 2026-07-08 |
 | 16. Grafo de enlaces compartido + profundidad de clics real | v1.3 | 2/2 | Complete   | 2026-07-08 |
-| 17. Check schema-contenido mismatch | v1.3 | 0/? | Not started | - |
+| 17. Check schema-contenido mismatch | v1.3 | 0/2 | Not started | - |
 | 18. Diagnósticos de Lighthouse desde PSI | v1.3 | 0/? | Not started | - |
 | 19. Agrupación por plantilla | v1.3 | 0/? | Not started | - |
 | 20. Visualizador de arquitectura | v1.3 | 0/? | Not started | - |
