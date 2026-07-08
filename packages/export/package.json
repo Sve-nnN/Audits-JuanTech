@@ -16,10 +16,12 @@
     "@auditor/report-model": "workspace:*",
     "@auditor/scoring": "workspace:*",
     "@react-pdf/renderer": "4.5.1",
-    "pptxgenjs": "4.0.1"
+    "pptxgenjs": "4.0.1",
+    "react": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
     "jszip": "^3.10.1",
     "pdf-parse": "^1.1.1",
     "typescript": "^5.7.2",

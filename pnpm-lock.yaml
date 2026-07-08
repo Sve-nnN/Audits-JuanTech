@@ -215,10 +215,16 @@ importers:
       pptxgenjs:
         specifier: 4.0.1
         version: 4.0.1
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.0
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.17
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
