@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Detección de renderizado + exportación de reportes
-status: shipped
-stopped_at: v1.2 shipped 2026-07-08 — milestone archivado (ROADMAP/REQUIREMENTS/AUDIT + 5 fases en .planning/milestones/), tag v1.2 creado. Listo para el próximo milestone.
-last_updated: "2026-07-08T12:30:00.000Z"
-last_activity: 2026-07-08 — cierre de milestone v1.2: archivado a .planning/milestones/, ROADMAP/MILESTONES/PROJECT actualizados, tag v1.2.
+milestone: v1.3
+milestone_name: Profundizar checks técnicos + visualización de arquitectura
+status: planning
+last_updated: "2026-07-08T19:20:13.380Z"
+last_activity: 2026-07-08
 progress:
-  total_phases: 1
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,12 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 ## Current Position
 
-Milestone: v1.2 (Detección de renderizado + exportación de reportes) — SHIPPED 2026-07-08. Archivado a `.planning/milestones/`, tag `v1.2` creado.
-Phase: sin fase activa. Todas las fases 11-15 completas y archivadas.
-Status: v1.2 shipped — next milestone TBD (deploy a producción). Trabajo previsto: web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera; luego v2 (monetización + enriquecimiento).
-Last activity: 2026-07-08 — cierre de milestone v1.2 (archivado + tag)
-
-Progress: [██████████] v1.2 completo (15/15 fases del proyecto, 3 milestones shipped)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-08 — Milestone v1.3 started
 
 ## Performance Metrics
 

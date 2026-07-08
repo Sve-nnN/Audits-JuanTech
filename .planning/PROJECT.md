@@ -8,9 +8,22 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
-## Current State: sin milestone abierto (v1.2 shipped 2026-07-08)
+## Current Milestone: v1.3 Profundizar checks técnicos + visualización de arquitectura
 
-Tres milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca) y v1.2 (detección de renderizado + exportación de reportes). El producto ahora detecta más errores (canonicals profundos + jerarquía de encabezados), determina si cada página de una muestra es SSR o CSR, y permite exportar el reporte en PDF con branding, Markdown-para-LLM y PPTX desde un botón accesible. Sin fase activa; próximo trabajo previsto es el deploy a producción.
+**Goal:** Cerrar gaps encontrados vs. metodología SEO estándar (comparado contra la librería de skills del diplomado "De Cero a SEO" en `/Users/juan/Documents/Codigo/Arianna/SEO-Skills`) y dar visibilidad de la arquitectura del sitio.
+
+**Target features:**
+- Check schema-contenido: FAQPage/HowTo/Product+AggregateRating declarado sin contenido visible correspondiente (riesgo de penalización manual de Google)
+- Check profundidad de clics (regla de 3 clics) — `Page.depth` ya persistido por el crawler, falta el check + superficie en el reporte
+- Diagnósticos de Lighthouse (WebP, render-blocking, CSS/JS sin usar) extraídos de la respuesta PSI ya pagada — cero costo extra de API
+- Agrupación de issues por plantilla de página (home/categoría/producto/artículo) — eje complementario a la agrupación por tipo de issue de v1.2 (Phase 15)
+- Visualizador de arquitectura estilo Octopus.do: árbol jerárquico por profundidad, grafo de enlaces internos computado on-demand (reusa el patrón de `orphanPages.ts`), sin migración de storage
+
+**Key context:** Los 5 ítems surgieron de comparar los checks ya implementados (20+ en v1.0-v1.2) contra las skills de auditoría técnica/arquitectura/GEO-AEO/schema del repo SEO-Skills — no solapan con lo ya construido.
+
+## Prior State: v1.2 shipped 2026-07-08
+
+Tres milestones entregados antes de v1.3: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca) y v1.2 (detección de renderizado + exportación de reportes). El producto detecta canonicals profundos + jerarquía de encabezados, determina si cada página de una muestra es SSR o CSR, y permite exportar el reporte en PDF con branding, Markdown-para-LLM y PPTX desde un botón accesible.
 
 **Cierre v1.2:** aditivo sobre v1.0/v1.1 (el pipeline validado no se rompe). Nuevos paquetes `@auditor/render` (detección CSR/SSR worker-only con Playwright pinneado), `@auditor/report-model` (`buildReportModel` como single source of truth) y `@auditor/export` (serializers PDF/Markdown/PPTX con libs JS puras, cero Chromium en Vercel). Exports on-demand desde route Node; agrupación de issues por tipo e indicador JSON-LD por página en el reporte. 19/19 requisitos, audit PASSED. Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.2-ROADMAP.md`.
 
@@ -127,4 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-08 after v1.2 milestone (Detección de renderizado + exportación de reportes)*
+*Last updated: 2026-07-08 — milestone v1.3 started (Profundizar checks técnicos + visualización de arquitectura)*
