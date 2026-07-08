@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
-status: executing
-stopped_at: 15-03 completado — badge JSON-LD de 4 estados por página (error/advertencia/correcto/sin JSON-LD, REPORT-04) cableado en la lista de páginas rastreadas; 28 tests web verdes + typecheck + build. Cierra Phase 15 (3/3) y el milestone v1.2.
-last_updated: "2026-07-08T12:01:00.000Z"
-last_activity: 2026-07-08 — 15-03: JsonLdBadge (TDD RED→GREEN) + consulta schema por pageId en pages/page.tsx; 28 tests web verdes + typecheck + build. Milestone v1.2 completo.
+status: shipped
+stopped_at: v1.2 shipped 2026-07-08 — milestone archivado (ROADMAP/REQUIREMENTS/AUDIT + 5 fases en .planning/milestones/), tag v1.2 creado. Listo para el próximo milestone.
+last_updated: "2026-07-08T12:30:00.000Z"
+last_activity: 2026-07-08 — cierre de milestone v1.2: archivado a .planning/milestones/, ROADMAP/MILESTONES/PROJECT actualizados, tag v1.2.
 progress:
   total_phases: 1
   completed_phases: 1
@@ -18,19 +18,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
+See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** v1.2 Detección de renderizado + exportación de reportes (Phases 11-15). Roadmap creado, 19/19 requisitos mapeados. Próximo: `/gsd:plan-phase 11`.
+**Current focus:** v1.2 shipped — next milestone TBD (deploy a producción). Sin milestone abierto. Próximo: `/gsd:new-milestone`.
 
 ## Current Position
 
-Phase: 15 of 15 (UX del reporte — agrupación e indicadores) — COMPLETA (3/3 planes). Milestone v1.2 completo.
-Plan: 15-03 completado — badge JSON-LD de 4 estados por página (REPORT-04). No hay más planes pendientes en v1.2.
-Status: 15-03 cierra la fase — JsonLdBadge mapea los 4 estados de jsonLdStateForPage (error/advertencia/correcto/sin JSON-LD) a variantes existentes de Badge sin colores nuevos; pages/page.tsx cruza issues category=schema por pageId con la presencia de schemaGraph y renderiza el peor estado por página. Resto de la lista intacto.
-Last activity: 2026-07-08 — 15-03: JsonLdBadge (TDD) + consulta schema por pageId; 28 tests web verdes + typecheck + build
+Milestone: v1.2 (Detección de renderizado + exportación de reportes) — SHIPPED 2026-07-08. Archivado a `.planning/milestones/`, tag `v1.2` creado.
+Phase: sin fase activa. Todas las fases 11-15 completas y archivadas.
+Status: v1.2 shipped — next milestone TBD (deploy a producción). Trabajo previsto: web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera; luego v2 (monetización + enriquecimiento).
+Last activity: 2026-07-08 — cierre de milestone v1.2 (archivado + tag)
 
-Progress: [██████████] 100% (fase 15 — 3/3, milestone v1.2 completo)
+Progress: [██████████] v1.2 completo (15/15 fases del proyecto, 3 milestones shipped)
 
 ## Performance Metrics
 
@@ -133,6 +133,13 @@ None yet.
 - [Roadmap v1.1]: REQUIREMENTS.md v1.1 decía "30 total" en su encabezado de coverage, pero el listado real tiene 31 requisitos (FONT4+DS4+COMP8+SCREEN6+COPY3+MOTION3+A11Y3). Se corrigió el conteo durante la creación del roadmap; los 31 quedaron mapeados.
 
 ## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-07-08 (v1.2):
+
+| Category | Item | Status |
+|----------|------|--------|
+| human_needed | Phase 12 — verificación humana runtime Docker: correr el contenedor pinneado con una auditoría real (≥10 páginas) en paralelo con PSI para confirmar cero Chromium huérfanos / OOM bajo concurrencia 2 | Deferred to deploy (aceptado por Juan) |
+| human_needed | Phase 13 — verificación humana render visual del PDF: abrir un PDF real para confirmar glifos Khand/Geist y acentos áéíóúñ¿¡ | Deferred to deploy (aceptado por Juan) |
 
 Items acknowledged and carried forward from previous milestone close:
 

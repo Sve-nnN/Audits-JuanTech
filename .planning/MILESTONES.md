@@ -4,6 +4,37 @@ Entries in reverse chronological order — newest first.
 
 ---
 
+## v1.2 Detección de renderizado + exportación de reportes (Shipped: 2026-07-08)
+
+**Delivered:** Ampliación aditiva del auditor sobre el pipeline validado de v1.0/v1.1 — checks más profundos de canonicals y jerarquía de encabezados, detección CSR vs SSR sobre una muestra (Playwright worker-only) y exportación del reporte en 3 formatos (PDF con branding, Markdown-para-LLM, PPTX) desde un botón accesible, más agrupación de issues por tipo e indicador de estado JSON-LD por página. Sin romper el pipeline de crawl/checks/scoring/diff/email.
+
+**Phases completed:** 11-15 (15 plans total)
+
+**Key accomplishments:**
+
+- Canonicals profundos (sub-tipos de TECH-04: noindex, 3xx/4xx/5xx, cadena, cross-domain, relativo, múltiple, mismatch) y jerarquía de encabezados (ONPAGE-08: saltos, vacíos, orden, H1 duplica title) con lógica Cheerio pura sobre HTML ya almacenado; fix REPORT-03 (URL en issues de Rendimiento/CWV).
+- Detección CSR/SSR: nuevo paquete worker-only `@auditor/render` compara HTML crudo vs DOM renderizado sobre una muestra (`selectSample`, `MAX_RENDER_PAGES=10`), severidad informativa (ok/warning, nunca falla dura), degradación limpia a "no determinado" y primer Dockerfile pinneado a `mcr.microsoft.com/playwright:v1.61.1-noble`.
+- Fundación de export: `buildReportModel` como single source of truth + paquete puro `@auditor/export` (PDF vía `@react-pdf/renderer` con Khand/Geist embebidas, Markdown-LLM, PPTX 7–12 slides) servido desde una route Node; guardarrail `assert:web-boundary` garantiza cero Chromium en el bundle de Vercel.
+- Botón Exportar: `ExportMenu` accesible (roving tabindex, teclado completo, ARIA) con descarga por blob y guard anti-doble-envío; primera suite RTL de `apps/web`.
+- UX del reporte: agrupación de issues por tipo en dropdowns (`groupIssuesByType` + `IssueTypeGroup`) ordenados por severidad y cantidad, e indicador JSON-LD de 4 estados por página (`JsonLdBadge`).
+- Exports acotan a top-N con nota "Mostrando N de M", cero PII y acentos/ñ correctos en los 3 formatos (guardarrail cero-PII).
+
+**Stats:**
+
+- 5 fases, 15 plans; paquetes nuevos `@auditor/render`, `@auditor/report-model`, `@auditor/export`
+- Requisitos: 19/19 completos (CANON-01..04, HEAD-01..03, RENDER-01..03, EXPORT-01..05, REPORT-01..04)
+- ~2 días desde el arranque de v1.2 (2026-07-06) hasta el cierre (2026-07-08)
+
+**Git range:** `feat(11)` → `feat(15)` (tag `v1.2`)
+
+**Milestone audit:** PASSED — 19/19 requisitos, 5/5 fases, 5/5 seams de integración, 3/3 flujos E2E, 0 blockers. Ver `.planning/milestones/v1.2-MILESTONE-AUDIT.md`.
+
+**Known deferred items at close:** 2 (verificación humana runtime Docker de Phase 12 + render visual del PDF de Phase 13, ambos aceptados por Juan como parte del deploy). Ver STATE.md `## Deferred Items`.
+
+**What's next:** Deploy a producción (web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera) y luego v2 (monetización + enriquecimiento).
+
+---
+
 ## v1.1 Overhaul de UI/UX y marca (Shipped: 2026-07-06)
 
 **Delivered:** Overhaul completo de UI/UX sobre el pipeline de v1.0 — design system con tipografía de marca, librería de componentes reutilizables y las 6 pantallas rediseñadas con copy humanizado, motion sutil y accesibilidad AA. UI-only, sin tocar la lógica de auditoría.

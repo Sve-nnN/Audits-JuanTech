@@ -8,26 +8,16 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
-## Current Milestone: v1.2 Detección de renderizado + exportación de reportes
+## Current State: sin milestone abierto (v1.2 shipped 2026-07-08)
 
-**Goal:** Ampliar la auditoría con detección CSR/SSR y checks más profundos de canonicals/headings, y permitir exportar el reporte en 3 formatos (PDF, Markdown para LLM, PPTX) desde un botón en el reporte.
+Tres milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca) y v1.2 (detección de renderizado + exportación de reportes). El producto ahora detecta más errores (canonicals profundos + jerarquía de encabezados), determina si cada página de una muestra es SSR o CSR, y permite exportar el reporte en PDF con branding, Markdown-para-LLM y PPTX desde un botón accesible. Sin fase activa; próximo trabajo previsto es el deploy a producción.
 
-**Target features:**
-- **Detección CSR vs SSR** — raw HTML (Cheerio) vs DOM renderizado (Playwright) sobre una muestra; nuevo check de renderizado. Agrega Playwright al worker (previsto como ENRICH).
-- **Canonicals (más profundo)** — ampliar TECH-04: cadenas de canonical, canonical a no-indexable, cross-domain, mismatch con URL final.
-- **Headings (errores de jerarquía)** — ampliar más allá de ONPAGE-03 (H1): múltiples H1, saltos de nivel, headings vacíos, orden.
-- **Export PDF** — reporte descargable con branding.
-- **Export .md optimizado para LLM** — Markdown estructurado para que un LLM entienda y aplique los fixes.
-- **Export PPTX** — reporte como presentación.
-- **Botón Exportar** arriba a la derecha del reporte con selector de tipo.
+**Cierre v1.2:** aditivo sobre v1.0/v1.1 (el pipeline validado no se rompe). Nuevos paquetes `@auditor/render` (detección CSR/SSR worker-only con Playwright pinneado), `@auditor/report-model` (`buildReportModel` como single source of truth) y `@auditor/export` (serializers PDF/Markdown/PPTX con libs JS puras, cero Chromium en Vercel). Exports on-demand desde route Node; agrupación de issues por tipo e indicador JSON-LD por página en el reporte. 19/19 requisitos, audit PASSED. Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.2-ROADMAP.md`.
 
-**Key context:** Aditivo sobre v1.0/v1.1 — el pipeline validado no se rompe. Exports generados on-demand en route Node de Next.js (sin tocar worker/cola). Numeración de fases continúa desde la 11.
-
-**Trabajo previsto posterior** (fuera de este milestone):
-- **Deploy a producción:** web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera.
+**Trabajo previsto posterior:**
+- **Deploy a producción:** web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera. Incluye las 2 verificaciones humanas diferidas de v1.2 (runtime Docker del render + render visual del PDF).
 - **v2 monetización:** planes de pago, auditorías/URLs ilimitadas, Stripe.
-
-**Cierre v1.1:** design system tokenizado + 4 fuentes de marca, librería de componentes reutilizable y las 6 pantallas rediseñadas con copy humanizado, motion sutil y accesibilidad AA. UI-only: el pipeline crawl/checks/PSI/scoring/email de v1.0 quedó intacto. Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.1-ROADMAP.md`.
+- **v2 enriquecimiento:** RENDER-04/05, EXPORT-06 (DOCX/CSV), REPORT-05 (`Page.renderVerdict` persistido), Domain Rating como contexto.
 
 ## Requirements
 
@@ -55,12 +45,18 @@ Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa 
 - ✓ Copy humanizado en español neutro sin voceo (UI, errores, cuota, verificación, recomendaciones) — v1.1 (COPY-01..03, Phase 10)
 - ✓ Motion sutil (score count-up, reveals, progreso animado) que respeta prefers-reduced-motion — v1.1 (MOTION-01..03, Phase 10)
 - ✓ Responsive sin overflow horizontal + contraste AA + foco visible + roles/labels ARIA + navegación por teclado — v1.1 (A11Y-01..03, Phase 10)
+- ✓ Canonicals profundos (canonical a noindex/3xx/4xx/5xx, cadena, cross-domain, relativo, múltiple, mismatch con URL final) — v1.2 (CANON-01..04, Phase 11)
+- ✓ Jerarquía de encabezados (saltos de nivel, headings vacíos, fuera de orden, H1 duplica title) — v1.2 (HEAD-01..03, Phase 11)
+- ✓ Detección CSR vs SSR sobre una muestra (HTML crudo vs DOM renderizado), riesgo informativo con degradación limpia — v1.2 (RENDER-01..03, Phase 12)
+- ✓ Exportación del reporte en PDF con branding, Markdown-para-LLM y PPTX, con top-N + "N de M", sin PII, acentos/ñ correctos — v1.2 (EXPORT-01..03/05, Phases 13)
+- ✓ Botón Exportar accesible (selector PDF/Markdown/PPTX, teclado, estado de carga, sin doble envío) — v1.2 (EXPORT-04, Phase 14)
+- ✓ UX del reporte: issues agrupados por tipo en dropdowns + URL en issues de CWV + estado JSON-LD por página — v1.2 (REPORT-01..04, Phases 11 y 15)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-(v1.0 + v1.1 completos — sin milestone abierto. Próximo: deploy a producción + v2 monetización/enriquecimiento, scope por definir vía `/gsd:new-milestone`.)
+(v1.0 + v1.1 + v1.2 completos — sin milestone abierto. Próximo: deploy a producción + v2 monetización/enriquecimiento, scope por definir vía `/gsd:new-milestone`.)
 
 ### Out of Scope
 
@@ -79,7 +75,7 @@ Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa 
 - **Rendimiento:** Se usa Lighthouse (unlighthouse para crawl multi-página) + Google PageSpeed Insights API (Lighthouse + CrUX) para datos de campo.
 - **Extracción HTML:** el reporte de referencia usa Cheerio para parsear HTML crudo; JS rendering (Playwright) es deseable para comparar HTML crudo vs renderizado.
 - **Ecosistema:** entorno con Vercel disponible; Next.js App Router como default de frontend.
-- **Estado actual (post-v1.1):** monorepo pnpm+Turborepo con `apps/web` (Next.js, Vercel) y `apps/worker` (Crawlee, contenedor propio); paquetes db, queue, crawler, checks, psi, scoring, email, quota. Postgres (Neon) + Redis/BullMQ (Upstash). UI con design system tokenizado, 4 fuentes de marca y tema claro/oscuro. 140 tests verdes (pipeline). Pendiente: deploy a producción (env/keys/Resend/GDPR).
+- **Estado actual (post-v1.2):** monorepo pnpm+Turborepo con `apps/web` (Next.js, Vercel) y `apps/worker` (Crawlee, contenedor propio); paquetes db, queue, crawler, checks, psi, scoring, email, quota + los nuevos de v1.2: `@auditor/render` (CSR/SSR worker-only, Playwright pinneado), `@auditor/report-model` (buildReportModel) y `@auditor/export` (serializers PDF/Markdown/PPTX). Postgres (Neon) + Redis/BullMQ (Upstash). UI con design system tokenizado, 4 fuentes de marca y tema claro/oscuro; reporte con agrupación de issues, indicador JSON-LD por página y botón Exportar. Primer `apps/worker/Dockerfile` pinneado a `mcr.microsoft.com/playwright:v1.61.1-noble`. Pendiente: deploy a producción (env/keys/Resend/GDPR) + 2 verificaciones humanas de runtime diferidas (Docker render, PDF visual).
 
 ## Constraints
 
@@ -106,6 +102,12 @@ Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa 
 | Componentes tokens-only (cero hex crudo) | Coherencia dark/light y theming sin duplicar valores | ✓ Good — v1.1 Phase 9 |
 | No construir ruta `/styleguide` | Validar componentes en las pantallas reales de la Fase 10 | ✓ Good — v1.1 (validación visual diferida a Phase 10) |
 | v1.1 estrictamente UI-only | Proteger el pipeline validado de v1.0 | ✓ Good — flujo e2e preservado verbatim |
+| v1.2 aditivo sobre v1.0/v1.1 en riesgo ascendente | Aislar la única pieza de infra nueva (render+Docker) a una fase; no romper el pipeline validado | ✓ Good — 5/5 seams de integración PASS, score de fixture estable |
+| Render CSR/SSR como riesgo informativo, no falla dura del score | Evita penalizar SSR con hidratación parcial; CSR es señal, no cero automático | ✓ Good — v1.2 Phase 12 (severidad ok/warning) |
+| Solo renderizar una muestra (selectSample, MAX_RENDER_PAGES=10), nunca las 500 URLs | Playwright es 5–10× costo/tiempo de Cheerio | ✓ Good — v1.2 Phase 12 |
+| Chromium fuera del bundle de Vercel: exports con libs JS puras (@react-pdf/renderer, pptxgenjs) | Serverless no debe cargar navegador headless; guardarrail automatizado | ✓ Good — v1.2 (assert:web-boundary Checks C/D) |
+| buildReportModel como single source of truth (report UI + exports + grouping) | Evitar ensamblado divergente de datos entre reporte y serializers | ✓ Good — v1.2 Phase 13 (una fragilidad latente: query JSON-LD paralela en pages/page.tsx) |
+| Exports on-demand en route Node (sin cola/async) | Son lecturas rápidas de datos ya persistidos | ✓ Good — v1.2 Phase 13 |
 
 ## Evolution
 
@@ -125,4 +127,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-06 after v1.1 milestone (Overhaul de UI/UX y marca)*
+*Last updated: 2026-07-08 after v1.2 milestone (Detección de renderizado + exportación de reportes)*
