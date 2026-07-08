@@ -171,7 +171,7 @@ Plans:
 | 12. Detección de renderizado CSR/SSR | v1.2 | 3/3 | Complete ✅ | 2026-07-07 |
 | 13. Fundación de export + serializers | v1.2 | 4/4 | Complete ✅ | 2026-07-08 |
 | 14. Botón Exportar (UI) | v1.2 | 1/1 | Complete ✅ | 2026-07-08 |
-| 15. UX del reporte — agrupación e indicadores | v1.2 | 3/3 | Complete | - |
+| 15. UX del reporte — agrupación e indicadores | v1.2 | 3/3 | Complete ✅ | 2026-07-08 |
 
 ---
 *Roadmap created: 2026-07-05*
