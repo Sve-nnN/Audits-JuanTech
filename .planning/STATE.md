@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
 status: executing
-stopped_at: 13-02 completado — @auditor/export (cap top-N EXPORT-05 + Markdown-LLM EXPORT-02 + PPTX 7-12 slides EXPORT-03), JS puro sin Chromium, cero PII
-last_updated: "2026-07-07T23:54:00.000Z"
-last_activity: 2026-07-07 — 13-02: paquete @auditor/export con prioritizeIssues (top-50 sobre priorityCandidates), toMarkdown estructurado y toPptx (piso 7 slides); 19 tests + typecheck verdes
+stopped_at: 13-03 completado — toPdf vía @react-pdf/renderer (EXPORT-01) con Khand headings + Geist Sans body (Array NO en títulos), acentos en ambos roles, cap top-N + cero PII, sin navegador headless
+last_updated: "2026-07-08T14:29:00.000Z"
+last_activity: 2026-07-08 — 13-03: serializer PDF con fuentes de marca vendorizadas (Khand + Geist Sans TTF), acentos preservados en heading Khand Y body Geist Sans; 25 tests + typecheck verdes
 progress:
   total_phases: 1
   completed_phases: 1
-  total_plans: 3
+  total_plans: 4
   completed_plans: 3
-  percent: 100
+  percent: 75
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 
 ## Current Position
 
-Phase: 13 of 15 (Fundación de export + serializers) — EN PROGRESO (2/4 planes)
-Plan: 13-02 completado — siguiente: 13-03 (serializer PDF con @react-pdf/renderer + fuente de marca)
-Status: 13-02 cerrado — @auditor/export produce Markdown-LLM y PPTX (7-12 slides) acotados a top-50, cero PII, sin Chromium
-Last activity: 2026-07-07 — 13-02: prioritizeIssues + toMarkdown + toPptx; 19 tests + typecheck verdes
+Phase: 13 of 15 (Fundación de export + serializers) — EN PROGRESO (3/4 planes)
+Plan: 13-03 completado — siguiente: 13-04 (route Node GET /api/audits/[id]/export + guardarrail de frontera Chromium)
+Status: 13-03 cerrado — @auditor/export completa los 3 serializers (Markdown, PPTX, PDF); toPdf con Khand headings + Geist Sans body, acentos correctos, cap top-50 + cero PII, sin navegador headless
+Last activity: 2026-07-08 — 13-03: toPdf + TTFs de marca vendorizadas; 25 tests + typecheck verdes
 
-Progress: [█████·····] 50% (fase 13)
+Progress: [███████···] 75% (fase 13)
 
 ## Performance Metrics
 
@@ -77,6 +77,7 @@ Progress: [█████·····] 50% (fase 13)
 | Phase 12 P03 | ~7 min | 3 tasks | 7 files |
 | Phase 13 P01 | ~14 min | 2 tasks | 9 files |
 | Phase 13 P02 | ~22 min | 3 tasks | 10 files |
+| Phase 13 P03 | ~7 min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,7 @@ Recent decisions affecting current work:
 - [Phase 11]: 11-04 (SC#5): guardarraíl integrado phase11-guardrail.test.ts — canonical (TECH-04:*) + headings (ONPAGE-08:*) en la misma página no colapsan en diffIssues (fingerprints únicos) y fixture sana no desvía el score; @auditor/scoring añadido como devDependency de @auditor/checks (workspace)
 - [Phase 12]: 12-03 (RENDER-01/03, cierre de fase): runRenderSample cableado best-effort en el worker tras el pase PSI (doble guarda: degradación interna + try/catch externo → auditoría siempre llega a `done`, SC#3); sus issues `aeo` entran a issueRowsWithoutDiff sin tocar diff/score/persist. Primer apps/worker/Dockerfile multi-stage pinneado a mcr.microsoft.com/playwright:v1.61.1-noble (SC#4), arranca `node --import tsx dist/index.js` (paquetes @auditor/* exponen TS source). scripts/assert-no-playwright-in-web.mjs (root script assert:web-boundary) prueba que @auditor/render nunca resuelve en el grafo de apps/web — refinado para tolerar la cadena peer preexistente de crawlee (pnpm why playwright NO discrimina web de worker). browser.ts desacoplado del DOM ambiental vía shim en globalThis para que el worker (lib Node) typechee el source de render.
 - [Phase 12]: 12-02 (RENDER-01/03): capa Playwright en @auditor/render — launchBrowser (1 Chromium, args low-shm) + snapshotPage (context fresco, timeout 15s vía goto + Promise.race, context.close en finally en TODOS los caminos, T-12-03/04); runRenderSample best-effort reusa selectSample(MAX_RENDER_PAGES=10, indep. de PSI), lanes=RENDER_CONCURRENCY(2), degrada cualquier throw/block/timeout a undeterminedVerdict, NUNCA rechaza; snapshot inyectable → tests sin Chromium real (15 verdes); playwright pineado 1.61.1 solo en render; @auditor/psi añadido como dep de render; DOM lib en tsconfig para page.evaluate
+- [Phase 13]: 13-03 (EXPORT-01/05): tercer serializer toPdf(model):Promise<Buffer> vía @react-pdf/renderer (renderer propio, sin navegador headless). Roles tipográficos v1.1 embebidos por Font.register de DOS familias: Khand (400/600) para TODOS los headings (portada/sección/categoría/título de issue) y Geist Sans (400) para el body; Array reservada a display, NO se embebe ni se usa en títulos. TTFs vendorizadas en src/fonts/ vía fetch-fonts.mjs reproducible (Khand descargada de google/fonts ofl/khand; Geist copiada del paquete geist local; fallback woff2→sfnt con wawoff2 devDep) — sfnt válidos con cobertura Latin completa (áéíóúñ¿¡). Estructura: portada (dominio+score+status) → Scores por categoría (CATEGORY_ORDER) → issues priorizados vía prioritizeIssues(model.priorityCandidates) con nota "Mostrando N de M". react ^19 añadido como dep (peer de @react-pdf); jsx=react-jsx en tsconfig. pdf.test.ts extrae texto con pdf-parse (import profundo lib/pdf-parse.js) y valida acentos en HEADING Khand Y body Geist Sans, nota N de M, cero PII (texto y binario) y ambas fuentes embebidas. 25 tests + typecheck verdes; grep Array==0 y headless==0 en pdf.tsx.
 - [Phase 13]: 13-02 (EXPORT-02/03/05): nuevo paquete puro @auditor/export (JS puro, sin Chromium) — priority.ts con EXPORT_TOP_N=50 (tuneable) y prioritizeIssues() que opera SIEMPRE sobre model.priorityCandidates (set completo critical+warning, M=totalPriorityCandidates), única fuente del cap para los tres formatos, con nota "Mostrando N de M"; markdown.ts toMarkdown() estructurado por issue → checkId → página/selector → valor medido → criterio → recomendación (listo para LLM); pptx.ts toPptx()→Uint8Array in-memory vía pptxgenjs 4.0.1 con fórmula BASE_SLIDES=7 (portada+resumen+5 categorías) + 0..MAX_ISSUE_SLIDES(5) issues → total garantizado en [7,12] incluso sparse (0 issues→exactamente 7); buildPptxDeck expone slideCount para test. labels.ts duplica CATEGORY_ORDER/LABEL, STATUS/SEVERITY_LABEL y SEVERITY_SORT_WEIGHT sin depender de apps/web. Guardrail cero-PII (no-pii.test.ts): email/token en scope adyacente nunca aparecen en MD/PPTX; acentos/ñ preservados en ambos (extracción de texto del PPTX vía unzip JSZip en memoria). 19 tests + typecheck verdes.
 - [Phase 13]: 13-01 (EXPORT-01/02/03/05): nuevo paquete puro @auditor/report-model — buildReportModel(auditId) devuelve un ReportModel serializable (cero React/Prisma/PII) que reemplaza el ensamblado inline de page.tsx; expone priorityCandidates (set completo critical+warning, fuente de la M en "N de M") aparte de priorityIssues (cap 60) y totalPriorityCandidates; url del issue derivada replicando issueUrl (source ?? scope) para render idéntico; buildReportModel retorna null para audit inexistente O status != done (page.tsx conserva consulta ligera para notFound vs progreso). Base compartida para los serializers de export (Plans 02/03).
 - [Phase 12]: 12-01 (RENDER-01/02): nuevo paquete worker-only @auditor/render (cheerio, cero Playwright); detectRenderVerdict puro compara raw Page.html vs RenderedSnapshot (title/H1/texto + ratio<0.60→CSR); severidad SSR→ok/CSR→warning, NUNCA critical; category "aeo"; fingerprint RENDER-01:<verdict>:<url>; RenderIssueDraft local decoplado de @auditor/checks; undeterminedVerdict() para degradación de 12-02; RENDER_CSR_RATIO=0.60 tuneable
@@ -133,6 +135,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07 — Completado 13-02-PLAN.md (@auditor/export: cap top-N + Markdown-LLM + PPTX 7-12 slides, cero PII, sin Chromium)
-Stopped at: 13-02 completado — Fase 13 en progreso (2/4); siguiente: 13-03 (serializer PDF)
+Last session: 2026-07-08 — Completado 13-03-PLAN.md (toPdf con @react-pdf/renderer: Khand headings + Geist Sans body, acentos en ambos roles, cap top-N + cero PII, sin navegador headless)
+Stopped at: 13-03 completado — Fase 13 en progreso (3/4); siguiente: 13-04 (route Node de export + guardarrail de frontera Chromium)
 Resume file: None
