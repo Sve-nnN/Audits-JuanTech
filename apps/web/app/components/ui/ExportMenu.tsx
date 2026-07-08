@@ -85,6 +85,28 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
   // Guard síncrono contra doble envío: el estado `loading` se actualiza async,
   // así que dos activaciones en el mismo tick podrían colarse antes del re-render.
   const inFlightRef = useRef(false);
+  // Revoke diferido del object URL (WR-02): revocar de inmediato tras click()
+  // puede cancelar la descarga en Firefox/Chromium bajo carga. Guardamos el
+  // timer y la URL pendiente para poder revocar también en el desmontaje.
+  const revokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingUrlRef = useRef<string | null>(null);
+
+  const scheduleRevoke = useCallback((url: string) => {
+    pendingUrlRef.current = url;
+    revokeTimerRef.current = setTimeout(() => {
+      URL.revokeObjectURL(url);
+      pendingUrlRef.current = null;
+      revokeTimerRef.current = null;
+    }, 1000);
+  }, []);
+
+  // Al desmontar: revocar cualquier URL pendiente para no filtrar memoria.
+  useEffect(() => {
+    return () => {
+      if (revokeTimerRef.current) clearTimeout(revokeTimerRef.current);
+      if (pendingUrlRef.current) URL.revokeObjectURL(pendingUrlRef.current);
+    };
+  }, []);
 
   // El Button primitivo no expone ref; recuperamos el trigger por id para el
   // manejo de foco (patrón establecido en el codebase, cf. 10-02).
@@ -153,16 +175,22 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();
+        // WR-02: diferir el revoke para dar tiempo al navegador a iniciar la
+        // transferencia; anulamos objectUrl para no revocarlo en el finally.
+        scheduleRevoke(objectUrl);
+        objectUrl = null;
       } catch {
         // Texto neutro fijo; nunca exponemos status/stack al usuario (T-14-03).
         setErrorMsg(ERROR_MSG);
       } finally {
-        if (objectUrl) URL.revokeObjectURL(objectUrl); // T-14-04.
+        // Sólo la ruta de error/early-exit revoca de inmediato (aún no hubo
+        // descarga); el éxito ya programó el revoke diferido (WR-02, T-14-04).
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
         inFlightRef.current = false;
         setLoading(false);
       }
     },
-    [auditId, domain, loading]
+    [auditId, domain, loading, scheduleRevoke]
   );
 
   // Teclado del trigger.
