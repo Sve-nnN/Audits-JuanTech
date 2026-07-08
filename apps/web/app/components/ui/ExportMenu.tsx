@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   AlertTriangle,
+  Check,
+  ClipboardCopy,
   Download,
-  FileCode,
   FileText,
   Presentation,
   type LucideIcon,
@@ -24,11 +25,14 @@ interface ExportOption {
 /** Opciones del menú (Copywriting Contract, español neutro sin voceo). */
 const OPTIONS: ExportOption[] = [
   { label: "PDF", format: "pdf", icon: FileText, ext: "pdf" },
-  { label: "Markdown (para IA)", format: "md", icon: FileCode, ext: "md" },
+  { label: "Markdown (copiar para IA)", format: "md", icon: ClipboardCopy, ext: "md" },
   { label: "Presentación (PPTX)", format: "pptx", icon: Presentation, ext: "pptx" },
 ];
 
 const ERROR_MSG = "No se pudo generar el archivo. Intenta de nuevo.";
+const COPIED_MSG = "Copiado al portapapeles";
+/** Ventana (ms) que la confirmación "Copiado" permanece visible antes de limpiarse. */
+const COPIED_TTL_MS = 4000;
 
 interface ExportMenuProps {
   /** Id de la auditoría; alimenta la route de export. */
@@ -58,9 +62,12 @@ function filenameFromDisposition(header: string | null): string | null {
 
 /**
  * ExportMenu (EXPORT-04) — botón "Exportar" con menú desplegable accesible de 3
- * formatos (PDF / Markdown / PPTX). Dispara la descarga contra la route de
- * export (Phase 13) vía fetch→blob→enlace temporal, con estado de carga real
- * que bloquea el doble envío y error inline neutro.
+ * formatos (PDF / Markdown / PPTX). PDF y PPTX se descargan como archivo
+ * (fetch→blob→enlace temporal); Markdown se COPIA al portapapeles
+ * (fetch→text→navigator.clipboard.writeText) por ser texto pensado para pegar
+ * en una IA, con confirmación inline "Copiado al portapapeles" y fallback a
+ * descarga si la Clipboard API no está disponible. Estado de carga real que
+ * bloquea el doble envío y error inline neutro.
  *
  * Accesibilidad:
  *   - Trigger: aria-haspopup="menu", aria-expanded, aria-controls.
@@ -74,6 +81,7 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const baseId = useId();
@@ -90,6 +98,8 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
   // timer y la URL pendiente para poder revocar también en el desmontaje.
   const revokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingUrlRef = useRef<string | null>(null);
+  // Timer de auto-limpieza de la confirmación "Copiado" (formato md).
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleRevoke = useCallback((url: string) => {
     pendingUrlRef.current = url;
@@ -100,11 +110,30 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
     }, 1000);
   }, []);
 
-  // Al desmontar: revocar cualquier URL pendiente para no filtrar memoria.
+  // Descarga vía enlace temporal (pdf/pptx y fallback de md). Sincrónico y
+  // autocontenido: crea el object URL, dispara el click y programa su revoke
+  // diferido (WR-02), sin dejar ventanas donde una excepción filtre memoria.
+  const triggerDownload = useCallback(
+    (blob: Blob, filename: string) => {
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      scheduleRevoke(objectUrl);
+    },
+    [scheduleRevoke]
+  );
+
+  // Al desmontar: revocar cualquier URL pendiente y cancelar el timer de
+  // "Copiado" para no filtrar memoria ni setear estado sobre un árbol muerto.
   useEffect(() => {
     return () => {
       if (revokeTimerRef.current) clearTimeout(revokeTimerRef.current);
       if (pendingUrlRef.current) URL.revokeObjectURL(pendingUrlRef.current);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
     };
   }, []);
 
@@ -156,36 +185,54 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
       if (inFlightRef.current || loading) return;
       inFlightRef.current = true;
       setErrorMsg(null);
+      setCopied(false);
       setOpen(false);
       setLoading(true);
-      let objectUrl: string | null = null;
       try {
         const res = await fetch(
           `/api/audits/${auditId}/export?format=${option.format}`
         );
         if (!res.ok) throw new Error(`export failed: ${res.status}`);
+
+        // Markdown: copiar al portapapeles en vez de descargar. El texto está
+        // pensado para pegarse en un chat de IA, así que el clipboard es el
+        // destino natural. PDF/PPTX siguen descargándose como archivo.
+        if (option.format === "md") {
+          const text = await res.text();
+          const clipboard = navigator.clipboard;
+          if (clipboard?.writeText) {
+            try {
+              await clipboard.writeText(text);
+              setCopied(true);
+              if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+              copiedTimerRef.current = setTimeout(() => {
+                setCopied(false);
+                copiedTimerRef.current = null;
+              }, COPIED_TTL_MS);
+              return;
+            } catch {
+              // writeText rechazó (permiso/contexto): caemos a la descarga.
+            }
+          }
+          // Fallback robusto: sin Clipboard API (contexto inseguro) o si el
+          // writeText falló, entregamos el markdown como descarga para que el
+          // usuario nunca se quede sin su contenido.
+          const filename =
+            filenameFromDisposition(res.headers.get("content-disposition")) ??
+            `auditoria-${domain ?? auditId}.${option.ext}`;
+          triggerDownload(new Blob([text], { type: "text/markdown" }), filename);
+          return;
+        }
+
         const blob = await res.blob();
         const filename =
           filenameFromDisposition(res.headers.get("content-disposition")) ??
           `auditoria-${domain ?? auditId}.${option.ext}`;
-        objectUrl = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = objectUrl;
-        anchor.download = filename;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        // WR-02: diferir el revoke para dar tiempo al navegador a iniciar la
-        // transferencia; anulamos objectUrl para no revocarlo en el finally.
-        scheduleRevoke(objectUrl);
-        objectUrl = null;
+        triggerDownload(blob, filename);
       } catch {
         // Texto neutro fijo; nunca exponemos status/stack al usuario (T-14-03).
         setErrorMsg(ERROR_MSG);
       } finally {
-        // Sólo la ruta de error/early-exit revoca de inmediato (aún no hubo
-        // descarga); el éxito ya programó el revoke diferido (WR-02, T-14-04).
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
         inFlightRef.current = false;
         setLoading(false);
         // WR-01: el menú ya se cerró (foco caído a <body>) y el trigger vuelve a
@@ -194,7 +241,7 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
         requestAnimationFrame(() => focusTrigger());
       }
     },
-    [auditId, domain, loading, scheduleRevoke, focusTrigger]
+    [auditId, domain, loading, triggerDownload, focusTrigger]
   );
 
   // Teclado del trigger.
@@ -313,6 +360,13 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
         <p className={styles.error} role="alert">
           <AlertTriangle size={16} aria-hidden="true" />
           {errorMsg}
+        </p>
+      )}
+
+      {copied && (
+        <p className={styles.copied} role="status">
+          <Check size={16} aria-hidden="true" />
+          {COPIED_MSG}
         </p>
       )}
     </div>

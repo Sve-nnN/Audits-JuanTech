@@ -6,16 +6,19 @@ import userEvent from "@testing-library/user-event";
 import { ExportMenu } from "./ExportMenu";
 
 const AUDIT_ID = "audit-123";
+const MD_BODY = "# Reporte\n\nContenido markdown de la auditoría.";
 
 /**
- * Construye un Response falso que satisface el camino fetch→blob→descarga:
- * ok=true, blob() resuelve, y expone el header Content-Disposition con filename.
+ * Construye un Response falso que satisface tanto el camino fetch→blob→descarga
+ * (pdf/pptx) como fetch→text→clipboard (md): ok=true, blob() y text() resuelven,
+ * y expone el header Content-Disposition con filename.
  */
 function okResponse(filename = "auditoria-example-audit-123.pdf") {
   return {
     ok: true,
     status: 200,
     blob: vi.fn().mockResolvedValue(new Blob(["data"], { type: "application/octet-stream" })),
+    text: vi.fn().mockResolvedValue(MD_BODY),
     headers: {
       get: (name: string) =>
         name.toLowerCase() === "content-disposition"
@@ -26,6 +29,7 @@ function okResponse(filename = "auditoria-example-audit-123.pdf") {
 }
 
 let clickSpy: ReturnType<typeof vi.fn>;
+let writeTextSpy: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   // Descarga observable sin navegación real.
@@ -34,8 +38,21 @@ beforeEach(() => {
   clickSpy = vi.fn();
   // Interceptar el click del enlace temporal (evita navegación jsdom).
   HTMLAnchorElement.prototype.click = clickSpy as unknown as () => void;
+  writeTextSpy = vi.fn().mockResolvedValue(undefined);
   global.fetch = vi.fn().mockResolvedValue(okResponse());
 });
+
+/**
+ * Instala el mock de Clipboard API. Debe llamarse DESPUÉS de userEvent.setup(),
+ * porque user-event reemplaza navigator.clipboard con su propio stub durante el
+ * setup y taparía este spy si se instalara antes.
+ */
+function mockClipboard(value: { writeText: typeof writeTextSpy } | undefined) {
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value,
+  });
+}
 
 afterEach(() => {
   cleanup(); // globals off → sin auto-cleanup; desmontar entre tests.
@@ -123,14 +140,37 @@ describe("ExportMenu", () => {
     expect(clickSpy).toHaveBeenCalled();
   });
 
-  it("Markdown (para IA) usa format=md", async () => {
+  it("Markdown pega a format=md, copia el texto al portapapeles y confirma (sin descarga)", async () => {
     const user = userEvent.setup();
+    mockClipboard({ writeText: writeTextSpy });
     render(<ExportMenu auditId={AUDIT_ID} />);
     const trigger = screen.getByRole("button", { name: /exportar/i });
     await user.click(trigger);
     await user.click(screen.getByRole("menuitem", { name: /Markdown/i }));
     await waitFor(() => expect(fetchMock()).toHaveBeenCalledTimes(1));
     expect(fetchMock().mock.calls[0]?.[0]).toContain("export?format=md");
+    // Copia el texto devuelto por la route, no descarga un blob.
+    await waitFor(() => expect(writeTextSpy).toHaveBeenCalledWith(MD_BODY));
+    // Confirmación inline visible; nunca se creó un object URL ni se descargó.
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      /copiado al portapapeles/i
+    );
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    expect(clickSpy).not.toHaveBeenCalled();
+  });
+
+  it("Markdown cae a descarga si la Clipboard API no está disponible", async () => {
+    const user = userEvent.setup();
+    mockClipboard(undefined);
+    render(<ExportMenu auditId={AUDIT_ID} />);
+    const trigger = screen.getByRole("button", { name: /exportar/i });
+    await user.click(trigger);
+    await user.click(screen.getByRole("menuitem", { name: /Markdown/i }));
+    await waitFor(() => expect(fetchMock()).toHaveBeenCalledTimes(1));
+    // Fallback robusto: entrega el markdown como descarga.
+    await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled());
+    expect(clickSpy).toHaveBeenCalled();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("Presentación (PPTX) usa format=pptx", async () => {
