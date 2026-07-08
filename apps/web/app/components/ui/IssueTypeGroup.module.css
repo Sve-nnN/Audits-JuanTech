@@ -1,0 +1,146 @@
+/*
+ * IssueTypeGroup.module.css — dropdown de grupo de issues por tipo
+ * (REPORT-01 / REPORT-02). details/summary nativos, mismo patrón que
+ * CategoryAccordion. Solo tokens semánticos (DS-01), sin hex crudo.
+ * El título del grupo va en Geist Sans semibold (NO Khand): es un nivel
+ * jerárquico inferior a la categoría y no debe competir con su título.
+ */
+
+.groups {
+  display: flex;
+  flex-direction: column;
+}
+
+.group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+}
+
+.summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  list-style: none;
+}
+
+/* Oculta el marcador nativo del disclosure (triángulo). */
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:hover {
+  background: var(--surface-hover);
+}
+
+.summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.groupTitle {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-snug);
+  color: var(--text);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.count {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.group[open] .chevron {
+  transform: rotate(180deg);
+}
+
+/* Bajo reduced-motion la rotación es instantánea (red global de globals.css). */
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}
+
+.body {
+  border-top: 1px solid var(--border);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow-x: auto;
+}
+
+/* Región enfocable por teclado (listas largas), igual que IssuesTable. */
+.body:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* --- Fila de página afectada --- */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.row + .row {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.cellLabel {
+  font-family: var(--font-geist-sans);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.cellValue {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  color: var(--text);
+}
+
+/* "Valor medido" en Geist Mono + tnum, igual que el resto del reporte. */
+.cellValueMono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1;
+  font-size: var(--font-size-sm);
+  color: var(--text);
+}
+
+.link {
+  color: var(--text);
+}
+
+.plain {
+  color: var(--text);
+}
