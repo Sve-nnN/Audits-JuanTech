@@ -309,7 +309,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
 
     const origin = new URL(startUrl).origin;
     const [pages, robotsTxt, sitemapUrls] = await Promise.all([
-      prisma.page.findMany({ where: { auditId } }),
+      prisma.page.findMany({ where: { auditId }, orderBy: { createdAt: "asc" } }),
       fetchRobotsTxtBody(origin),
       discoverSitemapUrls(origin),
     ]);
@@ -317,11 +317,19 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     // DEPTH-01/03: compute the link graph / BFS click-depth exactly once per
     // audit, immediately after the crawl and before the check battery runs,
     // so TECH-14 (and Phase 20's architecture visualizer) reuse this same
-    // result without recomputing it from HTML.
-    const graph = buildLinkGraph(
-      pages.map((p) => ({ id: p.id, url: p.url, finalUrl: p.finalUrl, html: p.html })),
-      origin
-    );
+    // result without recomputing it from HTML. Best-effort — same pattern as
+    // the PSI sample below: a failure here must not lose the checks that run
+    // after it, so it degrades to an empty graph rather than failing the audit.
+    let graph: LinkGraph;
+    try {
+      graph = buildLinkGraph(
+        pages.map((p) => ({ id: p.id, url: p.url, finalUrl: p.finalUrl, html: p.html })),
+        origin
+      );
+    } catch (err) {
+      console.error(`[worker] buildLinkGraph failed for audit ${auditId}:`, err);
+      graph = { nodes: [], edges: [], depthByUrl: {} };
+    }
 
     await writePhase("analyzing");
     const { issues: issueDrafts, pageSchemaGraphs } = await runAllChecks({
