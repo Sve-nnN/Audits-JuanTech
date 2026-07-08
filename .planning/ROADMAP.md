@@ -129,7 +129,8 @@ Plans:
   3. Durante la generación el control muestra estado de carga/deshabilitado y evita el doble envío de peticiones pesadas.
   4. Al completar, el navegador descarga el archivo en el formato elegido.
 
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 14-01-PLAN.md — ExportMenu accesible (trigger + menu 3 formatos) + descarga por blob + montaje en header del reporte
 **UI hint**: yes
 
 ### Phase 15: UX del reporte — agrupación e indicadores
