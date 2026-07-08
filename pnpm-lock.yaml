@@ -29,6 +29,9 @@ importers:
       '@auditor/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@auditor/export':
+        specifier: workspace:*
+        version: link:../../packages/export
       '@auditor/queue':
         specifier: workspace:*
         version: link:../../packages/queue

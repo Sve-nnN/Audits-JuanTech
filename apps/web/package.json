@@ -13,6 +13,7 @@
     "@auditor/checks": "workspace:*",
     "@auditor/db": "workspace:*",
     "@auditor/email": "workspace:*",
+    "@auditor/export": "workspace:*",
     "@auditor/queue": "workspace:*",
     "@auditor/quota": "workspace:*",
     "@auditor/report-model": "workspace:*",
