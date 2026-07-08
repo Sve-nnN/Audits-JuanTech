@@ -66,12 +66,13 @@ export function IssueTypeGroup({ issues }: IssueTypeGroupProps) {
               <ChevronDown className={styles.chevron} size={20} aria-hidden="true" />
             </span>
           </summary>
-          <div
-            className={styles.body}
-            role="region"
-            aria-label={`Páginas afectadas por ${group.title}`}
-            tabIndex={0}
-          >
+          {/*
+            Sin role="region": aplicarlo a cada grupo saturaba el árbol de
+            landmarks cuando hay decenas de tipos de issue (UI-2). El disclosure
+            nativo <details>/<summary> ya comunica la semántica; el SeverityBadge
+            + título del summary nombran cada grupo.
+          */}
+          <div className={styles.body}>
             {group.issues.map((issue) => (
               <div className={styles.row} key={issue.id}>
                 <span className={styles.cell}>

@@ -83,14 +83,14 @@ describe("IssueTypeGroup", () => {
     const groups = screen.getAllByRole("group");
     // El grupo de imágenes es el primero (orden del helper).
     const imgGroup = groups[0]!;
-    const region = within(imgGroup).getByRole("region");
-    // Dos páginas afectadas → dos enlaces (ambas URLs http).
-    const links = within(region).getAllByRole("link");
+    // Dos páginas afectadas → dos enlaces (ambas URLs http). Ya no hay
+    // role="region" (UI-2): las filas se consultan dentro del propio <details>.
+    const links = within(imgGroup).getAllByRole("link");
     expect(links).toHaveLength(2);
     expect(links[0]).toHaveAttribute("href", "https://example.com/a");
     expect(links[1]).toHaveAttribute("href", "https://example.com/b/c");
     // Valor medido presente para la primera, "—" para la segunda.
-    expect(within(region).getByText("sin alt")).toBeInTheDocument();
+    expect(within(imgGroup).getByText("sin alt")).toBeInTheDocument();
   });
 
   it("renderiza DiffBadge cuando el issue trae diffStatus", () => {
