@@ -45,8 +45,15 @@ interface ExportMenuProps {
 function filenameFromDisposition(header: string | null): string | null {
   if (!header) return null;
   const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header);
-  const raw = match?.[1];
-  return raw ? decodeURIComponent(raw).trim() : null;
+  const raw = match?.[1]?.trim();
+  if (!raw) return null;
+  // decodeURIComponent lanza URIError ante un `%` suelto (p. ej. "50% off");
+  // en ese caso conservamos el filename literal en lugar de abortar la descarga.
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 }
 
 /**
