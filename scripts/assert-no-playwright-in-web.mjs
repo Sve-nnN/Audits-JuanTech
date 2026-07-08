@@ -18,13 +18,19 @@
  * What actually would put Chromium in the Vercel bundle is a **real
  * (non-peer)** dependency edge that imports Playwright — i.e. @auditor/render
  * (which declares `playwright: 1.61.1` as a real dep) leaking into the web
- * graph. So this guardrail asserts, deterministically:
+ * graph. Phase 13 adds a second carrier to watch: @auditor/export is now a
+ * REAL dependency of apps/web (it powers the export route), so this guardrail
+ * must also prove that @auditor/export drags neither Puppeteer nor Chromium
+ * into the web graph — its serializers (@react-pdf/renderer, pptxgenjs) are
+ * pure JS with no headless browser. So this guardrail asserts, deterministically:
  *
  *   A. `playwright` is not a DIRECT dependency of apps/web.
  *   B. `@auditor/render` (the real Playwright carrier) does not resolve
  *      anywhere in @auditor/web's dependency graph.
  *   C. `pnpm --filter @auditor/web why playwright` contains no **non-peer**
  *      (real/resolved) playwright edge — only the tolerated crawlee peer chain.
+ *   D. No `puppeteer` or `chromium` edge resolves in the web graph at all —
+ *      the guarantee that @auditor/export (the new real dep) stays browserless.
  *
  * Any failure exits non-zero so CI blocks the merge.
  */
@@ -101,6 +107,28 @@ if (nonPeerPlaywrightEdges.length > 0) {
     `@auditor/web has ${nonPeerPlaywrightEdges.length} non-peer (real) playwright edge(s):\n    ` +
       nonPeerPlaywrightEdges.join("\n    "),
   );
+}
+
+// --- Check D: no puppeteer/chromium edge via @auditor/export ------------------
+// @auditor/export is a REAL dependency of apps/web as of Phase 13. Its
+// serializers (@react-pdf/renderer, pptxgenjs) are pure JS — no headless
+// browser. `pnpm why` prints nothing (empty) when a package is absent, so any
+// resolved (non-peer) edge here would mean a browser engine leaked in.
+for (const browserPkg of ["puppeteer", "chromium"]) {
+  const why = run("pnpm", ["--filter", "@auditor/web", "why", browserPkg]);
+  const realEdges = why.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) =>
+      new RegExp(`(^|[│├└─\\s])${browserPkg}\\s+\\d[\\w.-]*`).test(line),
+    )
+    .filter((line) => !/\bpeer\s*$/.test(line));
+  if (realEdges.length > 0) {
+    failures.push(
+      `@auditor/web has ${realEdges.length} real (non-peer) ${browserPkg} edge(s) — likely via @auditor/export:\n    ` +
+        realEdges.join("\n    "),
+    );
+  }
 }
 
 // --- Report -------------------------------------------------------------------
