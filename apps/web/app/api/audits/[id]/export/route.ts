@@ -64,24 +64,39 @@ export async function GET(
     );
   }
 
-  const model = await buildReportModel(id);
-  if (!model) {
-    return NextResponse.json({ error: "Audit not found" }, { status: 404 });
-  }
-
   const { ext, contentType } = FORMATS[format];
-  const filename = `auditoria-${slugifyDomain(model.audit.domain)}-${id}.${ext}`;
 
-  // `string` for Markdown, binary (`Uint8Array`/`Buffer`) for PDF/PPTX. The Node
-  // runtime accepts both as a Response body; the cast bridges the DOM `BodyInit`
-  // type (which omits `Uint8Array` in this lib version).
+  // Everything that can throw at runtime — the model build (DB access) and the
+  // serializers (font registration, @react-pdf/renderer render, pptxgenjs write)
+  // — is wrapped so a failure yields a controlled 500 with a generic body (no
+  // PII, no stack) plus a single server-side log line for diagnosis. The 400
+  // (invalid format, before any DB access) and 404 (missing audit) paths stay
+  // intact. `string` for Markdown, binary (`Uint8Array`/`Buffer`) for PDF/PPTX;
+  // the Node runtime accepts both as a Response body and the cast bridges the
+  // DOM `BodyInit` type (which omits `Uint8Array` in this lib version).
   let body: string | Uint8Array;
-  if (format === "md") {
-    body = toMarkdown(model);
-  } else if (format === "pdf") {
-    body = await toPdf(model);
-  } else {
-    body = await toPptx(model);
+  let filename: string;
+  try {
+    const model = await buildReportModel(id);
+    if (!model) {
+      return NextResponse.json({ error: "Audit not found" }, { status: 404 });
+    }
+
+    filename = `auditoria-${slugifyDomain(model.audit.domain)}-${id}.${ext}`;
+
+    if (format === "md") {
+      body = toMarkdown(model);
+    } else if (format === "pdf") {
+      body = await toPdf(model);
+    } else {
+      body = await toPptx(model);
+    }
+  } catch (err) {
+    console.error(`export ${format} failed for audit ${id}:`, err);
+    return NextResponse.json(
+      { error: "Export generation failed" },
+      { status: 500 }
+    );
   }
 
   return new Response(body as BodyInit, {
