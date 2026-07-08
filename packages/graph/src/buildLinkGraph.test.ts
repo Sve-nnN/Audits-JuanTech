@@ -88,6 +88,22 @@ describe("buildLinkGraph", () => {
     expect(graph).toEqual({ nodes: [], edges: [], depthByUrl: {} });
   });
 
+  it("Test 8: BFS discovered via pre-redirect url still yields outbound links (CR-01 regression)", () => {
+    const pages: GraphPage[] = [
+      // Home links to the pre-redirect url of /a, but /a's own crawled record
+      // reports finalUrl as the trailing-slash variant.
+      page("https://example.com", ["https://example.com/a"]),
+      page("https://example.com/a", ["https://example.com/b"], {
+        finalUrl: "https://example.com/a/",
+      }),
+      page("https://example.com/b", []),
+    ];
+
+    const graph = buildLinkGraph(pages, ORIGIN);
+
+    expect(graph.depthByUrl["https://example.com/b"]).toBe(2);
+  });
+
   it("Test 7: edges only reference reachable nodes present in depthByUrl", () => {
     const pages: GraphPage[] = [
       page("https://example.com", ["https://example.com/a", "https://example.com/orphan-target"]),
