@@ -39,6 +39,12 @@ export interface SiteCheckCtx {
   origin: string;
   robotsTxt?: string | null;
   sitemapUrls: string[];
+  /**
+   * BFS click-depth from home, keyed by normalized URL — computed once by
+   * the worker via `@auditor/graph` and passed through; checks never read
+   * `Page.depth`, which is always 0 in sitemap-seeded crawls.
+   */
+  depthByUrl?: Record<string, number>;
 }
 
 export interface PageCheck {

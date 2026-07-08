@@ -11,6 +11,7 @@ import { sitemapCheck } from "./sitemap";
 import { duplicateContentCheck } from "./duplicateContent";
 import { orphanPagesCheck } from "./orphanPages";
 import { hreflangCheck } from "./hreflang";
+import { depthCheck } from "./depth";
 
 export const techPageChecks: PageCheck[] = [
   httpStatusCheck,
@@ -28,6 +29,7 @@ export const techSiteChecks: SiteCheck[] = [
   orphanPagesCheck,
   hreflangCheck,
   canonicalDeep,
+  depthCheck,
 ];
 
 export {
@@ -43,4 +45,5 @@ export {
   duplicateContentCheck,
   orphanPagesCheck,
   hreflangCheck,
+  depthCheck,
 };
