@@ -9,9 +9,9 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 
 ### Grafo de enlaces compartido + profundidad de clics
 
-- [ ] **DEPTH-01**: El auditor calcula la profundidad real de cada página (clics desde home) mediante un BFS propio sobre el grafo de enlaces internos (no lee `Page.depth`, que queda en 0 en crawls sembrados por sitemap).
+- [x] **DEPTH-01**: El auditor calcula la profundidad real de cada página (clics desde home) mediante un BFS propio sobre el grafo de enlaces internos (no lee `Page.depth`, que queda en 0 en crawls sembrados por sitemap).
 - [ ] **DEPTH-02**: El reporte marca como advertencia el porcentaje de páginas a más de 3 clics de la home (issue agregado, no uno por página).
-- [ ] **DEPTH-03**: El BFS/grafo de enlaces internos se calcula una sola vez y lo reusan tanto el check de profundidad como el visualizador de arquitectura (DEPTH-04..ARCH-04) — nunca se recalcula por separado en cada carga del reporte.
+- [x] **DEPTH-03**: El BFS/grafo de enlaces internos se calcula una sola vez y lo reusan tanto el check de profundidad como el visualizador de arquitectura (DEPTH-04..ARCH-04) — nunca se recalcula por separado en cada carga del reporte.
 
 ### Diagnósticos de Lighthouse (PSI)
 
@@ -50,9 +50,9 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPTH-01 | Phase 16 | Pending |
+| DEPTH-01 | Phase 16 | Complete |
 | DEPTH-02 | Phase 16 | Pending |
-| DEPTH-03 | Phase 16 | Pending |
+| DEPTH-03 | Phase 16 | Complete |
 | PERF-05 | Phase 18 | Pending |
 | PERF-06 | Phase 18 | Pending |
 | TEMPLATE-01 | Phase 19 | Pending |
@@ -65,6 +65,7 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 | ARCH-04 | Phase 20 | Pending |
 
 **Coverage:**
+
 - v1.3 requirements: 13 total
 - Mapped to phases: 13/13
 - Unmapped: 0

@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Profundizar checks técnicos + visualización de arquitectura
-status: planning
-last_updated: "2026-07-08T19:20:13.380Z"
-last_activity: 2026-07-08
+status: in-progress
+stopped_at: "Phase 16 Plan 01 (@auditor/graph + buildLinkGraph BFS) completado — Plan 02 (integración worker + persistencia Audit.stats.graph) pendiente."
+last_updated: "2026-07-08T19:59:39Z"
+last_activity: 2026-07-08 — Phase 16 Plan 01 ejecutado (paquete @auditor/graph con buildLinkGraph BFS)
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 2
+  completed_plans: 1
+  percent: 50
 ---
 
 # Project State
@@ -24,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 ## Current Position
 
-Phase: 16 (Grafo de enlaces compartido + profundidad de clics real) — not started
-Plan: —
-Status: Roadmap approved, awaiting phase planning
-Last activity: 2026-07-08 — Roadmap v1.3 creado (Phases 16-20)
+Phase: 16 (Grafo de enlaces compartido + profundidad de clics real) — in progress
+Plan: 01 complete (@auditor/graph + buildLinkGraph BFS), 02 pending (integración worker)
+Status: Plan 16-01 executed
+Last activity: 2026-07-08 — Phase 16 Plan 01 ejecutado (paquete @auditor/graph con buildLinkGraph BFS)
 
 ## Performance Metrics
 
@@ -79,6 +80,7 @@ Last activity: 2026-07-08 — Roadmap v1.3 creado (Phases 16-20)
 | Phase 14 P01 | ~7 min | 3 tasks | 7 files |
 | Phase 15 P01 | ~4 min | 2 tasks | 5 files |
 | Phase 15 P03 | ~6 min | 2 tasks | 3 files |
+| Phase 16 P01 | ~20 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -87,6 +89,7 @@ Last activity: 2026-07-08 — Roadmap v1.3 creado (Phases 16-20)
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- [Phase 16]: 16-01 (DEPTH-01/03): nuevo paquete `@auditor/graph` con `buildLinkGraph(pages, origin)` puro — reusa el patrón de extracción de links de `canonicalDeep.ts` (cheerio + `normalizeUrl`/`sameRegistrableDomain`), BFS desde home con shortest-path garantizado, orphans/páginas sin html/enlaces externos excluidos sin lanzar excepción. `GraphPage` decoplado de `@auditor/db` (id/url/finalUrl/html mínimo). 7 tests TDD RED→GREEN, typecheck limpio, cero `any`. Listo para que 16-02 lo cablee en el worker y persista en `Audit.stats.graph`.
 - [Roadmap v1.3]: Fases 16-20 anexadas en riesgo ascendente según research (SUMMARY.md): (16) grafo/BFS de enlaces compartido + check de profundidad de clics real (corrige la premisa de que `Page.depth` sirve tal cual — el BFS de `crawl.ts` sólo corre en fallback link-crawl puro, nunca en modo sitemap-seeded); (17) schema-contenido mismatch (independiente, cruza con la muestra CSR/SSR de v1.2); (18) diagnósticos de Lighthouse desde PSI (aislado en `packages/psi`, extracción antes del cacheo reducido de `parser.ts`/`cache.ts`); (19) agrupación por plantilla (decisión de UI compartida — generalizar `IssueTypeGroup` — antes del visualizador); (20) visualizador de arquitectura (mayor superficie nueva, SVG puro estilo `EntityGraphSvg.tsx`, depende del grafo/BFS de Phase 16, opcionalmente muestra la plantilla de Phase 19). Ningún paquete nuevo; el grafo/BFS se persiste en `Audit.stats` (mismo mecanismo que `stats.perf`) para que Phase 16 y Phase 20 nunca reparseen HTML por separado.
 - [Phase 15]: 15-03 (REPORT-04, cierre de fase y milestone v1.2): `JsonLdBadge` (client component, apps/web/app/components/ui) deriva el peor de 4 estados JSON-LD con `jsonLdStateForPage` (helper puro 15-01) cruzando `schemaSeverities` (issues category=schema de la página) con `hasSchemaGraph = nodeCount > 0`, y lo mapea a variantes existentes de `Badge` sin colores nuevos: error→critical "JSON-LD con errores", warning→warning "JSON-LD con advertencias", ok→ok "{n} entidad(es) JSON-LD", absent→neutral "Sin JSON-LD". `pages/page.tsx` añade una segunda consulta `issue.findMany({ where:{ auditId, category:"schema" }, select:{ pageId, severity } })` agrupada en un `Map<pageId, ReportSeverity[]>` (severity de Prisma casteada a ReportSeverity), sustituyendo el badge de 2 estados por `JsonLdBadge`; resto de la fila (enlace, shortUrl, Reveal, orderBy url, EmptyState) intacto. TDD RED→GREEN en el badge; 28 tests web verdes (5 nuevos del badge) + typecheck + build.
 - [Phase 15]: 15-01 (REPORT-01/02/04): dos helpers puros en @auditor/report-model (sin React/Prisma). `groupIssuesByType(issues)` = única fuente del orden: agrupa por clave compuesta `checkId`+espacio+`title` (subtipos del mismo checkId con títulos distintos = grupos separados), severidad del grupo = la peor (peso local {critical:0,warning:1,ok:2}), ordena por (peso asc, count desc) con empate total resuelto por orden de inserción del Map (estable sin depender de Array.sort), no muta la entrada y no pierde issues (suma counts == longitud, T-15-01). Tipo `IssueTypeGroup {checkId,title,severity,count,issues}`. `jsonLdStateForPage(schemaSeverities, hasSchemaGraph)` = peor de 4 estados con precedencia critical→"error" > warning→"warning" > (grafo presente)→"ok" > "absent"; devuelve solo el estado semántico (el mapeo a badge/color vive en la UI del plan 03). Tipo `JsonLdState`. Ambos exportados de index.ts. TDD RED→GREEN por tarea; 17 tests verdes (7 grouping + 5 jsonld + 5 build) + typecheck limpio.
@@ -152,6 +155,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08 — Roadmap v1.3 creado (Phases 16-20, 13/13 requisitos mapeados). ROADMAP.md, STATE.md y REQUIREMENTS.md (traceability) actualizados.
-Stopped at: Roadmap v1.3 aprobado y escrito — sin planes creados todavía. Próximo paso: `/gsd:plan-phase 16`.
+Last session: 2026-07-08 — Phase 16 Plan 01 ejecutado: paquete @auditor/graph con buildLinkGraph (BFS de profundidad real desde home).
+Stopped at: Plan 16-01 completado (`@auditor/graph`). Plan 16-02 (integración worker + persistencia `Audit.stats.graph` + check DEPTH-01/02) pendiente.
 Resume file: None
