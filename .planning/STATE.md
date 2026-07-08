@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
 status: executing
-stopped_at: 14-01 completado — Phase 14 CERRADA (1/1). ExportMenu accesible (Button trigger secondary + menú 3 formatos PDF/MD/PPTX) con teclado+ARIA, descarga fetch→blob→enlace temporal, loading que bloquea doble fetch y error inline neutro; montado en el header del reporte (rama done). EXPORT-04.
-last_updated: "2026-07-08T16:12:20.000Z"
-last_activity: 2026-07-08 — 14-01: ExportMenu + infra RTL (jsdom por archivo + @vitejs/plugin-react); 18 tests verdes (11 ExportMenu + 7 route) + typecheck + build verdes
+stopped_at: 15-01 completado — helpers puros en @auditor/report-model: groupIssuesByType (orden severidad→cantidad, REPORT-01/02) + jsonLdStateForPage (4 estados, REPORT-04). 17 tests verdes + typecheck limpio. Siguiente: 15-02 (componente IssueTypeGroup + cableado en reporte).
+last_updated: "2026-07-08T11:46:00.000Z"
+last_activity: 2026-07-08 — 15-01: groupIssuesByType + jsonLdStateForPage (TDD RED→GREEN); 17 tests verdes (7 grouping + 5 jsonld + 5 build) + typecheck limpio
 progress:
   total_phases: 1
   completed_phases: 1
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 
 ## Current Position
 
-Phase: 14 of 15 (Botón Exportar UI) — COMPLETA (1/1 planes)
-Plan: 14-01 completado — siguiente: Phase 15 (UX del reporte — agrupación e indicadores, REPORT-01/02/04)
-Status: Phase 14 cerrada — ExportMenu accesible en el header del reporte (rama done): trigger Button secondary + menú de 3 formatos con teclado/ARIA completos, descarga por blob con filename del Content-Disposition, loading que bloquea el doble envío y error inline neutro. Primera suite RTL de apps/web (jsdom por archivo + @vitejs/plugin-react; env node por defecto intacto).
-Last activity: 2026-07-08 — 14-01: ExportMenu + infra RTL; 18 tests verdes + typecheck + build verdes
+Phase: 15 of 15 (UX del reporte — agrupación e indicadores) — EN PROGRESO (1/3 planes)
+Plan: 15-01 completado — siguiente: 15-02 (componente IssueTypeGroup + cableado en "Issues prioritarios" y "Detalle por categoría")
+Status: 15-01 cierra la fundación pura de la Fase 15 — groupIssuesByType (única fuente del orden severidad→cantidad, agrupa por checkId+title sin perder issues) y jsonLdStateForPage (peor de 4 estados error/warning/ok/absent). Ambos helpers puros (sin React/Prisma), exportados del paquete, listos para los planes 02 (UI de grupos) y 03 (badge JSON-LD).
+Last activity: 2026-07-08 — 15-01: groupIssuesByType + jsonLdStateForPage (TDD); 17 tests verdes + typecheck limpio
 
-Progress: [██████████] 100% (fase 14 — 1/1)
+Progress: [███▁▁▁▁▁▁▁] 33% (fase 15 — 1/3)
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [██████████] 100% (fase 14 — 1/1)
 | Phase 13 P03 | ~7 min | 3 tasks | 11 files |
 | Phase 13 P04 | ~10 min | 2 tasks | 5 files |
 | Phase 14 P01 | ~7 min | 3 tasks | 7 files |
+| Phase 15 P01 | ~4 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,7 @@ Progress: [██████████] 100% (fase 14 — 1/1)
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- [Phase 15]: 15-01 (REPORT-01/02/04): dos helpers puros en @auditor/report-model (sin React/Prisma). `groupIssuesByType(issues)` = única fuente del orden: agrupa por clave compuesta `checkId`+espacio+`title` (subtipos del mismo checkId con títulos distintos = grupos separados), severidad del grupo = la peor (peso local {critical:0,warning:1,ok:2}), ordena por (peso asc, count desc) con empate total resuelto por orden de inserción del Map (estable sin depender de Array.sort), no muta la entrada y no pierde issues (suma counts == longitud, T-15-01). Tipo `IssueTypeGroup {checkId,title,severity,count,issues}`. `jsonLdStateForPage(schemaSeverities, hasSchemaGraph)` = peor de 4 estados con precedencia critical→"error" > warning→"warning" > (grafo presente)→"ok" > "absent"; devuelve solo el estado semántico (el mapeo a badge/color vive en la UI del plan 03). Tipo `JsonLdState`. Ambos exportados de index.ts. TDD RED→GREEN por tarea; 17 tests verdes (7 grouping + 5 jsonld + 5 build) + typecheck limpio.
 - [Phase 14]: 14-01 (EXPORT-04, cierre de fase): client component `ExportMenu` (apps/web/app/components/ui) — trigger reusa `Button` (variant secondary, iconLeft Download, loading) con aria-haspopup/expanded/controls; menú `role="menu"` construido a mano (no hay Dropdown en la librería) con 3 items `role="menuitem"` (FileText/FileCode/Presentation), roving tabindex, teclado completo (Enter/Space/ArrowDown abre→primer item, ArrowUp→último, flechas con wrap, Home/End, Esc devuelve foco al trigger, Tab/click-fuera cierran sin exportar). Foco del trigger vía `document.getElementById(triggerId)` porque Button no reenvía ref (patrón 10-02). Descarga: `fetch('/api/audits/${auditId}/export?format=X')` → `blob()` → enlace temporal (`createObjectURL`+download+click+remove) → `revokeObjectURL` en finally; filename parseado de Content-Disposition con fallback `auditoria-<domain|id>.<ext>`. Guard `if (loading) return;` + Button disabled bloquean el doble fetch (SC#3). Error inline `role="alert"` con texto neutro fijo, se limpia al reintentar. CSS module tokens-only (cero hex). Montado en el header del reporte (rama done) agrupado con el linkOut en `.headerActions`. Primera suite RTL de apps/web: `// @vitest-environment jsdom` por archivo (env node por defecto se mantiene para las route tests de Phase 13); `@vitejs/plugin-react` añadido para transformar JSX bajo rolldown-vite; `cleanup()` explícito en afterEach (globals off). 18 tests verdes (11 ExportMenu + 7 route) + typecheck + build verdes.
 - [Phase 13]: 13-04 (EXPORT-01/02/03/05, cierre de fase): route Node `GET /api/audits/[id]/export?format=pdf|md|pptx` (runtime nodejs) que lee `buildReportModel(auditId)` y devuelve el archivo con el serializer del formato (`toMarkdown`/`toPdf`/`toPptx`) como descarga — `Content-Type` por formato (application/pdf, text/markdown; charset=utf-8, presentationml) + `Content-Disposition: attachment; filename="auditoria-<slug(domain)>-<auditId>.<ext>"`. Validación con type guard (union pdf|md|pptx) → 400 sin tocar la DB; `buildReportModel → null` → 404. Acceso por auditId sin auth (free tier), cero PII. `body` tipado string|Uint8Array con cast a BodyInit (el Node runtime acepta Buffer/Uint8Array pero el tipo DOM los omite). @auditor/export añadida como dependency del web + vitest como devDep (primera suite de tests de apps/web). route.test.ts: 7 tests (3 formatos con firma %PDF/MD/PK + 400×2 + 404 + cero PII en MD) con vi.mock del builder y serializers reales. Guardarrail de frontera extendido con Check D en scripts/assert-no-playwright-in-web.mjs: pnpm why puppeteer/chromium en el web sin edges reales (reusa el filtro non-peer de Check C); prueba que @auditor/export, ahora dep real del web, no arrastra browser engine. assert:web-boundary PASS + build verde.
 - [Init]: Frontend Next.js (Vercel) + worker/cola en contenedor propio (crawl+Lighthouse no cabe en serverless corto)
@@ -139,6 +141,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08 — Completado 14-01-PLAN.md (ExportMenu accesible + descarga por blob + montaje en header; primera suite RTL de apps/web). Phase 14 CERRADA (1/1).
-Stopped at: 14-01 completado — Fase 14 completa (1/1); siguiente: Phase 15 (UX del reporte — agrupación e indicadores, REPORT-01/02/04)
+Last session: 2026-07-08 — Completado 15-01-PLAN.md (helpers puros groupIssuesByType + jsonLdStateForPage en @auditor/report-model, TDD). Fase 15 en progreso (1/3).
+Stopped at: 15-01 completado — siguiente: 15-02 (componente IssueTypeGroup + cableado en "Issues prioritarios" y "Detalle por categoría")
 Resume file: None
