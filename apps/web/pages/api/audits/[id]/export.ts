@@ -1,11 +1,17 @@
-import { NextResponse } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { buildReportModel } from "@auditor/report-model";
 import { toPdf, toMarkdown, toPptx } from "@auditor/export";
 
-// Runs in the Node runtime (NOT edge): the serializers use pure JS libraries
-// (@react-pdf/renderer, pptxgenjs) that need Node APIs; no headless browser is
-// involved, so this stays out of the worker and runs on Vercel.
-export const runtime = "nodejs";
+// Deliberately a Pages Router API route (NOT App Router). App Router route
+// handlers run under Next's `react-server` export condition, which loads
+// React's RSC build (no client internals) process-wide — @react-pdf/renderer's
+// bundled reconciler dereferences `.S` on those missing internals and crashes
+// with "Cannot read properties of undefined (reading 'S')". `serverExternalPackages`
+// does NOT fix this because `react` itself is server-conditioned, not just
+// `@react-pdf/renderer`. Pages Router API routes run in a plain Node context
+// without the `react-server` condition, so `react` resolves to its client
+// build and @react-pdf renders correctly. See apps/web/next.config.ts for the
+// (partial, insufficient on its own) serverExternalPackages entry.
 
 /** Supported export formats and their download metadata. */
 const FORMATS = {
@@ -26,7 +32,7 @@ const FORMATS = {
 
 type ExportFormat = keyof typeof FORMATS;
 
-function isFormat(value: string | null): value is ExportFormat {
+function isFormat(value: unknown): value is ExportFormat {
   return value === "pdf" || value === "md" || value === "pptx";
 }
 
@@ -50,6 +56,14 @@ function slugifyDomain(domain: string): string {
   );
 }
 
+// Binary export payloads (rendered PDFs/PPTX) can exceed the default Pages
+// API response-size warning threshold; disable the size check for this route.
+export const config = {
+  api: {
+    responseLimit: false,
+  },
+};
+
 /**
  * GET /api/audits/[id]/export?format=pdf|md|pptx
  *
@@ -59,18 +73,19 @@ function slugifyDomain(domain: string): string {
  * response NEVER carries PII (the ReportModel excludes email/verification
  * token by construction).
  */
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
-  const format = new URL(request.url).searchParams.get("format");
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+): Promise<void> {
+  const { id: rawId, format: rawFormat } = req.query;
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  const format = Array.isArray(rawFormat) ? rawFormat[0] : rawFormat;
 
-  if (!isFormat(format)) {
-    return NextResponse.json(
-      { error: "Invalid or missing format. Use ?format=pdf|md|pptx" },
-      { status: 400 }
-    );
+  if (!id || !isFormat(format)) {
+    res
+      .status(400)
+      .json({ error: "Invalid or missing format. Use ?format=pdf|md|pptx" });
+    return;
   }
 
   const { ext, contentType } = FORMATS[format];
@@ -80,15 +95,14 @@ export async function GET(
   // — is wrapped so a failure yields a controlled 500 with a generic body (no
   // PII, no stack) plus a single server-side log line for diagnosis. The 400
   // (invalid format, before any DB access) and 404 (missing audit) paths stay
-  // intact. `string` for Markdown, binary (`Uint8Array`/`Buffer`) for PDF/PPTX;
-  // the Node runtime accepts both as a Response body and the cast bridges the
-  // DOM `BodyInit` type (which omits `Uint8Array` in this lib version).
+  // intact.
   let body: string | Uint8Array;
   let filename: string;
   try {
     const model = await buildReportModel(id);
     if (!model) {
-      return NextResponse.json({ error: "Audit not found" }, { status: 404 });
+      res.status(404).json({ error: "Audit not found" });
+      return;
     }
 
     filename = `auditoria-${slugifyDomain(model.audit.domain)}-${sanitizeFilenameSegment(id)}.${ext}`;
@@ -102,17 +116,14 @@ export async function GET(
     }
   } catch (err) {
     console.error(`export ${format} failed for audit ${id}:`, err);
-    return NextResponse.json(
-      { error: "Export generation failed" },
-      { status: 500 }
-    );
+    res.status(500).json({ error: "Export generation failed" });
+    return;
   }
 
-  return new Response(body as BodyInit, {
-    status: 200,
-    headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": `attachment; filename="${filename}"`,
-    },
-  });
+  res.setHeader("Content-Type", contentType);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${filename}"`
+  );
+  res.status(200).send(typeof body === "string" ? body : Buffer.from(body));
 }

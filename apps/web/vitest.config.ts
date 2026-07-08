@@ -9,6 +9,14 @@ export default defineConfig({
   test: {
     environment: "node",
     // Only run the API route unit tests; Next's build/type layer stays with tsc.
-    include: ["app/**/*.test.ts", "app/**/*.test.tsx"],
+    // Pages Router tests live under tests/pages/** (not pages/** itself) —
+    // Next.js treats every .ts file inside pages/api as a route, so a
+    // co-located *.test.ts there would fail the build (missing default export).
+    include: [
+      "app/**/*.test.ts",
+      "app/**/*.test.tsx",
+      "tests/**/*.test.ts",
+      "tests/**/*.test.tsx",
+    ],
   },
 });
