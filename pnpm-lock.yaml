@@ -105,6 +105,9 @@ importers:
       '@auditor/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@auditor/graph':
+        specifier: workspace:*
+        version: link:../../packages/graph
       '@auditor/psi':
         specifier: workspace:*
         version: link:../../packages/psi

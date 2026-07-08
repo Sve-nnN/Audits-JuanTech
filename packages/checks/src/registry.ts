@@ -23,6 +23,8 @@ export interface RunAllChecksOptions {
   sitemapUrls: string[];
   /** Set to false to skip network checks (e.g. in fast/offline test runs). */
   includeNetworkChecks?: boolean;
+  /** BFS click-depth from home, keyed by normalized URL — see `SiteCheckCtx.depthByUrl`. */
+  depthByUrl?: Record<string, number>;
 }
 
 export interface RunAllChecksResult {
@@ -37,7 +39,7 @@ export interface RunAllChecksResult {
  * plus the per-page entity graphs built from each page's JSON-LD (Phase 4).
  */
 export async function runAllChecks(options: RunAllChecksOptions): Promise<RunAllChecksResult> {
-  const { pages, origin, robotsTxt, sitemapUrls, includeNetworkChecks = true } = options;
+  const { pages, origin, robotsTxt, sitemapUrls, includeNetworkChecks = true, depthByUrl } = options;
   const issues: IssueDraft[] = [];
   const pageSchemaGraphs = new Map<string, EntityGraph>();
 
@@ -51,7 +53,7 @@ export async function runAllChecks(options: RunAllChecksOptions): Promise<RunAll
     if (graph) pageSchemaGraphs.set(page.id, graph);
   }
 
-  const siteCtx = { pages, origin, robotsTxt, sitemapUrls };
+  const siteCtx = { pages, origin, robotsTxt, sitemapUrls, depthByUrl };
   for (const check of siteChecks) {
     issues.push(...check.run(siteCtx));
   }

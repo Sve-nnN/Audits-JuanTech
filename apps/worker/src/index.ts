@@ -2,6 +2,7 @@ import { Worker, type Job } from "bullmq";
 import { prisma, Prisma, type Page as PageRow } from "@auditor/db";
 import { runCrawl, discoverSitemapUrls, DEFAULT_USER_AGENT } from "@auditor/crawler";
 import { runAllChecks } from "@auditor/checks";
+import { buildLinkGraph, type LinkGraph } from "@auditor/graph";
 import {
   AUDIT_QUEUE,
   createRedisConnection,
@@ -302,6 +303,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
         previousAuditId: string | null;
       };
     };
+    graph: LinkGraph;
   }> {
     const summary = await runCrawl({ auditId, startUrl, urlLimit: audit.urlLimit, onProgress });
 
@@ -312,12 +314,22 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       discoverSitemapUrls(origin),
     ]);
 
+    // DEPTH-01/03: compute the link graph / BFS click-depth exactly once per
+    // audit, immediately after the crawl and before the check battery runs,
+    // so TECH-14 (and Phase 20's architecture visualizer) reuse this same
+    // result without recomputing it from HTML.
+    const graph = buildLinkGraph(
+      pages.map((p) => ({ id: p.id, url: p.url, finalUrl: p.finalUrl, html: p.html })),
+      origin
+    );
+
     await writePhase("analyzing");
     const { issues: issueDrafts, pageSchemaGraphs } = await runAllChecks({
       pages,
       origin,
       robotsTxt,
       sitemapUrls,
+      depthByUrl: graph.depthByUrl,
     });
 
     // Phase 5: PSI sample over a small representative subset of `pages`
@@ -508,10 +520,10 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       },
     };
 
-    return { summary, issueCounts, perfSummary, scores };
+    return { summary, issueCounts, perfSummary, scores, graph };
   }
 
-  const { summary, issueCounts, perfSummary, scores } = await withTimeout(
+  const { summary, issueCounts, perfSummary, scores, graph } = await withTimeout(
     crawlAndCheck(),
     JOB_TIMEOUT_MS,
     `audit ${auditId} crawl+checks+perf`
@@ -529,6 +541,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
         failed: summary.failed,
         issues: issueCounts,
         perf: perfSummary,
+        graph,
       } as unknown as Prisma.InputJsonValue,
       scores: scores as unknown as Prisma.InputJsonValue,
     },
