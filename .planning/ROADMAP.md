@@ -45,7 +45,7 @@ Aditivo sobre v1.0/v1.1 — el pipeline validado no se rompe. Secuencia de riesg
 
 - [x] **Phase 11: Checks más profundos (canonical + headings) + fix dato CWV** — Reglas Cheerio puras sobre HTML ya almacenado: canonicals profundos, jerarquía de encabezados y la URL faltante en issues de rendimiento
 - [x] **Phase 12: Detección de renderizado CSR/SSR** — Pase selectivo de Playwright (muestra, worker-only) que reporta SSR vs CSR con degradación limpia
-- [ ] **Phase 13: Fundación de export + serializers** — `buildReportModel` compartido + paquete `@auditor/export` puro + route Node que genera PDF / Markdown-LLM / PPTX
+- [x] **Phase 13: Fundación de export + serializers** — `buildReportModel` compartido + paquete `@auditor/export` puro + route Node que genera PDF / Markdown-LLM / PPTX
 - [ ] **Phase 14: Botón Exportar (UI)** — Control arriba a la derecha del reporte con selector de tipo, accesible y con estado de carga
 - [ ] **Phase 15: UX del reporte — agrupación e indicadores** — Issues agrupados por tipo en dropdowns + estado JSON-LD por página en la lista de páginas
 
@@ -115,7 +115,7 @@ Plans:
 - [x] 13-01-PLAN.md — Paquete @auditor/report-model (buildReportModel) + refactor de page.tsx a single source of truth
 - [x] 13-02-PLAN.md — Paquete @auditor/export: cap top-N compartido + serializers Markdown-LLM y PPTX
 - [x] 13-03-PLAN.md — Serializer PDF con @react-pdf/renderer + fuente de marca embebida (acentos/ñ)
-- [ ] 13-04-PLAN.md — Route Node GET /api/audits/[id]/export (3 formatos) + guardarrail de frontera Chromium
+- [x] 13-04-PLAN.md — Route Node GET /api/audits/[id]/export (3 formatos) + guardarrail de frontera Chromium
 
 ### Phase 14: Botón Exportar (UI)
 
@@ -162,7 +162,7 @@ Plans:
 | 10. Pantallas rediseñadas, copy, motion y accesibilidad | v1.1 | 8/8 | Complete ✅ | 2026-07-06 |
 | 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 4/4 | Complete ✅ | 2026-07-07 |
 | 12. Detección de renderizado CSR/SSR | v1.2 | 3/3 | Complete ✅ | 2026-07-07 |
-| 13. Fundación de export + serializers | v1.2 | 3/4 | In Progress | - |
+| 13. Fundación de export + serializers | v1.2 | 4/4 | Complete | - |
 | 14. Botón Exportar (UI) | v1.2 | 0/? | Not started | - |
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 0/? | Not started | - |
 

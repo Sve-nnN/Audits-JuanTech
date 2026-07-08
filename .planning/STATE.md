@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
 status: executing
-stopped_at: 13-03 completado — toPdf vía @react-pdf/renderer (EXPORT-01) con Khand headings + Geist Sans body (Array NO en títulos), acentos en ambos roles, cap top-N + cero PII, sin navegador headless
-last_updated: "2026-07-08T14:29:00.000Z"
-last_activity: 2026-07-08 — 13-03: serializer PDF con fuentes de marca vendorizadas (Khand + Geist Sans TTF), acentos preservados en heading Khand Y body Geist Sans; 25 tests + typecheck verdes
+stopped_at: 13-04 completado — Phase 13 CERRADA (4/4). Route Node GET /api/audits/[id]/export?format=pdf|md|pptx (Content-Type por formato + attachment, 400/404, cero PII) + Check D del guardarrail (cero puppeteer/chromium vía @auditor/export)
+last_updated: "2026-07-08T14:44:00.000Z"
+last_activity: 2026-07-08 — 13-04: route de export en runtime nodejs + guardarrail de frontera extendido; 7 tests de route + assert:web-boundary PASS + build verde
 progress:
   total_phases: 1
   completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 
 ## Current Position
 
-Phase: 13 of 15 (Fundación de export + serializers) — EN PROGRESO (3/4 planes)
-Plan: 13-03 completado — siguiente: 13-04 (route Node GET /api/audits/[id]/export + guardarrail de frontera Chromium)
-Status: 13-03 cerrado — @auditor/export completa los 3 serializers (Markdown, PPTX, PDF); toPdf con Khand headings + Geist Sans body, acentos correctos, cap top-50 + cero PII, sin navegador headless
-Last activity: 2026-07-08 — 13-03: toPdf + TTFs de marca vendorizadas; 25 tests + typecheck verdes
+Phase: 13 of 15 (Fundación de export + serializers) — COMPLETA (4/4 planes)
+Plan: 13-04 completado — siguiente: Phase 14 (botón "Exportar" en la UI del reporte, EXPORT-04)
+Status: Phase 13 cerrada — route Node de export (3 formatos, headers, 400/404, cero PII) + guardarrail de frontera Chromium extendido (Check D). @auditor/export es dep real del web sin arrastrar browser engine.
+Last activity: 2026-07-08 — 13-04: route de export + Check D; 7 tests + assert:web-boundary PASS + build verde
 
-Progress: [███████···] 75% (fase 13)
+Progress: [██████████] 100% (fase 13 — 4/4)
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [███████···] 75% (fase 13)
 | Phase 13 P01 | ~14 min | 2 tasks | 9 files |
 | Phase 13 P02 | ~22 min | 3 tasks | 10 files |
 | Phase 13 P03 | ~7 min | 3 tasks | 11 files |
+| Phase 13 P04 | ~10 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,7 @@ Progress: [███████···] 75% (fase 13)
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- [Phase 13]: 13-04 (EXPORT-01/02/03/05, cierre de fase): route Node `GET /api/audits/[id]/export?format=pdf|md|pptx` (runtime nodejs) que lee `buildReportModel(auditId)` y devuelve el archivo con el serializer del formato (`toMarkdown`/`toPdf`/`toPptx`) como descarga — `Content-Type` por formato (application/pdf, text/markdown; charset=utf-8, presentationml) + `Content-Disposition: attachment; filename="auditoria-<slug(domain)>-<auditId>.<ext>"`. Validación con type guard (union pdf|md|pptx) → 400 sin tocar la DB; `buildReportModel → null` → 404. Acceso por auditId sin auth (free tier), cero PII. `body` tipado string|Uint8Array con cast a BodyInit (el Node runtime acepta Buffer/Uint8Array pero el tipo DOM los omite). @auditor/export añadida como dependency del web + vitest como devDep (primera suite de tests de apps/web). route.test.ts: 7 tests (3 formatos con firma %PDF/MD/PK + 400×2 + 404 + cero PII en MD) con vi.mock del builder y serializers reales. Guardarrail de frontera extendido con Check D en scripts/assert-no-playwright-in-web.mjs: pnpm why puppeteer/chromium en el web sin edges reales (reusa el filtro non-peer de Check C); prueba que @auditor/export, ahora dep real del web, no arrastra browser engine. assert:web-boundary PASS + build verde.
 - [Init]: Frontend Next.js (Vercel) + worker/cola en contenedor propio (crawl+Lighthouse no cabe en serverless corto)
 - [Init]: Modo de trabajo GSD: YOLO
 - [Init]: Granularidad Standard → roadmap de 7 fases (v1.0)
@@ -135,6 +137,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08 — Completado 13-03-PLAN.md (toPdf con @react-pdf/renderer: Khand headings + Geist Sans body, acentos en ambos roles, cap top-N + cero PII, sin navegador headless)
-Stopped at: 13-03 completado — Fase 13 en progreso (3/4); siguiente: 13-04 (route Node de export + guardarrail de frontera Chromium)
+Last session: 2026-07-08 — Completado 13-04-PLAN.md (route Node GET /api/audits/[id]/export en 3 formatos con headers + 400/404 + cero PII; guardarrail de frontera extendido con Check D). Phase 13 CERRADA (4/4).
+Stopped at: 13-04 completado — Fase 13 completa (4/4); siguiente: Phase 14 (botón "Exportar" en la UI del reporte, EXPORT-04)
 Resume file: None
