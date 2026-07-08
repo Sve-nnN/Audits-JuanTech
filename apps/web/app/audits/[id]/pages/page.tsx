@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@auditor/db";
-import { Badge } from "../../../components/ui/Badge";
+import type { ReportSeverity } from "@auditor/report-model";
+import { JsonLdBadge } from "../../../components/ui/JsonLdBadge";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { shortUrl } from "../../../components/ui/url";
 import { Reveal } from "../../../components/motion/useReveal";
@@ -23,6 +24,19 @@ export default async function AuditPagesPage({ params }: PageProps) {
     select: { id: true, url: true, finalUrl: true, statusCode: true, schemaGraph: true },
     orderBy: { url: "asc" },
   });
+
+  // Severidades de issues de categoría `schema` agrupadas por pageId (REPORT-04).
+  const schemaIssues = await prisma.issue.findMany({
+    where: { auditId, category: "schema" },
+    select: { pageId: true, severity: true },
+  });
+  const schemaSeverityByPage = new Map<string, ReportSeverity[]>();
+  for (const issue of schemaIssues) {
+    if (!issue.pageId) continue;
+    const list = schemaSeverityByPage.get(issue.pageId) ?? [];
+    list.push(issue.severity as ReportSeverity);
+    schemaSeverityByPage.set(issue.pageId, list);
+  }
 
   return (
     <div className={styles.main}>
@@ -56,11 +70,10 @@ export default async function AuditPagesPage({ params }: PageProps) {
                 >
                   {shortUrl(fullUrl)}
                 </Link>
-                {nodeCount > 0 ? (
-                  <Badge variant="ok">{nodeCount} entidad(es) JSON-LD</Badge>
-                ) : (
-                  <Badge variant="neutral">sin JSON-LD</Badge>
-                )}
+                <JsonLdBadge
+                  schemaSeverities={schemaSeverityByPage.get(page.id) ?? []}
+                  nodeCount={nodeCount}
+                />
               </Reveal>
             );
           })}
