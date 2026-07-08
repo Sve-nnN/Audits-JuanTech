@@ -87,6 +87,13 @@
   margin: var(--space-1) 0 0;
 }
 
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .linkOut {
   font-size: var(--font-size-sm);
   color: var(--accent-text);

@@ -15,6 +15,7 @@ import {
 } from "../../components/ui/CategoryAccordion";
 import { Badge, SeverityBadge, DiffBadge } from "../../components/ui/Badge";
 import { EmptyState, ErrorState } from "../../components/ui/EmptyState";
+import { ExportMenu } from "../../components/ui/ExportMenu";
 import { Reveal } from "../../components/motion/useReveal";
 import {
   CATEGORY_LABEL,
@@ -158,9 +159,12 @@ export default async function AuditReportPage({ params }: PageProps) {
               Auditoría completada el {formatDate(audit.finishedAt)} · {audit.urlLimit} URLs máx.
             </p>
           </div>
-          <Link href={`/audits/${auditId}/pages`} className={styles.linkOut}>
-            Ver páginas y grafo de entidades
-          </Link>
+          <div className={styles.headerActions}>
+            <Link href={`/audits/${auditId}/pages`} className={styles.linkOut}>
+              Ver páginas y grafo de entidades
+            </Link>
+            <ExportMenu auditId={auditId} domain={audit.site.domain} />
+          </div>
         </div>
 
         {/* Score general */}
