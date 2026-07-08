@@ -1,162 +1,147 @@
 # Project Research Summary
 
-**Project:** Auditor Web (SEO/Técnico) — milestone v1.2 (render detection + report exports)
-**Domain:** SEO/technical web-audit tool (lead magnet) — additive milestone on a shipped app
-**Researched:** 2026-07-06
+**Project:** Auditor Web (SEO/Técnico) — Lead Magnet para juan-tech.com
+**Domain:** Extensión de un auditor SEO en producción (5 features nuevas sobre pipeline validado v1.0-v1.2)
+**Researched:** 2026-07-08
 **Confidence:** HIGH
 
 ## Executive Summary
 
-v1.2 is an **additive** milestone on an already-shipped, validated pipeline (crawl → checks → PSI → diff → score → persist) with a strict `apps/web` (Vercel) ↔ `apps/worker` (Railway/VPS container) boundary. Nothing about v1.0/v1.1 changes. The milestone bolts on four capabilities: CSR/SSR render detection (selective Playwright pass in the worker over a small sample), deeper canonical checks, heading-hierarchy checks, and on-demand report exports (PDF, Markdown-for-LLM, PPTX) generated in a Next.js Node API route with a top-right export button + type selector. All four research files were written by reading the actual repo, so confidence is high and grounded, not greenfield guesswork.
+Las 5 features de v1.3 (schema-contenido, profundidad de clics, diagnósticos Lighthouse, agrupación por plantilla, visualizador de arquitectura) son aditivas sobre un pipeline ya validado y **no requieren ninguna dependencia nueva** — ni librería de grafos, ni Lighthouse local, ni migración de storage. Los cuatro research files coinciden en que el trabajo real es de integración cuidadosa dentro de los límites arquitectónicos ya establecidos (`packages/checks`, `packages/psi`, `packages/report-model`), no de exploración tecnológica.
 
-The recommended approach is deliberately conservative about the boundary. The two check extensions (canonical, headings) are **pure Cheerio logic over already-stored HTML** — zero infra, zero migration, lowest risk, so they ship first. CSR/SSR detection is the only feature that touches the worker and Docker: it needs a pinned Playwright base image, a new isolated `@auditor/render` package (worker-only, so Playwright never leaks into the Vercel build via the existing `web → checks → crawler` import path), and it must render only a small sample (reuse the existing `selectSample`), never all 500 URLs. The check itself stays pure — the worker renders and produces a `RenderSignal` artifact, a new `RENDER-01` check consumes it. Exports are pure reads: extract a shared `buildReportModel` first, then three pure serializers in a new `@auditor/export` package using **pure-JS libraries only** (`@react-pdf/renderer`, `pptxgenjs`, hand-rolled Markdown) — no Chromium anywhere near Vercel.
+El hallazgo más importante de la investigación es una corrección a la premisa del propio milestone: **`Page.depth` no sirve para el check de profundidad de clics** en el modo de crawl dominante (sitemap-seeded), porque el BFS que lo calcula sólo corre en el fallback de link-crawl puro (verificado línea por línea en `crawl.ts`). Esto obliga a calcular un BFS real desde el home sobre el grafo de enlaces internos — el mismo cómputo que ya necesita el visualizador de arquitectura (feature 5). Estas dos features deben compartir una sola pasada de parseo de enlaces (reusando el patrón de `orphanPages.ts`), calculada una vez en el worker y persistida en `Audit.stats`, nunca recomputada en el camino de lectura del reporte (violaría la filosofía "sólo datos persistidos" de `buildReportModel` y sería perceptiblemente lento a 500 páginas).
 
-The key risks are all concentrated in CSR/SSR and exports. For rendering: image/npm version drift, Chromium `/dev/shm` OOM under concurrency=2 + existing PSI load, zombie browser processes on timeout/shutdown, and — most insidious — CSR false positives from an arbitrary raw-vs-rendered threshold that would embarrass the lead magnet by flagging SSR sites. Mitigate with pinned images, a global Chromium semaphore, `finally { browser.close() }`, empirically calibrated + documented thresholds (the SimHash=3 precedent), template-level verdicts, and always emitting a stable per-page `ok`/`warning` row so the diff doesn't churn. For exports: don't bundle Chromium into Vercel, truncate to top-N (a 200-page PDF is useless), embed a Unicode TTF for Spanish accents (`áéíóúñ¿¡`), and make an explicit access-control decision since the report is currently public-by-ID. A subtle cross-cutting risk: new multi-condition checks must **sub-type their fingerprints** or the fingerprint-keyed diff silently collapses distinct findings, and new per-page `ok` rows can dilute category scores — verify score drift on the juan-tech.com fixture.
+Los otros riesgos identificados son de scoring e integridad de datos, no de arquitectura: los diagnósticos de Lighthouse deben extraerse en `client.ts`/`parser.ts` antes del punto donde hoy se descartan (si no, "gratis" se vuelve imposible de recuperar sin una segunda llamada a PSI), deben entrar con severidad informativa (`ok`) para no doblar el conteo del score de `perf` ya validado, y necesitan fingerprints sub-tipados por tipo de diagnóstico (repitiendo la lección de Phase 11). El check de schema-contenido y la agrupación por plantilla son heurísticos por naturaleza y deben degradar con gracia (severidad tope `warning`, bucket "desconocido" explícito) para no erosionar la confianza del usuario en un producto lead-magnet.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Only net-new dependencies; everything else is validated and out of scope. Two axes: a worker-side render pass and web-side export generators. All versions verified live via `npm view` on 2026-07-06 and cross-checked against actual repo code.
+Sin cambios de core stack ni instalaciones nuevas. La única decisión de stack real es el visualizador de arquitectura (feature 5): usar SVG nativo + React, replicando el patrón ya validado en producción de `apps/web/app/components/EntityGraphSvg.tsx` ("self-contained SVG renderer, no external libs — strict CSP"). Se descarta explícitamente `@xyflow/react` (55-70kB gzip, pensado para grafos interactivos con drag/zoom), `d3-hierarchy`/`@visx/hierarchy` (peso injustificado para una jerarquía fija de 4 niveles) y `react-arborist`/`react-d3-tree` (pensados para árboles editables/virtualizados de miles de nodos). Esto cierra la pregunta abierta que ARCHITECTURE.md había dejado pendiente ("open stack decision, flag for dedicated library-research pass").
 
-**Core technologies:**
-- **playwright 1.61.1** (worker) — render the CSR/SSR sample in headless Chromium. Use the **raw `playwright` API** (`chromium.launch()` + one context/page per sampled URL), NOT `PlaywrightCrawler` (request-queue/autoscaling is pure overhead for a fixed ≤5-URL sample). Pin **exactly** to match Docker base `mcr.microsoft.com/playwright:v1.61.1-noble`.
-- **@react-pdf/renderer 4.5.1** (web) — branded PDF in the Node API route. Pure-JS, no Chromium, tiny cold start, well under Vercel's 250 MB cap. JSX/flexbox layout fits a data-dense branded report; register brand fonts (Array/Khand/Geist) via `Font.register`.
-- **pptxgenjs 4.0.1** (web) — PPTX deck export. Pure-JS, zero native deps, native charts for category scores, `outputType: "nodebuffer"`.
-- **Markdown export** — hand-rolled string builder from DB rows (NOT an HTML→MD converter; the source is structured data). No dependency.
-
-No new packages for canonical checks, heading checks, or Markdown export. Optional `p-limit@7` only if not reusing the worker's existing lane concurrency pattern. See [STACK.md](./STACK.md).
+**Core technologies (sin cambios):**
+- Cheerio (vía `@auditor/checks`/`@auditor/crawler`) — parseo de HTML crudo, ya en uso para todos los checks nuevos
+- PSI response ya obtenida — fuente de los diagnósticos Lighthouse, cero llamadas extra si se extrae en el punto correcto del pipeline
+- SVG nativo + React — visualizador de arquitectura, cero dependencias nuevas, respeta el CSP estricto y el presupuesto de bundle del reporte
 
 ### Expected Features
 
-Categorized relative to a "Screaming Frog but more complete and automated" audit. See [FEATURES.md](./FEATURES.md).
+**Must have (las 5 ya bloqueadas por el milestone, "MVP" = versión más lean y correcta de cada una):**
+- Check de profundidad de clics (`Page.depth > 3` recalculado vía BFS real, no leído del campo persistido) — severidad `warning`, agregado además de por-página para no inundar la lista de prioridad
+- Diagnósticos de Lighthouse curados (5-7 audit IDs: WebP/formatos modernos, CSS/JS sin usar, render-blocking, imágenes correctamente dimensionadas) — severidad informativa, nunca `critical`
+- Agrupación por plantilla (home/categoría/producto/artículo/desconocido) — segundo eje junto a `groupIssuesByType` de v1.2
+- Check schema-contenido (FAQPage/HowTo/Product+AggregateRating sin contenido visible correspondiente) — severidad tope `warning`, cruzado contra la muestra CSR/SSR de v1.2 antes de marcar mismatch
+- Visualizador de arquitectura (árbol jerárquico por profundidad, bucket "3+", grafo de enlaces on-demand pero **precomputado y persistido**, no recalculado por request)
 
-**Must have (table stakes):**
-- **Heading hierarchy errors** (extend ONPAGE-03) — LOW complexity, pure Cheerio; every SEO+a11y tool reports this.
-- **Deeper canonical checks** (extend TECH-04) — MEDIUM; canonical→noindex/4xx/redirect/chains/cross-domain. Credibility for a technical-SEO tool.
-- **PDF export (branded)** — the default "deliverable" mental model for an audit.
-- **Export button top-right + type selector** — gates all exports; LOW, keyboard/ARIA accessible per the v1.1 baseline.
-
-**Should have (competitive differentiators):**
-- **Markdown-for-LLM export** — the standout. No mainstream SEO tool ships this; serves the "actionable" + AEO positioning directly. Cheapest to build, highest differentiation.
-- **CSR vs SSR detection** — premium JS-SEO capability, AEO-relevant (LLM crawlers don't run JS). Highest complexity, only worker/schema-touching feature.
-- **PPTX export (client-facing deck)** — turns a self-serve report into a consultant-grade artifact; 7–12 focused slides.
-
-**Defer (v2+):**
-- Additional export formats (DOCX/CSV) — format sprawl, only on demand.
-- Per-template CSR grouping UI in the on-screen report — start with export/issue reporting.
-- Rendering-based re-crawl of JS-only internal links — heavier, defer.
-
-**Explicit anti-features:** rendering all 500 URLs with Playwright, Chromium HTML→PDF on Vercel, WYSIWYG export builder, marking CSR as a hard score failure, async/queued export generation.
+**Explícitamente fuera de alcance (anti-features confirmadas por research):**
+- Grafo interactivo completo con aristas persistidas y fuerzas físicas — balonaría scope y storage sin aportar señal extra sobre el árbol jerárquico
+- Lighthouse completo (40+ audits) por página — contradice el principio "no ahogar a una audiencia de lead-magnet en minucias"
+- Clasificación de plantilla por taxonomía rígida específica de CMS — genera falsa confianza en sitios que no siguen esas convenciones; usar heurística de patrones + fallback "desconocido"
 
 ### Architecture Approach
 
-Integration, not re-design. The pipeline and the web/worker boundary MUST NOT change; everything is additive. CSR detection slots as a new pass **after `runCrawl`, before `runAllChecks`** so the verdict becomes an `Issue` through the existing registry/scoring/diff path for free. The worker renders and produces the artifact; a new pure `RENDER-01` check consumes it (browser lives in the worker, check stays pure data-in → IssueDraft-out). Exports extract a shared `buildReportModel` (used by both the report page and the export route to avoid query drift) feeding three pure serializers. See [ARCHITECTURE.md](./ARCHITECTURE.md).
+El pipeline (crawl → `runAllChecks` → PSI sample → render sample → persist → `buildReportModel` → UI/exports) queda intacto; todas las adiciones son aditivas. Los componentes existentes que se tocan: `packages/checks/src/checks/{tech,schema}` (dos `PageCheck`s nuevos), `packages/psi` (extensión de `parser.ts`/`types.ts` + nuevo `diagnostics.ts` paralelo, nunca fusionado en `PsiMetrics`), `packages/report-model` (nuevo `template.ts` y, según la reconciliación de este milestone, un módulo compartido de grafo/BFS), y una ruta nueva `apps/web/app/audits/[id]/architecture/page.tsx`.
 
-**Major components:**
-1. **`@auditor/render`** (NEW, worker-only) — `runRenderSample(pages) → Map<pageId, RenderSignal>`; isolates Playwright so it never reaches Vercel via `web → checks → crawler`.
-2. **`RENDER-01` check** (NEW, pure) — consumes `ctx.renderSignal`, emits CSR/SSR Issue; `PageCheckCtx`/registry get an optional `renderSignal` field.
-3. **`@auditor/export`** (NEW, web-only, pure) — owns `ReportModel` type + `toPdf/toMarkdown/toPptx`; depends only on pure-JS doc libs, never on crawler/checks-runtime/playwright.
-4. **`apps/web/lib/reportModel.ts`** (NEW) + **`/api/audits/[id]/export/route.ts`** (NEW, Node runtime) — shared fetch + thin format-dispatch adapter with download headers.
-5. **Extended `canonical.ts` / `h1.ts`** (MODIFIED, pure) — deeper rules; cross-page canonical cases as a SiteCheck.
-
-**Migrations: none mandatory.** Optional nullable `Page.renderVerdict` only if the pages-view wants a badge.
+**Major components (según la reconciliación arquitectura+pitfalls):**
+1. **Módulo compartido de grafo de enlaces** (nuevo, en el worker) — una sola pasada de Cheerio sobre las hasta 500 páginas de `page.html`, produciendo BFS real de profundidad de clics + adjacency list para el árbol de arquitectura. Se persiste en `Audit.stats` (mismo mecanismo que `stats.perf`). Reemplaza la idea original de "el check de profundidad lee `Page.depth`" y la idea original de "el visualizador reparsea HTML on-demand en el reporte" — ambas quedaban invalidadas por PITFALLS.md.
+2. **`packages/psi` extendido** — `parser.ts`/`types.ts` capturan diagnósticos en el momento en que la respuesta cruda de PSI existe en memoria (dentro de `client.ts`, antes del cacheo reducido actual); nuevo `diagnostics.ts` con `mapDiagnosticIssues`, estructura paralela a `PsiMetrics`, nunca fusionada en ella.
+3. **`packages/report-model` como única fuente de verdad** — `template.ts` (clasificación + agrupación por plantilla) y el consumo del grafo ya persistido en `Audit.stats`; `buildReportModel` sigue sin tocar `Page.html` directamente (evita repetir la fragilidad ya documentada de v1.2 de queries paralelas fuera de `report-model`).
+4. **UI del reporte** — generalizar `IssueTypeGroup` para aceptar grupos precomputados (reusado por template y por tipo), y nueva ruta `/architecture` que sólo lee JSON ya calculado, sin Cheerio en `apps/web`.
 
 ### Critical Pitfalls
 
-Top risks from [PITFALLS.md](./PITFALLS.md) (14 total documented, grounded in repo facts):
-
-1. **CSR false positives from an arbitrary threshold** — compare *meaningful content* (`extractVisibleText`, title/H1/main text presence in raw HTML), not byte length; calibrate empirically against known SSR (juan-tech.com) and CSR fixtures and **document the threshold** (SimHash=3 precedent); report a template-level verdict; only flag critical when content is genuinely absent pre-JS.
-2. **Chromium OOM / zombie browsers under concurrency=2 + PSI** — the worker already runs 2 jobs × PSI/Lighthouse. Use a **global Chromium semaphore** shared by PSI and CSR, `--disable-dev-shm-usage`, launch-per-sample-then-close, `finally { browser.close() }` on all paths, and extend `shutdown()` to close browsers.
-3. **Playwright Docker image/npm version drift** — no Dockerfile exists yet; build it FROM the exact pinned `mcr.microsoft.com/playwright:v1.61.1-noble`, bump image + npm atomically, add a CI version-match check.
-4. **Fingerprint collisions on multi-condition checks** — deeper canonical/heading checks emit several findings per page; reusing `pageFingerprint(CHECK_ID, url)` collapses them in the fingerprint-keyed diff (last wins, no unique constraint). **Sub-type fingerprints** (`TECH-04:chain`, `ONPAGE-03:level-skip`) via a shared util; keep the subtype content-independent.
-5. **Export route: Chromium in the Vercel bundle, unbounded volume, public-by-ID access, broken accents** — pure-JS generators only (verify `pnpm why playwright` empty in web); truncate to top-N with an explicit "showing N of M" note; make an explicit access-control + rate-limit decision (report is currently unauthenticated by-ID); embed a Unicode TTF and test `áéíóúñ¿¡`.
-
-Plus: **score dilution** from new per-page `ok` rows (verify score drift on the reference fixture; consider aggregate rows), **non-deterministic CSR diff churn** (always emit a stable per-page row so only severity changes), and **bot-detection/blocked renders** (degrade to "not determined", never a false flag or job failure).
+1. **`Page.depth` no es profundidad de clics real en crawls sembrados por sitemap** (modo dominante en producción) — el BFS que lo incrementa está guardado detrás de `if (!seedFromSitemap)` y nunca corre en ese modo. Evitarlo calculando un BFS real desde el home sobre el grafo de enlaces, sin sobrescribir `Page.depth`.
+2. **Diagnósticos de Lighthouse "gratis" sólo si se extraen antes del cacheo actual** — `parser.ts` descarta hoy todo excepto 5 campos y `cache.ts` sólo persiste ese objeto reducido en Redis. Extraer en `client.ts` en el punto donde la respuesta cruda aún existe; aceptar degradación graciosa para el caché ya poblado (TTL 24h) sin invalidación manual.
+3. **Doble conteo de severidad entre diagnósticos nuevos y las 4 métricas de perf ya scoreadas** — `scoreCategory` promedia salud sin ponderar causa raíz; diagnósticos redundantes con LCP/CLS penalizarían dos veces. Mitigar con severidad `ok`/exclusión del cómputo de score, nunca `critical`.
+4. **Falsos positivos sistemáticos en schema-contenido para páginas CSR fuera de la muestra renderizada o con markup no estándar** (`<details>/<summary>`). Tope `warning`, cruzar con RENDER-01..03 antes de marcar mismatch, ampliar detección más allá de `div/dt/dd`.
+5. **Fingerprints sin sub-tipo colapsan hallazgos múltiples por página** — repetición del bug de Phase 11 si un solo `checkId` cubre varios tipos de diagnóstico. Sub-tipar `${checkId}-${tipo}:${url}`.
+6. **(Reconciliado) El visualizador on-demand tal como estaba descrito en ARCHITECTURE.md rompería la filosofía "sólo datos persistidos" y sería lento a 500 páginas** — resuelto compartiendo el cómputo de grafo/BFS con el check de profundidad de clics, calculado una vez en el worker y persistido en `Audit.stats`.
 
 ## Implications for Roadmap
 
-Phase numbering continues from 11. Dependency logic: pure check extensions are safest → ship first; the render pass carries all the infra risk → do it deliberately in isolation; exports read existing data and benefit from render findings already existing → after render; the UI button is last.
+Basado en la investigación combinada (incluyendo la reconciliación explícita del conflicto Page.depth/BFS y la resolución de la librería de grafos), la secuencia sugerida respeta: (a) riesgo ascendente (patrón ya usado en v1.2), (b) la sinergia BFS compartida entre profundidad de clics y visualizador, y (c) desacoplar decisiones de UI compartida (generalización de `IssueTypeGroup`) antes de construir sobre ellas.
 
-### Phase 11: Deeper checks (canonical + heading hierarchy)
-**Rationale:** Pure Cheerio logic over already-stored HTML, no infra, no migration, zero pipeline risk, independent of everything else. Immediate table-stakes value. Ship first to bank easy wins before the risky work.
-**Delivers:** Extended TECH-04 (canonical→noindex/4xx/redirect/chains/cross-domain, with cross-page cases as a SiteCheck) + extended ONPAGE-03 (multiple H1, skipped levels, empty headings, order).
-**Addresses:** Deeper canonical checks, heading hierarchy errors (both P1 table stakes).
-**Avoids:** Fingerprint collisions (Pitfall 6 — introduce the sub-typed fingerprint util here, up front) and score dilution (Pitfall 7 — verify score drift on the juan-tech.com fixture).
+### Phase 1: Grafo de enlaces compartido + check de profundidad de clics real
+**Rationale:** Es el fundamento técnico que tanto el check de profundidad como el visualizador (Phase 5) necesitan; construirlo primero evita que cada feature reparse el HTML de las 500 páginas por separado (pitfall de performance identificado). También es donde vive la corrección más importante encontrada en research (Page.depth no sirve tal cual).
+**Delivers:** Módulo de cómputo de grafo/BFS en el worker (reusa el patrón de `orphanPages.ts`), persistido en `Audit.stats`; nuevo check `TECH-1x` de profundidad de clics (severidad warning, agregado + por-página) leyendo el BFS recién calculado, no `Page.depth`.
+**Addresses:** Feature "Check profundidad de clics" de FEATURES.md/PROJECT.md.
+**Avoids:** Pitfall 1 (Page.depth falso) y Pitfall 6 (recomputación cara en el camino de lectura del reporte).
 
-### Phase 12: CSR/SSR render pass
-**Rationale:** The only feature touching the worker + Docker — the real integration risk. Land and verify it in isolation before building the export surface on top. Also the biggest architectural add (new package + Playwright + container).
-**Delivers:** `@auditor/render` package, worker render step (after crawl, before checks), `RENDER-01` pure check, `PageCheckCtx`/registry plumbing, pinned Playwright Dockerfile.
-**Uses:** playwright 1.61.1 + `mcr.microsoft.com/playwright:v1.61.1-noble` (STACK.md).
-**Implements:** `@auditor/render` + `RENDER-01` (ARCHITECTURE.md).
-**Avoids:** Pitfalls 1–5, 13, 14 — image pin, global Chromium semaphore, browser lifecycle/`finally`+shutdown, `selectSample` (never 500), calibrated + documented threshold, template-level verdict, stable per-page rows, graceful degradation on blocked renders.
+### Phase 2: Check schema-contenido mismatch
+**Rationale:** Mismo patrón `PageCheck` que profundidad de clics pero sin dependencia de la Phase 1; construible en paralelo o justo después, reusa `extract.ts` ya maduro. Secuenciarlo temprano porque su principal riesgo (falsos positivos) requiere validación de test explícita antes de exponerse en producción.
+**Delivers:** Nuevo `PageCheck` en `packages/checks/src/checks/schema/schemaContentMismatch.ts`, severidad tope `warning`, cruzado con muestra CSR/SSR (v1.2) antes de marcar mismatch, detección ampliada a `<details>/<summary>` y roles ARIA.
+**Addresses:** Feature "Check schema-contenido" de PROJECT.md.
+**Avoids:** Pitfall 4 (falsos positivos sistemáticos en CSR fuera de muestra / markup no estándar).
 
-### Phase 13: Export foundation + serializers
-**Rationale:** Depends only on existing report data; sequencing after 12 means the first exported reports already carry CSR findings. Build serializers in ascending complexity (MD → PDF → PPTX) so the shared `ReportModel` + route are validated by the cheapest format first.
-**Delivers:** Extracted `buildReportModel`, `@auditor/export` package (pure), the Node export route with download headers, and the three serializers.
-**Uses:** @react-pdf/renderer 4.5.1, pptxgenjs 4.0.1, hand-rolled Markdown (STACK.md).
-**Implements:** `@auditor/export` + `reportModel.ts` + export route (ARCHITECTURE.md).
-**Avoids:** Pitfalls 8–12 — no Chromium in the web bundle (build guard), top-N truncation with omission note, explicit access-control + rate-limit decision, Unicode TTF for Spanish accents, pure package boundary.
+### Phase 3: Diagnósticos de Lighthouse desde PSI
+**Rationale:** Aislado en `packages/psi`, sin dependencia funcional de las fases anteriores; secuenciar aquí para no competir por el mismo archivo `apps/worker/src/index.ts` con Phases 1-2 en el mismo commit.
+**Delivers:** Extensión de `parser.ts`/`types.ts` (extracción en el punto correcto, antes del cacheo reducido), nuevo `diagnostics.ts` con `mapDiagnosticIssues`, fingerprints sub-tipados por tipo de diagnóstico, severidad informativa (`ok`) excluida del cómputo de score de `perf`.
+**Uses:** JSON de PSI ya obtenido (STACK.md, tabla de audit IDs confirmados).
+**Avoids:** Pitfall 2 (datos ya descartados en el punto donde se intentaría leerlos), Pitfall 3 (doble conteo de score), Pitfall 5 (fingerprints colapsados).
 
-### Phase 14: Export UI
-**Rationale:** Depends on Phase 13's route existing. Pure UI wired to the route, no new data flow.
-**Delivers:** Top-right export button + PDF/Markdown/PPTX selector on the report header, keyboard/ARIA accessible, per-item loading/disabled state.
-**Addresses:** Export button + type selector (P1).
-**Avoids:** Double-submit of heavy requests (disable + spinner during generation).
+### Phase 4: Agrupación por plantilla + generalización de `IssueTypeGroup`
+**Rationale:** Requiere primero decidir si se generaliza el componente compartido de agrupación (recomendado) o se duplica — esta decisión de UI debe tomarse antes de construir la superficie final, para evitar rework. No depende de las fases anteriores.
+**Delivers:** `packages/report-model/src/template.ts` (clasificación heurística con bucket "desconocido" explícito + `groupIssuesByTemplate`), generalización de `IssueTypeGroup` para aceptar grupos precomputados, nueva sección/tab en el reporte.
+**Implements:** Segundo eje de agrupación (report-model como fuente única, no lógica en `apps/web`).
+**Avoids:** Pitfall 7 (etiquetas de plantilla incorrectas sin fallback).
+
+### Phase 5: Visualizador de arquitectura
+**Rationale:** Última fase — mayor superficie nueva (ruta, componente SVG nuevo) y depende del grafo/BFS ya calculado y persistido en Phase 1 (no de las Phases 2-4, pero secuenciarla al final deja el patrón de grafo compartido validado y estable, y permite opcionalmente mostrar el badge de plantilla de Phase 4 en cada nodo).
+**Delivers:** Ruta `apps/web/app/audits/[id]/architecture/page.tsx` (Server Component, lee sólo `Audit.stats` ya calculado), componente `ArchitectureTreeSvg` (SVG nativo + React, patrón de `EntityGraphSvg.tsx`, cero dependencias nuevas), buckets de profundidad 0/1/2/3+, colapso/expansión con `useState`, scroll horizontal nativo en vez de pan/zoom de librería.
+**Uses:** Grafo/BFS de Phase 1 (compartido, no recalculado); SVG nativo confirmado por STACK.md.
+**Avoids:** Pitfall 6 (Cheerio/HTML crudo nunca entra al camino de lectura del reporte en `apps/web`).
 
 ### Phase Ordering Rationale
 
-- **Risk-ascending, then risk-isolated:** pure/safe (11) → highest-infra-risk in isolation (12) → read-only exports (13) → trivial UI (14). Phases 12 and 13 are technically independent (exports don't require render), but ordering render first means exported reports immediately include CSR findings and the risky Docker change is verified before the export surface expands.
-- **Shared primitives up front:** the sub-typed fingerprint util (Phase 11) and `buildReportModel` extraction (start of Phase 13) prevent drift/collisions across everything downstream.
-- **Boundary discipline throughout:** render stays worker-only (`@auditor/render`), exports stay web-only + pure (`@auditor/export`) — the whole risk model depends on Playwright never reaching Vercel and Chromium never entering the export route.
+- Phase 1 primero porque desbloquea tanto el check de profundidad como el fundamento de datos de Phase 5 — construirlo tarde forzaría refactor de cualquiera de las dos features que se implementara primero de forma aislada.
+- Phases 2 y 3 son independientes entre sí y de Phase 1 — se ordenan por riesgo de falsos positivos (Phase 2, requiere más validación de test) antes que por riesgo técnico puro (Phase 3, es principalmente disciplina de dónde extraer datos).
+- Phase 4 se sitúa antes de Phase 5 porque, aunque no es una dependencia dura, permite que el visualizador muestre el badge de plantilla sin trabajo adicional si se construye después.
+- Phase 5 al final: mayor superficie nueva, único punto con una decisión de librería (ya resuelta: SVG nativo) y el que más se beneficia de que el patrón de grafo compartido (Phase 1) ya esté probado en producción con el check de profundidad de clics.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning (`/gsd:plan-phase --research-phase <N>`):
-- **Phase 12 (CSR/SSR render):** Highest-risk, novel infra. Needs empirical threshold calibration against SSR/CSR fixtures, container memory sizing under concurrency=2 + PSI, and the graceful-degradation/bot-detection path — all version- and environment-sensitive (MEDIUM-confidence areas in PITFALLS).
+Phases con research adicional recomendado durante planning:
+- **Ninguna requiere una ronda de research-phase completa** — los 4 documentos de research (stack, features, architecture, pitfalls) ya resolvieron las preguntas abiertas identificadas originalmente (librería de grafos: resuelta; semántica de Page.depth: resuelta y reconciliada). El único punto a verificar en fase de ejecución (no de research) es la vigencia de `overallSavingsMs` vs `metricSavings` en la versión exacta de Lighthouse detrás de PSI v5 (nota MEDIUM confidence en STACK.md) — validar con un log/print de la respuesta real durante la Phase 3, no requiere research previo.
 
-Phases with standard patterns (can skip research-phase):
-- **Phase 11 (deeper checks):** Pure logic extending existing checks; conventions and severities already specified in FEATURES.md.
-- **Phase 13 (exports):** Library choices decided (pure-JS), route pattern already exists in-repo, layouts/structures specified in FEATURES.md. The one open item (access control) is a product decision, not research.
-- **Phase 14 (export UI):** Reuses the v1.1 component library and a11y baseline.
+Phases con patrones estándar (ya bien documentados, ejecutar directo):
+- **Phase 1:** patrón `orphanPages.ts` ya validado en producción, sólo se extiende a BFS + persistencia en `Audit.stats` (mecanismo ya usado por `stats.perf`).
+- **Phase 2:** patrón `PageCheck` sobre Cheerio ya establecido, reusa `extract.ts` existente.
+- **Phase 3:** patrón `METRIC_SPECS`/`issues.ts` ya establecido, sólo se añade una estructura paralela.
+- **Phase 5:** patrón `EntityGraphSvg.tsx` ya validado en producción, cero dependencia nueva.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Versions verified live via `npm view` 2026-07-06; integration verified against actual repo code. Pure-JS export libs and Playwright are ecosystem-standard. |
-| Features | HIGH | Checks/behavior verified against SEO conventions + W3C/WCAG; export libs against live npm; categorized against real competitors (Screaming Frog/Sitebulb). |
-| Architecture | HIGH | Grounded in direct reads of the v1.0/v1.1 codebase (worker, checks, registry, schema, report page); additive-only, boundary-preserving. |
-| Pitfalls | HIGH (integration) / MEDIUM (library specifics) | Integration/architecture pitfalls grounded in repo facts (fingerprints, scoring, worker lifecycle, public-by-ID). Playwright memory profile + PDF/PPTX i18n are ecosystem-standard but version-sensitive. |
+| Stack | HIGH | Cero paquetes nuevos; decisión de SVG nativo verificada contra código real ya en producción (`EntityGraphSvg.tsx`) y contra pesos de bundle de npm registry actuales |
+| Features | MEDIUM-HIGH | Basado en fuentes oficiales de Google (structured data policy) + convención de mercado (Screaming Frog/Semrush/Sitebulb) para "3-click rule", que es heurística de industria, no spec técnica |
+| Architecture | HIGH | Verificado leyendo directamente el código fuente actual (`types.ts`, `registry.ts`, `build.ts`, `orphanPages.ts`) — ground truth, no inferencia |
+| Pitfalls | HIGH | Todos los hallazgos verificados línea por línea contra `crawl.ts`, `parser.ts`/`cache.ts`, `categoryScore.ts`/`diff.ts`, `schema.prisma` — incluye el hallazgo crítico que reconcilia la premisa original del milestone sobre `Page.depth` |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **CSR threshold calibration:** No a-priori "correct" raw-vs-rendered ratio exists — must be tuned empirically against juan-tech.com (SSR) and a known CSR fixture during Phase 12, and the chosen value documented in a decision log (SimHash=3 precedent).
-- **Worker memory sizing:** Actual RAM ceiling for 2 concurrent audits × (render + PSI) is environment-specific; validate on the Railway/Fly instance under overlapping-audit load, not just in dev.
-- **Export access-control decision:** Product call needed — is the report intentionally public-by-shareable-link (defensible for a lead magnet) or should exports require the owning verified email? Decide and log before wiring the button; add rate limiting regardless. Never put PII (requester email, tokens) in export bodies.
-- **Score comparability:** v1.2 scores may not be directly comparable to pre-v1.2 audit history for the same site once new checks land; verify drift on the reference fixture and warn users/roadmap if category composition materially changes.
-- **Optional `Page.renderVerdict` column:** Deferred; add the nullable additive column only if the pages-view later wants a per-page CSR/SSR badge.
+- **Umbral exacto de severidad para profundidad de clics** (ok ≤3, warning en 4, critical en ≥5 — sugerido en ARCHITECTURE.md pero no confirmado con Juan): decidir en la fase de planning de Phase 1, es un detalle de producto de bajo riesgo.
+- **`overallSavingsMs` vs `metricSavings` en Lighthouse/PSI v5:** verificar contra la respuesta real de PSI durante la implementación de Phase 3 (no bloquea el diseño, sólo el mapeo exacto de campos).
+- **Señal de contenido más allá de patrones de markup fijos para schema-contenido:** el enfoque de "coincidencia aproximada de texto entre JSON-LD y cualquier texto visible" (PITFALLS.md) es más robusto que patrones `div/dt/dd`, pero su umbral de "coincidencia suficiente" es una decisión de producto a afinar con casos de prueba reales durante la ejecución de Phase 2, no en research.
+- **Backfill de audits previos a v1.3** para el grafo/BFS persistido en `Audit.stats`: los audits ya existentes no tendrán este dato — decidir en Phase 1 si se degrada con gracia ("no disponible para auditorías previas a esta versión") o se backfillea; PITFALLS.md ya sugiere degradar sin backfill como opción de bajo costo.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Repo direct reads — `apps/worker/src/index.ts`, `packages/checks/src/{types,registry,util}.ts`, `checks/tech/canonical.ts`, `checks/onpage/h1.ts`, `packages/scoring/src/{categoryScore,overallScore,diff}.ts`, `packages/db/prisma/schema.prisma`, `packages/psi/src/sample.ts`, `apps/web/app/audits/[id]/page.tsx`, `apps/web/app/api/audits/[id]/route.ts` — pipeline, boundaries, fingerprint format, scoring, public-by-ID access.
-- `npm view` live (2026-07-06) — playwright 1.61.1, @react-pdf/renderer 4.5.1, pptxgenjs 4.0.1, crawlee 3.17.0.
-- Root `CLAUDE.md` + `.planning/PROJECT.md` — Playwright Docker pinning, shm/`--ipc`, sample-not-all-500, web/worker boundary, v1.2 scope, exports on-demand in Node route.
-- W3C/WAI heading structure, llms.txt spec — heading a11y rules, Markdown-for-LLM format.
-- Playwright Docker docs, @react-pdf/renderer + pptxgenjs project docs.
+- Lectura directa del código fuente del repo: `packages/crawler/src/crawl.ts`, `packages/psi/src/{client,parser,cache,types,issues}.ts`, `packages/checks/src/{types,registry}.ts`, `packages/checks/src/checks/tech/orphanPages.ts`, `packages/checks/src/checks/schema/{extract,schemaTypes}.ts`, `packages/report-model/src/{build,grouping,jsonld,index}.ts`, `packages/scoring/src/{categoryScore,diff}.ts`, `packages/db/prisma/schema.prisma`, `apps/web/app/components/EntityGraphSvg.tsx`, `apps/web/app/audits/[id]/{page.tsx,pages/page.tsx}`, `apps/web/app/components/ui/IssueTypeGroup.tsx`, `apps/worker/src/index.ts`
+- [Google Search Central — General Structured Data Guidelines](https://developers.google.com/search/docs/appearance/structured-data/sd-policies) y [FAQPage docs](https://developers.google.com/search/docs/appearance/structured-data/faqpage) — política oficial de manual action por schema sin contenido visible
+- [GoogleChrome/lighthouse — types/lhr/audit-details.d.ts y audit-result.d.ts](https://github.com/GoogleChrome/lighthouse) — shape oficial de audits de Lighthouse/PSI
+- npm registry (consulta directa, 2026-07-08) — versiones y pesos gzip de librerías de grafos evaluadas y descartadas
 
 ### Secondary (MEDIUM confidence)
-- Screaming Frog JS-rendering / "Show Differences" / JS Word Count; Prerender JS-SEO auditing — CSR/SSR detection conventions.
-- Canonical issue taxonomy (chains/→redirect/→noindex, top-5 GSC issue) — seranking / atroposdigital.
-- SEO audit deck structure (7–12 slides) — practitioner consensus.
-- Playwright/Chromium container memory profile + headless detection; PDFKit WinAnsi core-font i18n limitation — ecosystem-standard, version-sensitive.
+- WebSearch sobre "3-click rule" como convención de industria (Semrush, Screaming Frog, Sitebulb) — consenso de mercado, no spec técnica única
+- WebSearch sobre deprecación de `overallSavingsMs` en favor de `metricSavings` en Lighthouse — requiere verificación puntual en Phase 3
 
 ### Tertiary (LOW confidence)
-- None — all findings grounded in repo code, live npm, or official/W3C sources.
+- Ninguna fuente de baja confianza usada en decisiones clave de este milestone
 
 ---
-*Research completed: 2026-07-06*
+*Research completed: 2026-07-08*
 *Ready for roadmap: yes*

@@ -1,133 +1,157 @@
-# Stack Research — v1.2 (render detection + report exports)
+# Stack Research — v1.3 (checks técnicos + visualización de arquitectura)
 
-**Domain:** SEO/technical web-audit tool (lead magnet) — additive milestone on a shipped app
-**Researched:** 2026-07-06
-**Confidence:** HIGH (versions verified live via `npm view` 2026-07-06; integration verified against actual repo code)
+**Domain:** Adiciones de stack para milestone v1.3 (5 features sobre un SEO auditor existente: Next.js 15/React 19 en Vercel + worker Crawlee/Playwright + Postgres/Prisma + BullMQ)
+**Researched:** 2026-07-08
+**Confidence:** HIGH
 
-## Scope of this research
+## Resumen ejecutivo
 
-ONLY the net-new capabilities for v1.2. Everything from v1.0/v1.1 (Crawlee crawl, checks, PSI, scoring, email, quota, design system) is validated and out of scope. Two axes of new stack:
-
-1. **Worker side** — add a selective Playwright render pass for CSR-vs-SSR detection (canonical/heading checks are pure logic on already-stored data, NO new deps).
-2. **Web side** — three export generators (PDF, PPTX, Markdown) inside an on-demand Next.js Node API route, reading from Postgres. NO Chromium on the web side.
-
-**Key repo facts that constrain the choices (verified in code):**
-- Raw HTML is *already persisted*: `Page.html String? @db.Text` (schema.prisma:101), written by the CheerioCrawler pass (crawl.ts:122). CSR/SSR detection only needs the *rendered* side — the raw side is free.
-- Sampling is already solved: `selectSample(pages, max)` in `packages/psi/src/sample.ts` (homepage-first + depth-spread, dedup, capped). Reuse it verbatim for the render sample — do NOT write a second sampler.
-- Report data all lives in Postgres: `Audit.scores`, `Audit.stats`, `Issue` rows, `PerfMetric` rows. Exports are pure read → serialize. No new tables, no blob storage.
-- Worker is a long-lived container (concurrency 2) — Chromium is fine there. Web is Vercel serverless — Chromium is NOT fine there.
-
----
+De las 5 features, **4 no requieren ninguna dependencia nueva** — son extensiones de código sobre patrones ya validados en el repo (`packages/checks`, `packages/psi`, `@auditor/report-model`). La única decisión de stack real es la **#5 (visualizador de arquitectura)**, y la recomendación es **no añadir ninguna librería de grafos/árboles**: usar SVG nativo + React, siguiendo exactamente el patrón que el propio proyecto ya estableció en `apps/web/app/components/EntityGraphSvg.tsx` (grafo de entidades del JSON-LD, ya en producción desde v1.0-v1.1).
 
 ## Recommended Stack
 
 ### Core Technologies
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **playwright** | 1.61.1 | Render the CSR/SSR sample in the worker (headless Chromium) | Already the planned ENRICH engine; pin to **exactly** 1.61.1 to match the Docker base image `mcr.microsoft.com/playwright:v1.61.1-noble` (browser binaries are tied 1:1 to the npm version — a drift causes "executable doesn't exist" at runtime). Use the **raw `playwright` API** (`chromium.launch()` + one `BrowserContext`/page per sampled URL), **not** Crawlee's `PlaywrightCrawler` — see rationale below. HIGH. |
-| **@react-pdf/renderer** | 4.5.1 | Branded PDF export, generated in the Next.js Node API route | Pure-JS (no Chromium, no native binaries) → safe inside a Vercel serverless function, tiny cold start, well under the 250 MB unzipped bundle cap. React/JSX component model with flexbox layout + `Font.register` fits a branded, data-dense report (score gauge, category cards, issues table) far better than low-level PDF drawing. Renders straight to a Node stream/`Buffer` you return as the download `Response`. HIGH. |
-| **pptxgenjs** | 4.0.1 | PPTX (presentation) export in the same API route | The de-facto standard, actively maintained, **pure JS with zero native deps** (Vercel-safe). Produces `.pptx` as a Node `Buffer`/base64 in-process. Full feature set needed for a slide report: text, tables, images, and native charts (bar/pie/line) for the category scores. HIGH. |
-| **Markdown export** | — (hand-rolled) | LLM-optimized `.md` export | This is a serialization concern, not a library concern. Build the string directly from the DB rows (scores → headings, issues grouped by category/severity → sections with checkId, measuredValue, criterion, recommendation). A generic HTML→MD converter is the wrong tool — the source is structured data, not HTML. HIGH. |
+No hay cambios de core stack. Next.js 15 (App Router) + React 19 + Prisma/Postgres + Crawlee/Cheerio siguen siendo la base; las 5 features son aditivas dentro de esos límites ya decididos.
 
-### Supporting Libraries
+### Supporting Libraries (por feature)
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| **p-limit** (or reuse the worker's existing lane pattern) | 7.x (optional) | Cap render concurrency in the CSR/SSR pass | The render sample is only ~5 pages; the existing manual "lane" concurrency pattern in `apps/worker/src/index.ts` (see `runPerfSample`) already does this without a dep. Add `p-limit` only if you prefer it over hand-rolled lanes. Keep render concurrency at 1–2 (Chromium is memory-heavy). |
-| **turndown** | 7.2.4 | HTML→Markdown | **Probably NOT needed.** Listed only to explicitly reject it: the Markdown export is built from structured DB data, not by converting HTML. Include only if a future feature must serialize a raw HTML fragment to MD. |
+| Feature | Librería nueva | Versión | Por qué (o por qué no) |
+|---------|---------------|---------|------------------------|
+| #1 Schema-content mismatch | Ninguna | — | Cheerio (ya en `@auditor/checks` vía `@crawlee/cheerio`/`cheerio`) es suficiente: parsear el JSON-LD ya extraído (reutiliza el parser de `packages/checks/src/checks/schema`) y buscar substrings/patrones del contenido declarado (preguntas de FAQPage, pasos de HowTo, rating de Product+AggregateRating) en el texto visible del DOM (`$("body").text()` normalizado). Mismo patrón que `orphanPages.ts`: cargar `page.html` con `cheerio.load`, sin fetch adicional. |
+| #2 Click-depth (3-click rule) | Ninguna | — | `Page.depth` ya persistido por Prisma (crawler ya lo calcula). El check es puro cálculo sobre datos existentes (nuevo `SiteCheck` que agrupa `pages` por `depth` y emite `IssueDraft` cuando `depth > 3`). Superficie en reporte: extender `buildReportModel`/agrupación existente, no requiere UI nueva más allá de una columna/badge de profundidad reutilizando `Badge` (ya en la librería de componentes de v1.1). |
+| #3 Lighthouse diagnostics/opportunities | Ninguna | — | Ya se paga y se recibe la respuesta completa de PSI; `packages/psi/src/parser.ts` sólo lee 4 campos de `lighthouseResult.audits`. Extender `parsePsiResponse` (o una función hermana `parsePsiOpportunities`) para leer los mismos `audits[auditId]` ya presentes en `RawPsiResponse`, usando `details.overallSavingsMs` / `details.overallSavingsBytes` / `displayValue` — ver tabla de audit IDs abajo. Cero dependencias: es JSON ya en memoria. |
+| #4 Template-based issue grouping | Ninguna | — | Heurística de clasificación de URL por patrón (home/categoría/producto/artículo) implementable con `URL` nativo + regex/segmentos de path — incluso path-based (`/producto/`, `/blog/`, `/categoria/`) y fallback a profundidad+cantidad de páginas similares (mismo patrón de segmentos). Vive como una función pura nueva en `@auditor/report-model` (paralela a `groupIssuesByType` en `grouping.ts`), consumida por la UI de reporte igual que la agrupación por tipo. |
+| #5 Architecture visualizer (árbol jerárquico) | Ninguna (recomendado) | — | Ver sección dedicada abajo. |
 
 ### Development Tools
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| Docker base image `mcr.microsoft.com/playwright:v1.61.1-noble` | Worker container base with Chromium + system deps preinstalled | Pin the tag to the exact `playwright` npm version. Chromium defaults to a 64 MB `/dev/shm` and crashes under load → run with `--ipc=host` (or mount larger `/dev/shm`), and pass `--disable-dev-shm-usage` as a launch arg fallback when you can't control host shm (Railway/Fly). Budget ~1–2 GB RAM headroom for the render pass on top of the crawl. |
-| Brand font files (Array / Khand / Geist) bundled in `apps/web` | `Font.register()` sources for @react-pdf so exported PDFs match the on-screen brand | Ship the `.ttf`/`.otf` in the app (the fonts already exist for v1.1). @react-pdf needs a file/URL it can load at render time inside the function. |
+No aplica — no hay tooling nuevo (linters, bundlers, CI) requerido por estas features.
 
----
+## Feature #5 en detalle: Architecture visualizer
+
+### Decisión: SVG nativo + React, cero librería de grafos
+
+**Recomendación: NO instalar `@xyflow/react`, `d3-hierarchy`, `@visx/hierarchy`, `react-arborist` ni `react-d3-tree`. Construir el árbol como un componente SVG/CSS propio, hermano de `EntityGraphSvg.tsx`.**
+
+Razones (en orden de peso):
+
+1. **Ya existe el patrón exacto en el repo y está validado en producción.** `apps/web/app/components/EntityGraphSvg.tsx` ya resuelve "renderizar un grafo con nodos y edges, sin dependencias externas, con colores por token del design system" — con un comentario explícito en el código: *"Self-contained SVG entity-graph renderer (no external libs / CDN — the deploy has a strict CSP)"*. El árbol de arquitectura es una versión **más simple** del mismo problema (jerarquía por `depth`, no un grafo con posicionamiento arbitrario), así que reutilizar el enfoque es consistente con la arquitectura de componentes ya aprobada y evita introducir un segundo paradigma de renderizado de visualizaciones en el mismo proyecto.
+
+2. **La decisión de producto ya está tomada y es más simple de lo que las librerías de grafos resuelven.** El milestone dice explícitamente: *"árbol jerárquico por profundidad... sin migración de storage"* y el research prompt aclara *"NOT a full interactive graph with persisted edges"*. Un árbol de 4 niveles (0/1/2/3+) con nodos agrupados por página es un problema de **layout jerárquico estático**, no de física de grafos (fuerzas, colisión, arrastre de nodos) — el terreno donde React Flow/d3-force realmente aportan valor. Para 500 URLs máx. agrupadas en 4 buckets de profundidad, un layout determinístico (filas por profundidad, columnas repartidas por ancho disponible, con colapso/expansión vía estado de React) es trivial de calcular a mano.
+
+3. **CSP estricto ya es una restricción confirmada del proyecto** (mencionado en el propio código de `EntityGraphSvg.tsx` y consistente con la decisión de v1.2 de "cero Chromium en Vercel" / librerías JS puras para exports). `@xyflow/react` inyecta estilos y depende de ResizeObserver/portal rendering con supuestos sobre el entorno de ejecución del cliente que no han sido validados contra ese CSP; adoptar una librería de UI de terceros de ~50-80kB gzip para un árbol de 4 niveles es una superficie de riesgo innecesaria en un producto lead-magnet que debe cargar rápido.
+
+4. **Presupuesto de bundle.** Este es un producto Vercel-hosted, gratuito, cuyo único objetivo es convertir visitantes en emails verificados — cada KB de JS en la página de reporte compite con el tiempo hasta que el usuario ve su score. Comparación de peso (gzip, cliente):
+   - `@xyflow/react` 12.11.2: ~55-70kB gzip (incluye zustand interno, drag/zoom/pan, minimap opcional).
+   - `d3-hierarchy` 3.1.2: ~8-10kB gzip — mucho más liviano, pero sigue siendo una dependencia sólo para calcular un layout de árbol (`d3.tree()`/`d3.stratify()`) que se puede escribir a mano en <100 líneas dado que la jerarquía es de sólo 4 niveles fijos (no arbitraria).
+   - `@visx/hierarchy@4.0.0` + `@visx/group@4.0.0`: similar a d3-hierarchy (visx es una capa de componentes React sobre los mismos algoritmos de d3), añade ~15-20kB sin resolver nada que un `<g>`/`<line>` manual no resuelva a esta escala.
+   - `react-arborist@3.13.2` / `react-d3-tree@3.6.6`: pensadas para árboles de archivos/organigramas editables con muchísimos nodos y virtualización — over-engineered para 4 niveles fijos; además usan sus propios sistemas de theming que chocarían con el design system tokenizado (DS-01..04) ya construido en v1.1.
+   - SVG nativo (enfoque recomendado): 0kB adicional — sólo JSX + CSS modules, exactamente como `EntityGraphSvg.tsx` + `EntityGraphSvg.module.css`.
+
+5. **Theming tokens-only.** La decisión de v1.1 (*"Componentes tokens-only, cero hex crudo"*) es más fácil de cumplir con SVG/CSS propio (clases CSS module con `color: var(--token)`, `fill: currentColor`, tal como hace `EntityGraphSvg.module.css`) que forzando el theming de una librería de terceros a través de sus props/CSS variables propias.
+
+### Cómo implementarlo (guía concreta para el ejecutor de la fase)
+
+- **Estructura de datos:** nuevo tipo `ArchitectureTree` (o similar) construido en `@auditor/report-model`: agrupar `pages` por `Page.depth` en buckets `0`, `1`, `2`, `3+`; dentro de cada bucket, listar páginas (título/URL/categoría de plantilla si la feature #4 ya aportó el clasificador — reutilizar esa función).
+- **Enlaces internos on-demand (el "grafo" del punto 5):** reusar literalmente el mismo parseo que `orphanPages.ts` — `cheerio.load(page.html)` + `$("a[href]")` + `normalizeUrl` + `sameRegistrableDomain` — para computar, sólo cuando el usuario lo pida (client-side toggle o ruta separada), las aristas padre→hijo por profundidad. No persistir aristas (coincide con la decisión "sin migración de storage").
+- **Renderizado:** componente `ArchitectureTreeSvg` (Client Component `"use client"` si necesita interactividad de colapso vía `useState`, igual que otros componentes interactivos ya en `apps/web/app/components`).
+- **Interactividad mínima necesaria:** colapsar/expandir ramas (estado React simple), tooltip/hover con detalles de la página. **No** se necesita pan/zoom real para 4 niveles — si una fila de profundidad tiene demasiados nodos, usar scroll horizontal nativo (`overflow-x: auto` en un contenedor) en vez de zoom/pan de librería.
+- **Accesibilidad:** seguir el patrón ya usado en `EntityGraphSvg` (`role="img"`, `aria-label` descriptivo) más, si es interactivo, controles de colapso como `<button>` reales con `aria-expanded` (no divs clicables) para cumplir con A11Y-01..03 ya validado en v1.1.
+
+### Cuándo SÍ reconsiderar una librería
+
+- Si en el futuro el árbol necesita ser un **grafo real de enlaces internos con posicionamiento por fuerzas** (no jerárquico) y persistencia de aristas (fuera de scope explícito de v1.3), `d3-hierarchy`/`d3-force` (no `@xyflow/react`, que es para editores de flujo interactivos) sería la opción MEDIUM-confidence a evaluar primero por su bajo peso.
+- Si el número de páginas por nivel de profundidad crece a punto de necesitar virtualización real (miles de nodos en una sola fila), ahí `react-arborist` sí justificaría su peso — no es el caso a 500 URLs máx.
+
+## Lighthouse audit IDs para feature #3 (diagnósticos/opportunities)
+
+Confirmado (HIGH confidence, vía tipos oficiales de Lighthouse `types/lhr/audit-details.d.ts` y `audit-result.d.ts` en el repo `GoogleChrome/lighthouse`):
+
+- El shape de cada entrada en `lighthouseResult.audits[auditId]` que ya se tipa parcialmente en `RawPsiResponse` (`packages/psi/src/parser.ts`) puede extenderse así:
+
+```typescript
+interface RawAudit {
+  score?: number | null;
+  scoreDisplayMode?: string;
+  numericValue?: number | null;
+  numericUnit?: string;
+  displayValue?: string;
+  details?: {
+    type?: string; // "opportunity" | "table" | ...
+    overallSavingsMs?: number;
+    overallSavingsBytes?: number;
+    items?: Array<Record<string, unknown>>;
+  };
+}
+```
+
+- IDs de audit relevantes a extraer para "diagnósticos y oportunidades" (todos ya vienen en la respuesta PSI actual, sin costo extra):
+  - `uses-webp-images` (formatos de imagen de próxima generación)
+  - `unused-css-rules` (CSS sin usar)
+  - `unused-javascript` (JS sin usar — mismo patrón de `details.overallSavingsBytes`)
+  - `render-blocking-resources` (recursos que bloquean el render)
+  - `properly-sized-images` (imágenes correctamente dimensionadas)
+  - Opcionalmente ampliar a `uses-optimized-images`, `uses-text-compression`, `total-byte-weight` si se quiere una cobertura más completa del mismo tipo de dato — mismo shape, mismo costo cero.
+- **Nota de vigencia (MEDIUM confidence, verificar en fase de implementación):** `overallSavingsMs` está marcado como parcialmente deprecado en favor de `metricSavings.LCP`/`metricSavings.FCP` en versiones recientes de Lighthouse — la respuesta de PSI v5 en producción puede incluir ambos campos. Al implementar, leer `overallSavingsMs` con fallback a `metricSavings` si está presente, y no asumir que sólo uno de los dos existirá indefinidamente.
+- Mapeo a severidad: usar `overallSavingsMs`/`overallSavingsBytes` con los mismos umbrales de scoring health-ratio ya usados para LCP/CLS/TTFB (reutilizar la lógica de `packages/scoring`, no inventar una escala nueva) — p. ej. >500ms de ahorro potencial en un solo audit = `warning`, >1500ms = severidad más alta, siguiendo el patrón size-independent ya validado en v1.0.
 
 ## Installation
 
 ```bash
-# Worker (apps/worker) — render pass
-pnpm --filter @auditor/worker add playwright@1.61.1
-# (browsers come from the Docker base image; no `playwright install` needed in prod)
-
-# Web (apps/web) — export generators (pure JS, Vercel-safe)
-pnpm --filter @auditor/web add @react-pdf/renderer@4.5.1 pptxgenjs@4.0.1
-
-# Optional
-pnpm --filter @auditor/worker add p-limit@7      # only if not reusing the lane pattern
+# No hay instalación nueva de dependencias de producción para v1.3.
+# Todas las 5 features se implementan con las dependencias ya presentes en:
+# - packages/checks (cheerio, @auditor/crawler)
+# - packages/psi (fetch nativo, sin SDK)
+# - packages/report-model (TypeScript puro)
+# - apps/web (react, next — ya instalados)
 ```
-
-No new packages for canonical checks, heading checks, or Markdown export.
-
----
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| Raw `playwright` for the render sample | Crawlee `PlaywrightCrawler` (`@crawlee/playwright` 3.17.0) | Only if the render pass grows into a *second crawl* (link-discovery, dedup, retries, autoscaling over many URLs). For a **fixed 3–5 URL sample coming out of `selectSample`**, PlaywrightCrawler's request queue / autoscaled pool is pure overhead — one browser + a context per URL is simpler, lighter, and easier to reason about. Crawlee stays the engine for the *actual* 500-URL crawl (CheerioCrawler); it does not need to also own the tiny render sample. |
-| @react-pdf/renderer (PDF) | **Playwright/Chromium HTML→PDF** | Only on the **worker** side, never on Vercel. If you ever need pixel-perfect HTML/CSS fidelity to the live report page, render it in the worker container (which already has Chromium) and store the PDF — but that contradicts the user's "on-demand in the web route, not pre-generated" decision, so it stays a non-goal here. |
-| @react-pdf/renderer (PDF) | **pdfmake** 0.3.11 | If the report becomes dominated by very large, complex auto-paginating tables and you prefer a declarative document-definition JSON over JSX components. pdfmake's table engine is strong; @react-pdf wins on brand fonts + custom component layout (gauges, cards). |
-| @react-pdf/renderer (PDF) | **pdf-lib** 1.17.1 | Only for low-level PDF manipulation (stamping, merging, editing an existing PDF). Building a full multi-page report by manually positioning text/rects is far too tedious for this use case. |
-| @react-pdf/renderer (PDF) | **jsPDF** 4.2.1 | Client-side/browser PDF generation. Weaker server-side layout story and manual positioning; no advantage over @react-pdf for a server route. |
-| Hand-rolled Markdown | Any HTML→MD lib (turndown) | Only if serializing a raw HTML blob. The export source here is structured DB data. |
-
----
+| Recomendado | Alternativa | Cuándo usar la alternativa |
+|-------------|-------------|------------------------------|
+| SVG nativo + React para el árbol de arquitectura | `d3-hierarchy` (3.1.2, ~8-10kB gzip) | Si el layout jerárquico crece en complejidad real (árboles no balanceados con muchas ramas de ancho variable) y calcular posiciones a mano se vuelve propenso a errores — `d3-hierarchy` sólo aporta el algoritmo de layout (`d3.tree()`), no un componente de render, así que seguiría integrándose con SVG propio, no reemplazándolo. |
+| SVG nativo + React | `@xyflow/react` (12.11.2) | Sólo si el producto evoluciona (fuera de v1.3) hacia un grafo interactivo con pan/zoom/arrastre de nodos y edges persistidas — no es el caso de "árbol jerárquico por profundidad" que es la decisión bloqueada de este milestone. |
+| Heurística propia de clasificación de plantilla (regex sobre segmentos de URL) | Librería de clasificación ML/NLP de tipo de página | No se justifica: la taxonomía es pequeña y conocida (home/categoría/producto/artículo) y determinable con reglas de path, no requiere aprendizaje automático. |
+| Leer `audits[id].details` directamente del JSON de PSI ya obtenido | Librería cliente de Lighthouse (`lighthouse` npm package) para reprocesar | No aplica: el proyecto ya usa la API REST de PSI (no corre Lighthouse localmente para este dato), y el JSON ya contiene todo lo necesario — instalar el paquete `lighthouse` completo sólo para tipos sería mucho peso por cero beneficio funcional. |
 
 ## What NOT to Use
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| **Chromium/Playwright/Puppeteer inside the Vercel export route** | Bundling `@sparticuz/chromium` (~50 MB+) + `puppeteer-core` blows up cold start and eats into the 250 MB unzipped function cap for zero benefit when a pure-JS lib produces the same download. The web function only reads DB + serializes. | @react-pdf/renderer + pptxgenjs (pure JS) |
-| **Pre-generating / storing export files** | User decision: exports are on-demand (click → generate → stream download). Adds storage, invalidation, and staleness problems for no gain. | Generate in-request from the DB, return as a streamed/`Buffer` `Response` with `Content-Disposition: attachment`. |
-| **`PlaywrightCrawler` for the render sample** | Request-queue/dedup/autoscaling machinery is unnecessary for a fixed <=5 URL list already produced by `selectSample`. | Raw `playwright` `chromium.launch()` + one context/page per URL, concurrency 1–2. |
-| **Un-pinned Playwright / mismatched Docker tag** | `playwright` npm version and the browser binaries in `mcr.microsoft.com/playwright:*` must match exactly or Chromium won't launch after a redeploy. | Pin both to `1.61.1` / `v1.61.1-noble`; bump them together. |
-| **Running Playwright over all 500 crawled URLs** | 5–10× the CPU/memory of the Cheerio pass; turns a free lead-magnet audit into a huge compute bill and a slow report. | Render only `selectSample(pages, N)` (reuse the PSI sampler); compare rendered DOM vs the already-stored `Page.html`. |
-| **A second sampler for the render pass** | Duplicates logic and risks divergence from the PSI sample. | Reuse `selectSample` from `@auditor/psi` (or lift it to a shared util if you don't want the psi dep in the render step). |
-| **New DB columns/tables for exports** | Exports are ephemeral reads. | Read existing `Audit.scores` / `Audit.stats` / `Issue` / `PerfMetric`. (A render-detection *check* will emit `Issue` rows through the existing pipeline — no schema change; optionally a boolean/summary on the page, but not required for exports.) |
-
----
+| Evitar | Por qué | Usar en su lugar |
+|--------|---------|-------------------|
+| `@xyflow/react` para el árbol de arquitectura | ~55-70kB gzip, pensado para editores de flujo interactivos con pan/zoom/drag; over-engineered para una jerarquía estática de 4 niveles; riesgo de fricción con el CSP estricto ya confirmado en el proyecto | SVG nativo siguiendo el patrón de `EntityGraphSvg.tsx` |
+| `react-arborist` / `react-d3-tree` para el árbol de arquitectura | Diseñadas para árboles editables/virtualizados de miles de nodos (árboles de archivos, organigramas); traen su propio sistema de theming que no encaja con el design system tokens-only de v1.1 | SVG nativo + estado React simple para expand/collapse |
+| `@visx/hierarchy` + `@visx/group` | Capa de componentes sobre los mismos algoritmos de d3-hierarchy; no aporta nada sobre SVG propio a esta escala (4 niveles, ≤500 nodos) y añade una dependencia más al bundle del reporte | SVG nativo, o `d3-hierarchy` puro si el layout se complica |
+| Instalar el paquete `lighthouse` npm sólo para tipos de `audit-details` | Paquete pesado (incluye Chrome DevTools Protocol driver, Puppeteer-adjacent deps) para obtener únicamente un shape de tipos que se puede declarar a mano en `packages/psi/src/parser.ts` (igual que ya se hizo con `RawPsiResponse`) | Extender `RawPsiResponse`/`RawAudit` manualmente en `packages/psi`, como ya está hecho para las 4 métricas actuales |
+| Reintroducir Lighthouse/Playwright local para diagnósticos | Ya está resuelto: PSI ya devuelve `audits` completo por request pagado; correr Lighthouse local para esto duplicaría costo de cómputo del worker sin necesidad | Leer `lighthouseResult.audits[id]` de la respuesta PSI ya obtenida |
+| Servicio de clasificación de plantillas de terceros o modelo LLM por página | Añade latencia/costo/dependencia externa a una tarea que es determinística con reglas de segmentos de URL para el 90%+ de sitios (WordPress, WooCommerce, Shopify siguen convenciones de path predecibles: `/categoria/`, `/producto/`, `/blog/`, `/`) | Heurística de regex sobre `path.split("/")` + profundidad, con fallback a "otra" si no matchea ningún patrón conocido |
 
 ## Stack Patterns by Variant
 
-**CSR/SSR render pass (worker):**
-- Slot it as a new step in `crawlAndCheck()` after the crawl, alongside the PSI sample (both consume `pages` and both use `selectSample`). Consider running render-detection and PSI over the *same* sample to launch Chromium once.
-- Compare rendered DOM against the stored `Page.html` (raw). Signal for CSR: rendered visible text / DOM node count materially exceeds the raw-HTML equivalent (e.g. raw `<body>` text length far below rendered `document.body.innerText`). Emit a normal `Issue` (new check id in `@auditor/checks`) so it flows through scoring/diff/reporting unchanged.
-- Launch args: `--disable-dev-shm-usage`; container run with `--ipc=host`. Reuse a single `Browser`, new `BrowserContext` per page, `context.close()` between pages to bound memory.
-- Keep it best-effort like the PSI pass: a render failure degrades that page's detection to "unknown", never fails the audit (mirror the try/catch around `runPerfSample`).
+**Si el clasificador de plantillas de la feature #4 detecta con confianza baja (URL no matchea ningún patrón conocido):**
+- Usar categoría fallback `"otra"` en vez de forzar una clasificación incorrecta.
+- Porque una agrupación por plantilla equivocada es peor que "sin clasificar" — el usuario del reporte pierde confianza si ve un artículo agrupado como "producto".
 
-**Export route (web):**
-- One Node-runtime API route (`export const runtime = "nodejs"`), query param or path segment selects `pdf | md | pptx`. Fetch the audit + issues + perf metrics once, branch to the matching generator, return the `Buffer`/stream with `Content-Disposition: attachment; filename="..."`.
-- @react-pdf: build a `<Document>` component tree, `renderToBuffer(doc)` → `Response`. Register brand fonts from bundled files.
-- pptxgenjs: `new pptxgen()`, add slides, `pptx.write({ outputType: "nodebuffer" })` → `Response`.
-- Markdown: template-string builder from the same fetched data; set `Content-Type: text/markdown`.
-- Generation is fast (seconds); default Vercel function duration is sufficient — no `maxDuration` bump expected, but set it explicitly if a very large issues table pushes render time.
-
----
+**Si el árbol de arquitectura (feature #5) recibe un sitio con profundidad >3 en una proporción muy alta de páginas:**
+- Usar un solo bucket "3+" (ya es la decisión tomada: 0/1/2/3+), sin desglosar más niveles.
+- Porque el objetivo es visibilidad de arquitectura general (¿está el sitio muy plano o muy profundo?), no un mapa exhaustivo nivel por nivel — más niveles añaden ruido visual sin más insight accionable para un lead magnet.
 
 ## Version Compatibility
 
-| Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| `playwright@1.61.1` | `mcr.microsoft.com/playwright:v1.61.1-noble` | Must match exactly (browser binary ↔ npm version). |
-| `playwright@1.61.1` | `crawlee@3.17.0` (CheerioCrawler, existing) | Coexist fine — Crawlee does the HTTP crawl, raw Playwright does the render sample independently. No `@crawlee/playwright` needed unless you switch to PlaywrightCrawler. |
-| `@react-pdf/renderer@4.5.1` | `react@19` / `next@15` (web) | v4 supports React 19. Runs in the Node runtime, not edge. Pure JS — no bundler/native-binary issues on Vercel. |
-| `pptxgenjs@4.0.1` | Node 20+ | Pure JS, `outputType: "nodebuffer"` for server use. No native deps. |
-| Web function bundle | Vercel 250 MB unzipped cap | @react-pdf + pptxgenjs + fonts are a few MB total — comfortably within cap (the whole point of avoiding Chromium here). |
-
----
+No aplica — no se introducen paquetes nuevos con requisitos de compatibilidad de versión. Todo el trabajo de v1.3 corre sobre las versiones ya fijadas en v1.0-v1.2 (Next.js ^15.1.0, React ^19.0.0, TypeScript ^5.7.2, cheerio ya en `@auditor/crawler`/`@auditor/checks`).
 
 ## Sources
 
-- `npm view <pkg> version` (live, 2026-07-06): playwright 1.61.1, crawlee/@crawlee/playwright 3.17.0, @react-pdf/renderer 4.5.1, pptxgenjs 4.0.1, pdfmake 0.3.11, pdf-lib 1.17.1, jspdf 4.2.1, turndown 7.2.4, @sparticuz/chromium 149.0.0 — HIGH (registry)
-- Repo code: `packages/db/prisma/schema.prisma` (Page.html, Issue, PerfMetric), `packages/psi/src/sample.ts` (selectSample), `apps/worker/src/index.ts` (runPerfSample pattern, best-effort/lane concurrency), `packages/crawler/src/crawl.ts` (raw HTML persisted) — HIGH (direct read)
-- Root `CLAUDE.md` stack table — Playwright Docker pinning + shm pitfalls, Vercel-vs-worker split — HIGH (project-authored, carried forward)
-- Playwright Docker docs (image tagging/version pinning), pptxgenjs / @react-pdf/renderer project docs — HIGH (official)
+- `apps/web/app/components/EntityGraphSvg.tsx` (código del propio repo) — patrón de referencia SVG-sin-dependencias ya validado en producción, HIGH confidence (evidencia directa del codebase)
+- `packages/checks/src/checks/tech/orphanPages.ts` (código del propio repo) — patrón de parseo de enlaces internos on-demand vía Cheerio, HIGH confidence
+- `packages/psi/src/parser.ts` (código del propio repo) — shape actual de `RawPsiResponse`, punto de extensión para diagnósticos, HIGH confidence
+- npm registry (`npm view <pkg> version`, consultado 2026-07-08): `@xyflow/react@12.11.2`, `d3-hierarchy@3.1.2`, `@visx/hierarchy@4.0.0`, `@visx/group@4.0.0`, `react-arborist@3.13.2`, `react-d3-tree@3.6.6` — HIGH confidence (consulta directa al registro)
+- [GoogleChrome/lighthouse — types/lhr/audit-details.d.ts](https://github.com/GoogleChrome/lighthouse/blob/main/types/lhr/audit-details.d.ts) — shape oficial de `Opportunity`/`overallSavingsMs`/`overallSavingsBytes`, HIGH confidence (tipos oficiales del proyecto)
+- [GoogleChrome/lighthouse — types/lhr/audit-result.d.ts](https://github.com/GoogleChrome/lighthouse/blob/main/types/lhr/audit-result.d.ts) — shape oficial de `AuditResult` (`numericValue`, `numericUnit`, `displayValue`, `details`), HIGH confidence
+- WebSearch sobre deprecación de `overallSavingsMs` en favor de `metricSavings` — MEDIUM confidence (múltiples discusiones de GitHub issues/PRs de Lighthouse convergen, pero requiere verificación puntual contra la versión exacta de Lighthouse que corre PSI v5 en el momento de implementar)
+- `.planning/PROJECT.md` (Current Milestone v1.3 + Key Decisions) — contexto de restricciones ya decididas (CSP estricto, tokens-only, sin migración de storage), HIGH confidence
 
 ---
-*Stack research for: v1.2 render detection + report exports (additive milestone)*
-*Researched: 2026-07-06*
-</content>
+*Stack research for: Auditor Web v1.3 — 5 features nuevas sobre stack existente*
+*Researched: 2026-07-08*
