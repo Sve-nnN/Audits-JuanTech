@@ -1,19 +1,17 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@auditor/db";
 import type { Category, ScoreStatus } from "@auditor/scoring";
-import { buildReportModel, type ReportIssue } from "@auditor/report-model";
+import { buildReportModel } from "@auditor/report-model";
 import { ScoreGauge } from "../../components/ui/ScoreGauge";
 import { CategoryCard } from "../../components/ui/CategoryCard";
-import { IssuesTable, type IssuesTableColumn } from "../../components/ui/IssuesTable";
 import {
   CategoryAccordion,
   AccordionSubgroup,
-  IssueDetail,
 } from "../../components/ui/CategoryAccordion";
-import { Badge, SeverityBadge, DiffBadge } from "../../components/ui/Badge";
+import { IssueTypeGroup } from "../../components/ui/IssueTypeGroup";
+import { Badge, DiffBadge } from "../../components/ui/Badge";
 import { EmptyState, ErrorState } from "../../components/ui/EmptyState";
 import { ExportMenu } from "../../components/ui/ExportMenu";
 import { Reveal } from "../../components/motion/useReveal";
@@ -22,7 +20,6 @@ import {
   STATUS_LABEL,
   STRATEGY_LABEL,
 } from "../../components/ui/labels";
-import { shortUrl } from "../../components/ui/url";
 import { AuditProgress } from "./AuditProgress";
 import { ScoreGaugeAnimated } from "./ScoreGaugeAnimated";
 import styles from "./report.module.css";
@@ -40,11 +37,6 @@ const STATUS_BADGE_VARIANT: Record<ScoreStatus, "ok" | "warning" | "critical"> =
   critical: "critical",
 };
 
-type Severity = "critical" | "warning" | "ok";
-type Diff = "new" | "persistent" | "resolved";
-
-const SEVERITY_SORT_WEIGHT: Record<string, number> = { critical: 0, warning: 1, ok: 2 };
-
 function formatDate(value: Date | null): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat("es", { dateStyle: "medium", timeStyle: "short" }).format(value);
@@ -53,18 +45,6 @@ function formatDate(value: Date | null): string {
 function formatPerfNumber(value: number | null, unit: string): string {
   if (value === null) return "no disponible";
   return `${value}${unit}`;
-}
-
-/** Renderiza la celda "Página / URL": enlace real si es http(s), texto si no. */
-function urlValue(url: string | null): ReactNode {
-  if (url && /^https?:\/\//i.test(url)) {
-    return (
-      <a href={url} target="_blank" rel="noreferrer">
-        {url}
-      </a>
-    );
-  }
-  return url ?? "—";
 }
 
 export default async function AuditReportPage({ params }: PageProps) {
@@ -110,38 +90,6 @@ export default async function AuditReportPage({ params }: PageProps) {
   const overallStatus = model.status;
   const overall = model.overall;
   const hasScores = model.hasScores;
-
-  // --- Issues prioritarios → filas de IssuesTable (orden por severidad) ---
-  const issueColumns: IssuesTableColumn[] = [
-    { key: "cat", header: "Categoría" },
-    { key: "issue", header: "Issue" },
-    { key: "page", header: "Página", sticky: true },
-    { key: "sev", header: "Severidad" },
-    { key: "val", header: "Valor medido", mono: true },
-    { key: "state", header: "Estado" },
-  ];
-
-  const issueRows: ReactNode[][] = priorityIssues
-    .slice()
-    .sort(
-      (a, b) =>
-        (SEVERITY_SORT_WEIGHT[a.severity] ?? 99) - (SEVERITY_SORT_WEIGHT[b.severity] ?? 99)
-    )
-    .map((issue) => {
-      const url = issue.url;
-      const pageCell: ReactNode =
-        url && /^https?:\/\//i.test(url) ? url : shortUrl(url);
-      return [
-        <span className={styles.categoryTag}>
-          {CATEGORY_LABEL[issue.category as Category] ?? issue.category}
-        </span>,
-        issue.title,
-        pageCell,
-        <SeverityBadge severity={issue.severity as Severity} />,
-        issue.measuredValue ?? "—",
-        issue.diffStatus ? <DiffBadge diff={issue.diffStatus as Diff} /> : "—",
-      ];
-    });
 
   return (
     <div className={styles.page}>
@@ -264,17 +212,23 @@ export default async function AuditReportPage({ params }: PageProps) {
         {/* Issues prioritarios */}
         <Reveal as="section" className={styles.section} delay={180}>
           <h3 className={styles.sectionTitle}>Issues prioritarios</h3>
-          <IssuesTable
-            columns={issueColumns}
-            rows={issueRows}
-            caption="Issues prioritarios"
-            emptyLabel="Sin issues críticos ni de advertencia. Buen trabajo."
-            note={
-              totalPriorityCandidates > issueRows.length
-                ? `Mostrando los ${issueRows.length} de ${totalPriorityCandidates} issues críticos y de advertencia más relevantes.`
-                : undefined
-            }
-          />
+          {priorityIssues.length === 0 ? (
+            <EmptyState
+              variant="empty"
+              icon={CheckCircle2}
+              title="Sin issues críticos ni de advertencia. Buen trabajo."
+            />
+          ) : (
+            <>
+              <IssueTypeGroup issues={priorityIssues} />
+              {totalPriorityCandidates > priorityIssues.length ? (
+                <p className={styles.tableNote}>
+                  Mostrando los {priorityIssues.length} de {totalPriorityCandidates} issues
+                  críticos y de advertencia más relevantes.
+                </p>
+              ) : null}
+            </>
+          )}
         </Reveal>
 
         {/* Resumen de rendimiento */}
@@ -355,31 +309,6 @@ export default async function AuditReportPage({ params }: PageProps) {
             );
             const passing = issues.filter((i) => i.severity === "ok");
 
-            const renderIssue = (issue: ReportIssue) => {
-              const url = issue.url;
-              return (
-                <IssueDetail
-                  key={issue.id}
-                  checkId={issue.checkId}
-                  title={issue.title}
-                  badges={
-                    <>
-                      <SeverityBadge severity={issue.severity as Severity} />
-                      {issue.diffStatus ? (
-                        <DiffBadge diff={issue.diffStatus as Diff} />
-                      ) : null}
-                    </>
-                  }
-                  fields={[
-                    { label: "Página / URL", value: urlValue(url) },
-                    { label: "Valor medido", value: issue.measuredValue ?? "—" },
-                    { label: "Criterio", value: issue.criterion ?? "—" },
-                    { label: "Recomendación", value: issue.recommendation ?? "—" },
-                  ]}
-                />
-              );
-            };
-
             return (
               <CategoryAccordion
                 key={category}
@@ -387,10 +316,10 @@ export default async function AuditReportPage({ params }: PageProps) {
                 count={`${problems.length} problema(s) · ${passing.length} correcto(s)`}
               >
                 <AccordionSubgroup kind="problems" count={problems.length}>
-                  {problems.map(renderIssue)}
+                  <IssueTypeGroup issues={problems} />
                 </AccordionSubgroup>
                 <AccordionSubgroup kind="correct" count={passing.length}>
-                  {passing.map(renderIssue)}
+                  <IssueTypeGroup issues={passing} />
                 </AccordionSubgroup>
               </CategoryAccordion>
             );
