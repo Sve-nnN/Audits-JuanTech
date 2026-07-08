@@ -58,7 +58,7 @@ Detalle completo: `.planning/milestones/v1.2-ROADMAP.md`. Audit: `.planning/mile
 
 Aditivo sobre v1.0-v1.2 — cierra gaps encontrados vs. metodología SEO estándar (comparación contra las skills del diplomado "De Cero a SEO") y agrega visibilidad de arquitectura. Secuencia de riesgo ascendente según research: primero el fundamento compartido de grafo/BFS + check de profundidad (corrige la premisa original de que `Page.depth` sirve tal cual), luego dos checks aislados e independientes entre sí (schema-contenido, más riesgo de falso positivo; diagnósticos PSI, más disciplina de dónde extraer datos), después la agrupación por plantilla (decisión de UI compartida antes de construir sobre ella), y por último el visualizador de arquitectura (mayor superficie nueva, depende del grafo/BFS ya persistido en Phase 16).
 
-- [ ] **Phase 16: Grafo de enlaces compartido + profundidad de clics real** (2 plans) - BFS único persistido en Audit.stats + check de profundidad de clics
+- [x] **Phase 16: Grafo de enlaces compartido + profundidad de clics real** (2 plans) - BFS único persistido en Audit.stats + check de profundidad de clics (completed 2026-07-08)
 - [ ] **Phase 17: Check schema-contenido mismatch** - JSON-LD sin contenido visible correspondiente, cruzado con muestra CSR/SSR
 - [ ] **Phase 18: Diagnósticos de Lighthouse desde PSI** - diagnósticos curados extraídos de la respuesta PSI ya pagada
 - [ ] **Phase 19: Agrupación por plantilla** - segundo eje de agrupación de issues (home/categoría/producto/artículo)
@@ -67,56 +67,72 @@ Aditivo sobre v1.0-v1.2 — cierra gaps encontrados vs. metodología SEO estánd
 ## Phase Details
 
 ### Phase 16: Grafo de enlaces compartido + profundidad de clics real
+
 **Goal**: El auditor calcula la profundidad real de clics de cada página sobre un grafo de enlaces internos calculado una sola vez, y advierte cuando hay páginas demasiado profundas.
 **Depends on**: Nada (primera fase de v1.3)
 **Requirements**: DEPTH-01, DEPTH-02, DEPTH-03
 **Success Criteria** (what must be TRUE):
+
   1. El worker calcula, sobre el grafo de enlaces internos (no sobre `Page.depth`), la profundidad real en clics de cada página vía BFS desde home, y persiste ese cómputo una sola vez por auditoría (en `Audit.stats`).
   2. El reporte muestra un issue de advertencia agregado con el porcentaje de páginas a más de 3 clics de home (no un issue por página individual).
   3. El módulo de grafo/BFS queda disponible como dato ya persistido para ser reusado sin recomputarse por el visualizador de arquitectura (Phase 20).
+
 **Plans**: 2 plans
 Plans:
-- [ ] 16-01-PLAN.md — Paquete @auditor/graph: buildLinkGraph (BFS de profundidad desde home), TDD
-- [ ] 16-02-PLAN.md — Check TECH-12 (issue agregado de profundidad) + wiring del worker, persistencia en Audit.stats.graph
+
+- [x] 16-01-PLAN.md — Paquete @auditor/graph: buildLinkGraph (BFS de profundidad desde home), TDD
+- [x] 16-02-PLAN.md — Check TECH-12 (issue agregado de profundidad) + wiring del worker, persistencia en Audit.stats.graph
 
 ### Phase 17: Check schema-contenido mismatch
+
 **Goal**: El auditor advierte cuando una página declara datos estructurados de alto riesgo sin contenido visible correspondiente, evitando el riesgo de acción manual de Google.
 **Depends on**: Nada (independiente, reusa `@auditor/render` de v1.2 ya existente)
 **Requirements**: SCHEMA-06, SCHEMA-07
 **Success Criteria** (what must be TRUE):
+
   1. El auditor detecta páginas con JSON-LD `FAQPage`, `HowTo`, `Product`+`AggregateRating` o `Review` sin contenido visible correspondiente en el HTML.
   2. El hallazgo se reporta siempre con severidad `warning` (nunca `critical` automático).
   3. El check no marca como mismatch páginas confirmadas como renderizadas por JS en la muestra CSR/SSR de v1.2, evitando falsos positivos.
+
 **Plans**: TBD
 
 ### Phase 18: Diagnósticos de Lighthouse desde PSI
+
 **Goal**: El reporte muestra diagnósticos de Lighthouse accionables (formatos de imagen, CSS/JS sin usar, render-blocking) sin costo extra de API.
 **Depends on**: Nada (aislado en `packages/psi`)
 **Requirements**: PERF-05, PERF-06
 **Success Criteria** (what must be TRUE):
+
   1. El reporte muestra diagnósticos curados (WebP/AVIF, CSS sin usar, recursos que bloquean el renderizado, compresión de texto, CSS/JS sin minificar) extraídos de la respuesta PSI que el auditor ya obtiene, sin llamadas adicionales a la API.
   2. Cada diagnóstico aparece como issue con severidad `warning`/`ok` (nunca `critical`) y no duplica la señal ya cubierta por las métricas LCP/CLS/TTFB/INP existentes.
+
 **Plans**: TBD
 
 ### Phase 19: Agrupación por plantilla
+
 **Goal**: El usuario puede ver qué le pasa a una plantilla de página completa (ej. "producto"), no solo qué tipo de error se repite.
 **Depends on**: Nada directamente (decisión de UI compartida antes del visualizador de Phase 20)
 **Requirements**: TEMPLATE-01, TEMPLATE-02
 **Success Criteria** (what must be TRUE):
+
   1. Cada página del sitio queda clasificada en una plantilla (home / categoría / producto / artículo / otras) mediante heurística de segmentos de URL, sin asumir un CMS específico.
   2. El reporte permite ver los issues agrupados por plantilla, como eje complementario a la agrupación por tipo de issue ya existente (v1.2).
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 20: Visualizador de arquitectura
+
 **Goal**: El usuario puede ver de un vistazo la arquitectura jerárquica de su sitio, con señales de profundidad, páginas huérfanas y plantilla por nodo.
 **Depends on**: Phase 16 (grafo/BFS compartido y persistido)
 **Requirements**: ARCH-01, ARCH-02, ARCH-03, ARCH-04
 **Success Criteria** (what must be TRUE):
+
   1. El reporte incluye un árbol jerárquico en SVG puro, agrupado por nivel de profundidad (0/1/2/3+).
   2. Cada nodo del árbol muestra URL/título, profundidad, indicador de página huérfana e indicador de página a más de 3 clics.
   3. El árbol reusa el grafo/BFS ya calculado y persistido en Phase 16, sin volver a parsear el HTML de las páginas.
   4. Cuando la clasificación de plantilla (Phase 19) ya está disponible, el nodo también muestra la plantilla de esa página.
+
 **Plans**: TBD
 **UI hint**: yes
 
@@ -147,7 +163,7 @@ Próximo trabajo previsto tras v1.3 (scope por definir vía `/gsd:new-milestone`
 | 13. Fundación de export + serializers | v1.2 | 4/4 | Complete ✅ | 2026-07-08 |
 | 14. Botón Exportar (UI) | v1.2 | 1/1 | Complete ✅ | 2026-07-08 |
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 3/3 | Complete ✅ | 2026-07-08 |
-| 16. Grafo de enlaces compartido + profundidad de clics real | v1.3 | 0/? | Not started | - |
+| 16. Grafo de enlaces compartido + profundidad de clics real | v1.3 | 2/2 | Complete   | 2026-07-08 |
 | 17. Check schema-contenido mismatch | v1.3 | 0/? | Not started | - |
 | 18. Diagnósticos de Lighthouse desde PSI | v1.3 | 0/? | Not started | - |
 | 19. Agrupación por plantilla | v1.3 | 0/? | Not started | - |

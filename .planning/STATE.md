@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Profundizar checks técnicos + visualización de arquitectura
-status: in-progress
-stopped_at: "Phase 16 Plan 01 (@auditor/graph + buildLinkGraph BFS) completado — Plan 02 (integración worker + persistencia Audit.stats.graph) pendiente."
-last_updated: "2026-07-08T19:59:39Z"
-last_activity: 2026-07-08 — Phase 16 Plan 01 ejecutado (paquete @auditor/graph con buildLinkGraph BFS)
+status: Phase 16 complete (Plan 16-02 executed)
+stopped_at: "Plan 16-02 completado. Phase 16 cerrada (DEPTH-01/02/03 end-to-end). Próximo: Phase 17."
+last_updated: "2026-07-08T20:08:03.976Z"
+last_activity: 2026-07-08 — Phase 16 Plan 02 ejecutado (buildLinkGraph cableado al worker, TECH-14, Audit.stats.graph persistido)
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 20
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 ## Current Position
 
-Phase: 16 (Grafo de enlaces compartido + profundidad de clics real) — in progress
-Plan: 01 complete (@auditor/graph + buildLinkGraph BFS), 02 pending (integración worker)
-Status: Plan 16-01 executed
-Last activity: 2026-07-08 — Phase 16 Plan 01 ejecutado (paquete @auditor/graph con buildLinkGraph BFS)
+Phase: 16 (Grafo de enlaces compartido + profundidad de clics real) — complete
+Plan: 01 complete (@auditor/graph + buildLinkGraph BFS), 02 complete (integración worker + TECH-14 + Audit.stats.graph)
+Status: Phase 16 complete (Plan 16-02 executed)
+Last activity: 2026-07-08 — Phase 16 Plan 02 ejecutado (buildLinkGraph cableado al worker, TECH-14, Audit.stats.graph persistido)
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Last activity: 2026-07-08 — Phase 16 Plan 01 ejecutado (paquete @auditor/graph
 | Phase 15 P01 | ~4 min | 2 tasks | 5 files |
 | Phase 15 P03 | ~6 min | 2 tasks | 3 files |
 | Phase 16 P01 | ~20 min | 2 tasks | 6 files |
+| Phase 16 P02 | 20min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,7 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-02 (EXPORT-02/03/05): nuevo paquete puro @auditor/export (JS puro, sin Chromium) — priority.ts con EXPORT_TOP_N=50 (tuneable) y prioritizeIssues() que opera SIEMPRE sobre model.priorityCandidates (set completo critical+warning, M=totalPriorityCandidates), única fuente del cap para los tres formatos, con nota "Mostrando N de M"; markdown.ts toMarkdown() estructurado por issue → checkId → página/selector → valor medido → criterio → recomendación (listo para LLM); pptx.ts toPptx()→Uint8Array in-memory vía pptxgenjs 4.0.1 con fórmula BASE_SLIDES=7 (portada+resumen+5 categorías) + 0..MAX_ISSUE_SLIDES(5) issues → total garantizado en [7,12] incluso sparse (0 issues→exactamente 7); buildPptxDeck expone slideCount para test. labels.ts duplica CATEGORY_ORDER/LABEL, STATUS/SEVERITY_LABEL y SEVERITY_SORT_WEIGHT sin depender de apps/web. Guardrail cero-PII (no-pii.test.ts): email/token en scope adyacente nunca aparecen en MD/PPTX; acentos/ñ preservados en ambos (extracción de texto del PPTX vía unzip JSZip en memoria). 19 tests + typecheck verdes.
 - [Phase 13]: 13-01 (EXPORT-01/02/03/05): nuevo paquete puro @auditor/report-model — buildReportModel(auditId) devuelve un ReportModel serializable (cero React/Prisma/PII) que reemplaza el ensamblado inline de page.tsx; expone priorityCandidates (set completo critical+warning, fuente de la M en "N de M") aparte de priorityIssues (cap 60) y totalPriorityCandidates; url del issue derivada replicando issueUrl (source ?? scope) para render idéntico; buildReportModel retorna null para audit inexistente O status != done (page.tsx conserva consulta ligera para notFound vs progreso). Base compartida para los serializers de export (Plans 02/03).
 - [Phase 12]: 12-01 (RENDER-01/02): nuevo paquete worker-only @auditor/render (cheerio, cero Playwright); detectRenderVerdict puro compara raw Page.html vs RenderedSnapshot (title/H1/texto + ratio<0.60→CSR); severidad SSR→ok/CSR→warning, NUNCA critical; category "aeo"; fingerprint RENDER-01:<verdict>:<url>; RenderIssueDraft local decoplado de @auditor/checks; undeterminedVerdict() para degradación de 12-02; RENDER_CSR_RATIO=0.60 tuneable
+- [Phase 16]: 16-02 (DEPTH-01/02/03, cierre de fase): worker computa buildLinkGraph una sola vez post-crawl/pre-checks, pasa depthByUrl a runAllChecks (SiteCheckCtx/RunAllChecksOptions extendidos opcionalmente), nuevo SiteCheck TECH-14 emite un único issue agregado (ok/warning) con % de páginas a más de 3 clics de home vía siteFingerprint, y Audit.stats.graph ({nodes,edges,depthByUrl}) se persiste solo en la escritura final status:done (nunca en progreso intermedio), listo para Phase 20.
 
 ### Pending Todos
 
@@ -155,6 +157,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08 — Phase 16 Plan 01 ejecutado: paquete @auditor/graph con buildLinkGraph (BFS de profundidad real desde home).
-Stopped at: Plan 16-01 completado (`@auditor/graph`). Plan 16-02 (integración worker + persistencia `Audit.stats.graph` + check DEPTH-01/02) pendiente.
+Last session: 2026-07-08T20:08:03.970Z
+Stopped at: Plan 16-02 completado. Phase 16 cerrada (DEPTH-01/02/03 end-to-end). Próximo: Phase 17.
 Resume file: None
