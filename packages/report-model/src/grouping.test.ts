@@ -94,6 +94,41 @@ describe("groupIssuesByType", () => {
     expect(totalIssues).toBe(issues.length);
   });
 
+  it("gives the same per-type affected-page count in both sections (WR-01)", () => {
+    // A single critical type affecting 65 pages — exceeds the former 60-row
+    // screen cap that used to truncate "Issues prioritarios" before grouping.
+    const affected = Array.from({ length: 65 }, () =>
+      makeIssue({
+        checkId: "TECH-99",
+        title: "Sin HTTPS",
+        severity: "critical",
+        category: "tech",
+      })
+    );
+    const otherType = makeIssue({
+      checkId: "ONPAGE-01",
+      title: "Meta description ausente",
+      severity: "warning",
+      category: "onpage",
+    });
+
+    // "Issues prioritarios": groups the FULL candidate set (all critical +
+    // warning issues), no slice.
+    const priorityGroups = groupIssuesByType([...affected, otherType]);
+    // "Detalle por categoría": groups the same type within its category,
+    // also uncapped.
+    const categoryGroups = groupIssuesByType(affected);
+
+    const inPriority = priorityGroups.find((g) => g.title === "Sin HTTPS");
+    const inCategory = categoryGroups.find((g) => g.title === "Sin HTTPS");
+
+    // The count must be the true total (65), identical in both sections — not
+    // a value truncated to the old 60-row cap.
+    expect(inPriority?.count).toBe(65);
+    expect(inCategory?.count).toBe(65);
+    expect(inPriority?.count).toBe(inCategory?.count);
+  });
+
   it("preserves input order of issues within a group and does not mutate input", () => {
     const first = makeIssue({ checkId: "G", title: "g", severity: "warning", id: "first" });
     const second = makeIssue({ checkId: "G", title: "g", severity: "critical", id: "second" });

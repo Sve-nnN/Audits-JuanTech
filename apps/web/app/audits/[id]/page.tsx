@@ -83,7 +83,7 @@ export default async function AuditReportPage({ params }: PageProps) {
   const model = await buildReportModel(auditId);
   if (!model) notFound();
 
-  const { byCategory, diff, perf, priorityIssues, totalPriorityCandidates } = model;
+  const { byCategory, diff, perf, priorityCandidates } = model;
   const resolvedIssues = diff.resolvedIssues;
   const issuesByCategory = model.issuesByCategory;
 
@@ -212,22 +212,19 @@ export default async function AuditReportPage({ params }: PageProps) {
         {/* Issues prioritarios */}
         <Reveal as="section" className={styles.section} delay={180}>
           <h3 className={styles.sectionTitle}>Issues prioritarios</h3>
-          {priorityIssues.length === 0 ? (
+          {priorityCandidates.length === 0 ? (
             <EmptyState
               variant="empty"
               icon={CheckCircle2}
               title="Sin issues críticos ni de advertencia. Buen trabajo."
             />
           ) : (
-            <>
-              <IssueTypeGroup issues={priorityIssues} />
-              {totalPriorityCandidates > priorityIssues.length ? (
-                <p className={styles.tableNote}>
-                  Mostrando los {priorityIssues.length} de {totalPriorityCandidates} issues
-                  críticos y de advertencia más relevantes.
-                </p>
-              ) : null}
-            </>
+            // Se agrupa el conjunto COMPLETO de candidatos (todos los issues
+            // críticos y de advertencia), no un slice: así el conteo "N páginas"
+            // de cada grupo es el total real y coincide con "Detalle por
+            // categoría" (WR-01). La agrupación ya condensa la tabla, por lo que
+            // el antiguo cap de 60 filas ya no hace falta.
+            <IssueTypeGroup issues={priorityCandidates} />
           )}
         </Reveal>
 
