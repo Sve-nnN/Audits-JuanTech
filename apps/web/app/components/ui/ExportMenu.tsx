@@ -282,6 +282,7 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
         <div
           className={styles.menu}
           role="menu"
+          aria-orientation="vertical"
           id={menuId}
           aria-labelledby={triggerId}
         >
