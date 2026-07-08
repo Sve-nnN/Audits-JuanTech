@@ -57,12 +57,21 @@
   box-shadow: var(--shadow-focus);
 }
 
+/*
+ * Posicionado en absolute bajo el wrapper para que su aparición no crezca el
+ * bloque ni desalinee el cluster de acciones (align-items: center del header).
+ * El menú y el error nunca coexisten (runExport cierra el menú antes de fallar).
+ */
 .error {
+  position: absolute;
+  top: 100%;
+  right: 0;
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin: var(--space-1) 0 0;
+  margin-top: var(--space-1);
   color: var(--critical);
   font-size: var(--font-size-sm);
   line-height: var(--lh-body);
+  white-space: nowrap;
 }
