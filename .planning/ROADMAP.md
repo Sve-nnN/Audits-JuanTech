@@ -46,7 +46,7 @@ Aditivo sobre v1.0/v1.1 — el pipeline validado no se rompe. Secuencia de riesg
 - [x] **Phase 11: Checks más profundos (canonical + headings) + fix dato CWV** — Reglas Cheerio puras sobre HTML ya almacenado: canonicals profundos, jerarquía de encabezados y la URL faltante en issues de rendimiento
 - [x] **Phase 12: Detección de renderizado CSR/SSR** — Pase selectivo de Playwright (muestra, worker-only) que reporta SSR vs CSR con degradación limpia
 - [x] **Phase 13: Fundación de export + serializers** — `buildReportModel` compartido + paquete `@auditor/export` puro + route Node que genera PDF / Markdown-LLM / PPTX
-- [ ] **Phase 14: Botón Exportar (UI)** — Control arriba a la derecha del reporte con selector de tipo, accesible y con estado de carga
+- [x] **Phase 14: Botón Exportar (UI)** — Control arriba a la derecha del reporte con selector de tipo, accesible y con estado de carga
 - [ ] **Phase 15: UX del reporte — agrupación e indicadores** — Issues agrupados por tipo en dropdowns + estado JSON-LD por página en la lista de páginas
 
 ### 📋 Next (Planned)
@@ -130,7 +130,7 @@ Plans:
   4. Al completar, el navegador descarga el archivo en el formato elegido.
 
 **Plans**: 1 plan
-- [ ] 14-01-PLAN.md — ExportMenu accesible (trigger + menu 3 formatos) + descarga por blob + montaje en header del reporte
+- [x] 14-01-PLAN.md — ExportMenu accesible (trigger + menu 3 formatos) + descarga por blob + montaje en header del reporte
 **UI hint**: yes
 
 ### Phase 15: UX del reporte — agrupación e indicadores
@@ -164,7 +164,7 @@ Plans:
 | 11. Checks más profundos (canonical + headings) + fix dato CWV | v1.2 | 4/4 | Complete ✅ | 2026-07-07 |
 | 12. Detección de renderizado CSR/SSR | v1.2 | 3/3 | Complete ✅ | 2026-07-07 |
 | 13. Fundación de export + serializers | v1.2 | 4/4 | Complete ✅ | 2026-07-08 |
-| 14. Botón Exportar (UI) | v1.2 | 0/? | Not started | - |
+| 14. Botón Exportar (UI) | v1.2 | 1/1 | Complete ✅ | 2026-07-08 |
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 0/? | Not started | - |
 
 ---

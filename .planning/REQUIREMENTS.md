@@ -31,7 +31,7 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 - [x] **EXPORT-01**: El usuario puede exportar el reporte como PDF con branding.
 - [x] **EXPORT-02**: El usuario puede exportar el reporte como Markdown optimizado para que un LLM lo entienda y aplique los fixes (estructurado: por issue → página/selector → valor medido → criterio → recomendación).
 - [x] **EXPORT-03**: El usuario puede exportar el reporte como PPTX (presentación de 7–12 slides).
-- [ ] **EXPORT-04**: El reporte muestra un botón "Exportar" arriba a la derecha con un selector de tipo (PDF / Markdown / PPTX), accesible por teclado y con estado de carga durante la generación.
+- [x] **EXPORT-04**: El reporte muestra un botón "Exportar" arriba a la derecha con un selector de tipo (PDF / Markdown / PPTX), accesible por teclado y con estado de carga durante la generación.
 - [x] **EXPORT-05**: Los exports acotan el volumen (top-N issues) con una nota explícita de "mostrando N de M", y renderizan correctamente acentos y ñ (español neutro), sin incluir PII (email/token).
 
 ### UX del reporte (agrupación y datos faltantes)
@@ -80,7 +80,7 @@ Milestone v1.2 = **Detección de renderizado + exportación de reportes** (aditi
 | EXPORT-02 | Phase 13 | Complete |
 | EXPORT-03 | Phase 13 | Complete |
 | EXPORT-05 | Phase 13 | Complete |
-| EXPORT-04 | Phase 14 | Pending |
+| EXPORT-04 | Phase 14 | Complete |
 | REPORT-01 | Phase 15 | Pending |
 | REPORT-02 | Phase 15 | Pending |
 | REPORT-04 | Phase 15 | Pending |
