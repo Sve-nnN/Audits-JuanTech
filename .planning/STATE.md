@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-07-08T19:20:13.380Z"
 last_activity: 2026-07-08
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** v1.2 shipped — next milestone TBD (deploy a producción). Sin milestone abierto. Próximo: `/gsd:new-milestone`.
+**Current focus:** v1.3 (Profundizar checks técnicos + visualización de arquitectura) — roadmap creado (Phases 16-20), 13/13 requisitos mapeados. Próximo: `/gsd:plan-phase 16`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 16 (Grafo de enlaces compartido + profundidad de clics real) — not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-08 — Milestone v1.3 started
+Status: Roadmap approved, awaiting phase planning
+Last activity: 2026-07-08 — Roadmap v1.3 creado (Phases 16-20)
 
 ## Performance Metrics
 
@@ -87,6 +87,7 @@ Last activity: 2026-07-08 — Milestone v1.3 started
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- [Roadmap v1.3]: Fases 16-20 anexadas en riesgo ascendente según research (SUMMARY.md): (16) grafo/BFS de enlaces compartido + check de profundidad de clics real (corrige la premisa de que `Page.depth` sirve tal cual — el BFS de `crawl.ts` sólo corre en fallback link-crawl puro, nunca en modo sitemap-seeded); (17) schema-contenido mismatch (independiente, cruza con la muestra CSR/SSR de v1.2); (18) diagnósticos de Lighthouse desde PSI (aislado en `packages/psi`, extracción antes del cacheo reducido de `parser.ts`/`cache.ts`); (19) agrupación por plantilla (decisión de UI compartida — generalizar `IssueTypeGroup` — antes del visualizador); (20) visualizador de arquitectura (mayor superficie nueva, SVG puro estilo `EntityGraphSvg.tsx`, depende del grafo/BFS de Phase 16, opcionalmente muestra la plantilla de Phase 19). Ningún paquete nuevo; el grafo/BFS se persiste en `Audit.stats` (mismo mecanismo que `stats.perf`) para que Phase 16 y Phase 20 nunca reparseen HTML por separado.
 - [Phase 15]: 15-03 (REPORT-04, cierre de fase y milestone v1.2): `JsonLdBadge` (client component, apps/web/app/components/ui) deriva el peor de 4 estados JSON-LD con `jsonLdStateForPage` (helper puro 15-01) cruzando `schemaSeverities` (issues category=schema de la página) con `hasSchemaGraph = nodeCount > 0`, y lo mapea a variantes existentes de `Badge` sin colores nuevos: error→critical "JSON-LD con errores", warning→warning "JSON-LD con advertencias", ok→ok "{n} entidad(es) JSON-LD", absent→neutral "Sin JSON-LD". `pages/page.tsx` añade una segunda consulta `issue.findMany({ where:{ auditId, category:"schema" }, select:{ pageId, severity } })` agrupada en un `Map<pageId, ReportSeverity[]>` (severity de Prisma casteada a ReportSeverity), sustituyendo el badge de 2 estados por `JsonLdBadge`; resto de la fila (enlace, shortUrl, Reveal, orderBy url, EmptyState) intacto. TDD RED→GREEN en el badge; 28 tests web verdes (5 nuevos del badge) + typecheck + build.
 - [Phase 15]: 15-01 (REPORT-01/02/04): dos helpers puros en @auditor/report-model (sin React/Prisma). `groupIssuesByType(issues)` = única fuente del orden: agrupa por clave compuesta `checkId`+espacio+`title` (subtipos del mismo checkId con títulos distintos = grupos separados), severidad del grupo = la peor (peso local {critical:0,warning:1,ok:2}), ordena por (peso asc, count desc) con empate total resuelto por orden de inserción del Map (estable sin depender de Array.sort), no muta la entrada y no pierde issues (suma counts == longitud, T-15-01). Tipo `IssueTypeGroup {checkId,title,severity,count,issues}`. `jsonLdStateForPage(schemaSeverities, hasSchemaGraph)` = peor de 4 estados con precedencia critical→"error" > warning→"warning" > (grafo presente)→"ok" > "absent"; devuelve solo el estado semántico (el mapeo a badge/color vive en la UI del plan 03). Tipo `JsonLdState`. Ambos exportados de index.ts. TDD RED→GREEN por tarea; 17 tests verdes (7 grouping + 5 jsonld + 5 build) + typecheck limpio.
 - [Phase 14]: 14-01 (EXPORT-04, cierre de fase): client component `ExportMenu` (apps/web/app/components/ui) — trigger reusa `Button` (variant secondary, iconLeft Download, loading) con aria-haspopup/expanded/controls; menú `role="menu"` construido a mano (no hay Dropdown en la librería) con 3 items `role="menuitem"` (FileText/FileCode/Presentation), roving tabindex, teclado completo (Enter/Space/ArrowDown abre→primer item, ArrowUp→último, flechas con wrap, Home/End, Esc devuelve foco al trigger, Tab/click-fuera cierran sin exportar). Foco del trigger vía `document.getElementById(triggerId)` porque Button no reenvía ref (patrón 10-02). Descarga: `fetch('/api/audits/${auditId}/export?format=X')` → `blob()` → enlace temporal (`createObjectURL`+download+click+remove) → `revokeObjectURL` en finally; filename parseado de Content-Disposition con fallback `auditoria-<domain|id>.<ext>`. Guard `if (loading) return;` + Button disabled bloquean el doble fetch (SC#3). Error inline `role="alert"` con texto neutro fijo, se limpia al reintentar. CSS module tokens-only (cero hex). Montado en el header del reporte (rama done) agrupado con el linkOut en `.headerActions`. Primera suite RTL de apps/web: `// @vitest-environment jsdom` por archivo (env node por defecto se mantiene para las route tests de Phase 13); `@vitejs/plugin-react` añadido para transformar JSX bajo rolldown-vite; `cleanup()` explícito en afterEach (globals off). 18 tests verdes (11 ExportMenu + 7 route) + typecheck + build verdes.
@@ -122,6 +123,10 @@ None yet.
 
 ### Blockers/Concerns
 
+- [Research flag, Phase 16]: Umbral exacto de severidad para profundidad de clics (ok ≤3, warning en 4, critical en ≥5 sugerido pero no confirmado con Juan) — decidir en planning de Phase 16, detalle de producto de bajo riesgo.
+- [Research flag, Phase 16]: Backfill de audits previos a v1.3 para el grafo/BFS persistido en `Audit.stats` — audits existentes no tendrán este dato; PITFALLS.md sugiere degradar sin backfill ("no disponible para auditorías previas a esta versión") como opción de bajo costo, decidir en Phase 16.
+- [Research flag, Phase 17]: Umbral de "coincidencia suficiente" entre texto de JSON-LD y contenido visible (más robusto que patrones fijos div/dt/dd) es una decisión de producto a afinar con casos de prueba reales durante la ejecución de Phase 17, no en research.
+- [Research flag, Phase 18]: Verificar vigencia de `overallSavingsMs` vs `metricSavings` en la versión exacta de Lighthouse detrás de PSI v5 (MEDIUM confidence en STACK.md) — validar con log/print de la respuesta real durante Phase 18, no bloquea el diseño.
 - [Roadmap]: REQUIREMENTS.md traceability section tenía un conteo desactualizado ("54 total"); el conteo real de requisitos v1 es 61. Se corrigió durante la creación del roadmap.
 - [Research flag, Phase 5]: Verificar cuotas actuales de PageSpeed Insights API en Google Cloud Console antes de finalizar diseño de muestreo/caché (cifras de research son MEDIUM confidence).
 - [Research flag, Phase 3]: Decidir si hreflang reciprocity check es "presence-only" (recomendado v1) o validación completa de grafo cross-domain (mayor esfuerzo).
@@ -147,6 +152,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08 — Completado 15-03-PLAN.md (JsonLdBadge de 4 estados + cableado en la lista de páginas, REPORT-04, TDD). Fase 15 completa (3/3); milestone v1.2 completo.
-Stopped at: 15-03 completado — Phase 15 cerrada (3/3), milestone v1.2 (Detección de renderizado + exportación de reportes) completo. No hay planes pendientes.
+Last session: 2026-07-08 — Roadmap v1.3 creado (Phases 16-20, 13/13 requisitos mapeados). ROADMAP.md, STATE.md y REQUIREMENTS.md (traceability) actualizados.
+Stopped at: Roadmap v1.3 aprobado y escrito — sin planes creados todavía. Próximo paso: `/gsd:plan-phase 16`.
 Resume file: None

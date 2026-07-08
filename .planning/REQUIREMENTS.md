@@ -50,24 +50,24 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPTH-01 | TBD | Pending |
-| DEPTH-02 | TBD | Pending |
-| DEPTH-03 | TBD | Pending |
-| PERF-05 | TBD | Pending |
-| PERF-06 | TBD | Pending |
-| TEMPLATE-01 | TBD | Pending |
-| TEMPLATE-02 | TBD | Pending |
-| SCHEMA-06 | TBD | Pending |
-| SCHEMA-07 | TBD | Pending |
-| ARCH-01 | TBD | Pending |
-| ARCH-02 | TBD | Pending |
-| ARCH-03 | TBD | Pending |
-| ARCH-04 | TBD | Pending |
+| DEPTH-01 | Phase 16 | Pending |
+| DEPTH-02 | Phase 16 | Pending |
+| DEPTH-03 | Phase 16 | Pending |
+| PERF-05 | Phase 18 | Pending |
+| PERF-06 | Phase 18 | Pending |
+| TEMPLATE-01 | Phase 19 | Pending |
+| TEMPLATE-02 | Phase 19 | Pending |
+| SCHEMA-06 | Phase 17 | Pending |
+| SCHEMA-07 | Phase 17 | Pending |
+| ARCH-01 | Phase 20 | Pending |
+| ARCH-02 | Phase 20 | Pending |
+| ARCH-03 | Phase 20 | Pending |
+| ARCH-04 | Phase 20 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 13 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 13
+- Mapped to phases: 13/13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-08*
