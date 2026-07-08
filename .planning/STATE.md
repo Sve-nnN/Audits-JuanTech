@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
 status: executing
-stopped_at: 15-01 completado — helpers puros en @auditor/report-model: groupIssuesByType (orden severidad→cantidad, REPORT-01/02) + jsonLdStateForPage (4 estados, REPORT-04). 17 tests verdes + typecheck limpio. Siguiente: 15-02 (componente IssueTypeGroup + cableado en reporte).
-last_updated: "2026-07-08T11:46:00.000Z"
-last_activity: 2026-07-08 — 15-01: groupIssuesByType + jsonLdStateForPage (TDD RED→GREEN); 17 tests verdes (7 grouping + 5 jsonld + 5 build) + typecheck limpio
+stopped_at: 15-02 completado — componente IssueTypeGroup (details/summary nativo) cableado en "Issues prioritarios" y "Detalle por categoría" (REPORT-01/02); 23 tests web verdes + typecheck + build. Siguiente: 15-03 (badge JSON-LD de 4 estados por página, REPORT-04).
+last_updated: "2026-07-08T11:54:00.000Z"
+last_activity: 2026-07-08 — 15-02: IssueTypeGroup (TDD RED→GREEN) + cableado en las dos secciones del reporte; 23 tests web verdes + typecheck + build
 progress:
   total_phases: 1
   completed_phases: 1
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 
 ## Current Position
 
-Phase: 15 of 15 (UX del reporte — agrupación e indicadores) — EN PROGRESO (1/3 planes)
-Plan: 15-01 completado — siguiente: 15-02 (componente IssueTypeGroup + cableado en "Issues prioritarios" y "Detalle por categoría")
-Status: 15-01 cierra la fundación pura de la Fase 15 — groupIssuesByType (única fuente del orden severidad→cantidad, agrupa por checkId+title sin perder issues) y jsonLdStateForPage (peor de 4 estados error/warning/ok/absent). Ambos helpers puros (sin React/Prisma), exportados del paquete, listos para los planes 02 (UI de grupos) y 03 (badge JSON-LD).
-Last activity: 2026-07-08 — 15-01: groupIssuesByType + jsonLdStateForPage (TDD); 17 tests verdes + typecheck limpio
+Phase: 15 of 15 (UX del reporte — agrupación e indicadores) — EN PROGRESO (2/3 planes)
+Plan: 15-02 completado — siguiente: 15-03 (badge JSON-LD de 4 estados por página, REPORT-04)
+Status: 15-02 cablea la UI de agrupación — IssueTypeGroup (details/summary nativo, tokens-only, a11y de teclado gratis) alimentado por groupIssuesByType, reutilizado idéntico en "Issues prioritarios" y en "Detalle por categoría" (problemas y correctos). Sin perder/duplicar issues; EmptyState y nota "Mostrando N de M" conservados; resto del reporte intacto.
+Last activity: 2026-07-08 — 15-02: IssueTypeGroup (TDD) + cableado en las dos secciones; 23 tests web verdes + typecheck + build
 
-Progress: [███▁▁▁▁▁▁▁] 33% (fase 15 — 1/3)
+Progress: [██████▁▁▁▁] 67% (fase 15 — 2/3)
 
 ## Performance Metrics
 

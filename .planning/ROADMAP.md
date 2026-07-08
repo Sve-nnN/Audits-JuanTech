@@ -148,7 +148,7 @@ Plans:
 
 Plans:
 - [x] 15-01-PLAN.md — Helpers puros en @auditor/report-model: groupIssuesByType (orden severidad→cantidad) + jsonLdStateForPage (4 estados)
-- [ ] 15-02-PLAN.md — Componente IssueTypeGroup + cableado en "Issues prioritarios" y "Detalle por categoría" (REPORT-01/02)
+- [x] 15-02-PLAN.md — Componente IssueTypeGroup + cableado en "Issues prioritarios" y "Detalle por categoría" (REPORT-01/02)
 - [ ] 15-03-PLAN.md — Badge JSON-LD de 4 estados por página en la lista de páginas (REPORT-04)
 
 **UI hint**: yes
@@ -171,7 +171,7 @@ Plans:
 | 12. Detección de renderizado CSR/SSR | v1.2 | 3/3 | Complete ✅ | 2026-07-07 |
 | 13. Fundación de export + serializers | v1.2 | 4/4 | Complete ✅ | 2026-07-08 |
 | 14. Botón Exportar (UI) | v1.2 | 1/1 | Complete ✅ | 2026-07-08 |
-| 15. UX del reporte — agrupación e indicadores | v1.2 | 1/3 | In progress | - |
+| 15. UX del reporte — agrupación e indicadores | v1.2 | 2/3 | In progress | - |
 
 ---
 *Roadmap created: 2026-07-05*
