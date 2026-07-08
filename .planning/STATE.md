@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Detección de renderizado + exportación de reportes
 status: executing
-stopped_at: 15-02 completado — componente IssueTypeGroup (details/summary nativo) cableado en "Issues prioritarios" y "Detalle por categoría" (REPORT-01/02); 23 tests web verdes + typecheck + build. Siguiente: 15-03 (badge JSON-LD de 4 estados por página, REPORT-04).
-last_updated: "2026-07-08T11:54:00.000Z"
-last_activity: 2026-07-08 — 15-02: IssueTypeGroup (TDD RED→GREEN) + cableado en las dos secciones del reporte; 23 tests web verdes + typecheck + build
+stopped_at: 15-03 completado — badge JSON-LD de 4 estados por página (error/advertencia/correcto/sin JSON-LD, REPORT-04) cableado en la lista de páginas rastreadas; 28 tests web verdes + typecheck + build. Cierra Phase 15 (3/3) y el milestone v1.2.
+last_updated: "2026-07-08T12:01:00.000Z"
+last_activity: 2026-07-08 — 15-03: JsonLdBadge (TDD RED→GREEN) + consulta schema por pageId en pages/page.tsx; 28 tests web verdes + typecheck + build. Milestone v1.2 completo.
 progress:
   total_phases: 1
   completed_phases: 1
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-06 after v1.1)
 
 ## Current Position
 
-Phase: 15 of 15 (UX del reporte — agrupación e indicadores) — EN PROGRESO (2/3 planes)
-Plan: 15-02 completado — siguiente: 15-03 (badge JSON-LD de 4 estados por página, REPORT-04)
-Status: 15-02 cablea la UI de agrupación — IssueTypeGroup (details/summary nativo, tokens-only, a11y de teclado gratis) alimentado por groupIssuesByType, reutilizado idéntico en "Issues prioritarios" y en "Detalle por categoría" (problemas y correctos). Sin perder/duplicar issues; EmptyState y nota "Mostrando N de M" conservados; resto del reporte intacto.
-Last activity: 2026-07-08 — 15-02: IssueTypeGroup (TDD) + cableado en las dos secciones; 23 tests web verdes + typecheck + build
+Phase: 15 of 15 (UX del reporte — agrupación e indicadores) — COMPLETA (3/3 planes). Milestone v1.2 completo.
+Plan: 15-03 completado — badge JSON-LD de 4 estados por página (REPORT-04). No hay más planes pendientes en v1.2.
+Status: 15-03 cierra la fase — JsonLdBadge mapea los 4 estados de jsonLdStateForPage (error/advertencia/correcto/sin JSON-LD) a variantes existentes de Badge sin colores nuevos; pages/page.tsx cruza issues category=schema por pageId con la presencia de schemaGraph y renderiza el peor estado por página. Resto de la lista intacto.
+Last activity: 2026-07-08 — 15-03: JsonLdBadge (TDD) + consulta schema por pageId; 28 tests web verdes + typecheck + build
 
-Progress: [██████▁▁▁▁] 67% (fase 15 — 2/3)
+Progress: [██████████] 100% (fase 15 — 3/3, milestone v1.2 completo)
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Progress: [██████▁▁▁▁] 67% (fase 15 — 2/3)
 | Phase 13 P04 | ~10 min | 2 tasks | 5 files |
 | Phase 14 P01 | ~7 min | 3 tasks | 7 files |
 | Phase 15 P01 | ~4 min | 2 tasks | 5 files |
+| Phase 15 P03 | ~6 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,7 @@ Progress: [██████▁▁▁▁] 67% (fase 15 — 2/3)
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- [Phase 15]: 15-03 (REPORT-04, cierre de fase y milestone v1.2): `JsonLdBadge` (client component, apps/web/app/components/ui) deriva el peor de 4 estados JSON-LD con `jsonLdStateForPage` (helper puro 15-01) cruzando `schemaSeverities` (issues category=schema de la página) con `hasSchemaGraph = nodeCount > 0`, y lo mapea a variantes existentes de `Badge` sin colores nuevos: error→critical "JSON-LD con errores", warning→warning "JSON-LD con advertencias", ok→ok "{n} entidad(es) JSON-LD", absent→neutral "Sin JSON-LD". `pages/page.tsx` añade una segunda consulta `issue.findMany({ where:{ auditId, category:"schema" }, select:{ pageId, severity } })` agrupada en un `Map<pageId, ReportSeverity[]>` (severity de Prisma casteada a ReportSeverity), sustituyendo el badge de 2 estados por `JsonLdBadge`; resto de la fila (enlace, shortUrl, Reveal, orderBy url, EmptyState) intacto. TDD RED→GREEN en el badge; 28 tests web verdes (5 nuevos del badge) + typecheck + build.
 - [Phase 15]: 15-01 (REPORT-01/02/04): dos helpers puros en @auditor/report-model (sin React/Prisma). `groupIssuesByType(issues)` = única fuente del orden: agrupa por clave compuesta `checkId`+espacio+`title` (subtipos del mismo checkId con títulos distintos = grupos separados), severidad del grupo = la peor (peso local {critical:0,warning:1,ok:2}), ordena por (peso asc, count desc) con empate total resuelto por orden de inserción del Map (estable sin depender de Array.sort), no muta la entrada y no pierde issues (suma counts == longitud, T-15-01). Tipo `IssueTypeGroup {checkId,title,severity,count,issues}`. `jsonLdStateForPage(schemaSeverities, hasSchemaGraph)` = peor de 4 estados con precedencia critical→"error" > warning→"warning" > (grafo presente)→"ok" > "absent"; devuelve solo el estado semántico (el mapeo a badge/color vive en la UI del plan 03). Tipo `JsonLdState`. Ambos exportados de index.ts. TDD RED→GREEN por tarea; 17 tests verdes (7 grouping + 5 jsonld + 5 build) + typecheck limpio.
 - [Phase 14]: 14-01 (EXPORT-04, cierre de fase): client component `ExportMenu` (apps/web/app/components/ui) — trigger reusa `Button` (variant secondary, iconLeft Download, loading) con aria-haspopup/expanded/controls; menú `role="menu"` construido a mano (no hay Dropdown en la librería) con 3 items `role="menuitem"` (FileText/FileCode/Presentation), roving tabindex, teclado completo (Enter/Space/ArrowDown abre→primer item, ArrowUp→último, flechas con wrap, Home/End, Esc devuelve foco al trigger, Tab/click-fuera cierran sin exportar). Foco del trigger vía `document.getElementById(triggerId)` porque Button no reenvía ref (patrón 10-02). Descarga: `fetch('/api/audits/${auditId}/export?format=X')` → `blob()` → enlace temporal (`createObjectURL`+download+click+remove) → `revokeObjectURL` en finally; filename parseado de Content-Disposition con fallback `auditoria-<domain|id>.<ext>`. Guard `if (loading) return;` + Button disabled bloquean el doble fetch (SC#3). Error inline `role="alert"` con texto neutro fijo, se limpia al reintentar. CSS module tokens-only (cero hex). Montado en el header del reporte (rama done) agrupado con el linkOut en `.headerActions`. Primera suite RTL de apps/web: `// @vitest-environment jsdom` por archivo (env node por defecto se mantiene para las route tests de Phase 13); `@vitejs/plugin-react` añadido para transformar JSX bajo rolldown-vite; `cleanup()` explícito en afterEach (globals off). 18 tests verdes (11 ExportMenu + 7 route) + typecheck + build verdes.
 - [Phase 13]: 13-04 (EXPORT-01/02/03/05, cierre de fase): route Node `GET /api/audits/[id]/export?format=pdf|md|pptx` (runtime nodejs) que lee `buildReportModel(auditId)` y devuelve el archivo con el serializer del formato (`toMarkdown`/`toPdf`/`toPptx`) como descarga — `Content-Type` por formato (application/pdf, text/markdown; charset=utf-8, presentationml) + `Content-Disposition: attachment; filename="auditoria-<slug(domain)>-<auditId>.<ext>"`. Validación con type guard (union pdf|md|pptx) → 400 sin tocar la DB; `buildReportModel → null` → 404. Acceso por auditId sin auth (free tier), cero PII. `body` tipado string|Uint8Array con cast a BodyInit (el Node runtime acepta Buffer/Uint8Array pero el tipo DOM los omite). @auditor/export añadida como dependency del web + vitest como devDep (primera suite de tests de apps/web). route.test.ts: 7 tests (3 formatos con firma %PDF/MD/PK + 400×2 + 404 + cero PII en MD) con vi.mock del builder y serializers reales. Guardarrail de frontera extendido con Check D en scripts/assert-no-playwright-in-web.mjs: pnpm why puppeteer/chromium en el web sin edges reales (reusa el filtro non-peer de Check C); prueba que @auditor/export, ahora dep real del web, no arrastra browser engine. assert:web-boundary PASS + build verde.
@@ -141,6 +143,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08 — Completado 15-01-PLAN.md (helpers puros groupIssuesByType + jsonLdStateForPage en @auditor/report-model, TDD). Fase 15 en progreso (1/3).
-Stopped at: 15-01 completado — siguiente: 15-02 (componente IssueTypeGroup + cableado en "Issues prioritarios" y "Detalle por categoría")
+Last session: 2026-07-08 — Completado 15-03-PLAN.md (JsonLdBadge de 4 estados + cableado en la lista de páginas, REPORT-04, TDD). Fase 15 completa (3/3); milestone v1.2 completo.
+Stopped at: 15-03 completado — Phase 15 cerrada (3/3), milestone v1.2 (Detección de renderizado + exportación de reportes) completo. No hay planes pendientes.
 Resume file: None

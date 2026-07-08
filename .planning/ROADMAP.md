@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 1-7 (shipped 2026-07-06)
 - ✅ **v1.1 Overhaul de UI/UX y marca** — Phases 8-10 (shipped 2026-07-06)
-- 🚧 **v1.2 Detección de renderizado + exportación de reportes** — Phases 11-15 (in progress)
+- ✅ **v1.2 Detección de renderizado + exportación de reportes** — Phases 11-15 (complete)
 - 📋 **Next** — Deploy a producción + v2 (monetización / enriquecimiento) — planned (scope por definir)
 
 ## Phases
@@ -39,7 +39,7 @@ Detalle completo: `.planning/milestones/v1.1-ROADMAP.md`. Audit: `.planning/mile
 
 </details>
 
-### 🚧 v1.2 Detección de renderizado + exportación de reportes (Phases 11-15)
+### ✅ v1.2 Detección de renderizado + exportación de reportes (Phases 11-15)
 
 Aditivo sobre v1.0/v1.1 — el pipeline validado no se rompe. Secuencia de riesgo ascendente (según research SUMMARY): checks puros primero (canonical + headings, cero infra), luego el pase de render CSR/SSR (única pieza que toca worker + Docker) en aislamiento, después la fundación de export (lecturas puras de datos ya persistidos con libs JS puras, sin Chromium en Vercel), el botón de export como UI fina sobre la route, y por último la agrupación/indicadores del reporte (categoría REPORT nueva, fuera del sketch original de research).
 
@@ -47,7 +47,7 @@ Aditivo sobre v1.0/v1.1 — el pipeline validado no se rompe. Secuencia de riesg
 - [x] **Phase 12: Detección de renderizado CSR/SSR** — Pase selectivo de Playwright (muestra, worker-only) que reporta SSR vs CSR con degradación limpia
 - [x] **Phase 13: Fundación de export + serializers** — `buildReportModel` compartido + paquete `@auditor/export` puro + route Node que genera PDF / Markdown-LLM / PPTX
 - [x] **Phase 14: Botón Exportar (UI)** — Control arriba a la derecha del reporte con selector de tipo, accesible y con estado de carga
-- [ ] **Phase 15: UX del reporte — agrupación e indicadores** — Issues agrupados por tipo en dropdowns + estado JSON-LD por página en la lista de páginas
+- [x] **Phase 15: UX del reporte — agrupación e indicadores** — Issues agrupados por tipo en dropdowns + estado JSON-LD por página en la lista de páginas
 
 ### 📋 Next (Planned)
 
@@ -149,7 +149,7 @@ Plans:
 Plans:
 - [x] 15-01-PLAN.md — Helpers puros en @auditor/report-model: groupIssuesByType (orden severidad→cantidad) + jsonLdStateForPage (4 estados)
 - [x] 15-02-PLAN.md — Componente IssueTypeGroup + cableado en "Issues prioritarios" y "Detalle por categoría" (REPORT-01/02)
-- [ ] 15-03-PLAN.md — Badge JSON-LD de 4 estados por página en la lista de páginas (REPORT-04)
+- [x] 15-03-PLAN.md — Badge JSON-LD de 4 estados por página en la lista de páginas (REPORT-04)
 
 **UI hint**: yes
 
@@ -171,7 +171,7 @@ Plans:
 | 12. Detección de renderizado CSR/SSR | v1.2 | 3/3 | Complete ✅ | 2026-07-07 |
 | 13. Fundación de export + serializers | v1.2 | 4/4 | Complete ✅ | 2026-07-08 |
 | 14. Botón Exportar (UI) | v1.2 | 1/1 | Complete ✅ | 2026-07-08 |
-| 15. UX del reporte — agrupación e indicadores | v1.2 | 2/3 | In progress | - |
+| 15. UX del reporte — agrupación e indicadores | v1.2 | 3/3 | Complete | - |
 
 ---
 *Roadmap created: 2026-07-05*
