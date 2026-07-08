@@ -188,9 +188,13 @@ export function ExportMenu({ auditId, domain }: ExportMenuProps) {
         if (objectUrl) URL.revokeObjectURL(objectUrl);
         inFlightRef.current = false;
         setLoading(false);
+        // WR-01: el menú ya se cerró (foco caído a <body>) y el trigger vuelve a
+        // habilitarse en este render; devolvemos el foco en el próximo frame,
+        // tanto en éxito como en error, para no dejar varado al usuario de teclado.
+        requestAnimationFrame(() => focusTrigger());
       }
     },
-    [auditId, domain, loading, scheduleRevoke]
+    [auditId, domain, loading, scheduleRevoke, focusTrigger]
   );
 
   // Teclado del trigger.
