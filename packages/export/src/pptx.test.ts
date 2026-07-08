@@ -39,4 +39,16 @@ describe("toPptx slide-count floor/ceiling", () => {
     expect(buf[0]).toBe(0x50); // 'P'
     expect(buf[1]).toBe(0x4b); // 'K'
   });
+
+  it("is a CURATED deck with native charts (score doughnut + category bar + severity breakdown)", async () => {
+    // Guards against a regression back to a plain-text deck: the curated deck
+    // adds pptxgenjs native charts, which serialize into ppt/charts/chartN.xml.
+    const buf = await toPptx(buildModel({ candidatesCount: 12 }));
+    const zip = await JSZip.loadAsync(buf);
+    const chartParts = Object.keys(zip.files).filter((f) =>
+      /^ppt\/charts\/chart\d+\.xml$/.test(f)
+    );
+    // Overview doughnut + per-category bar + severity breakdown = at least 3 charts.
+    expect(chartParts.length).toBeGreaterThanOrEqual(3);
+  });
 });
