@@ -1,4 +1,5 @@
 import type { Category, ScoreStatus, CategoryScoreResult } from "@auditor/scoring";
+import type { PageTemplate } from "./template";
 
 /**
  * Serializable report model shared by the on-screen report
@@ -93,5 +94,11 @@ export interface ReportModel {
   totalPriorityCandidates: number;
   /** Every persisted issue grouped by category (includes Phase 11/12 checks). */
   issuesByCategory: Record<Category, ReportIssue[]>;
+  /**
+   * Every persisted issue with a resolvable URL, grouped by page template
+   * (TEMPLATE-01/02). Issues with `url === null` are omitted here but remain
+   * present in `issuesByCategory` (no regression to the existing axis).
+   */
+  issuesByTemplate: Record<PageTemplate, ReportIssue[]>;
   perf?: ReportPerf;
 }

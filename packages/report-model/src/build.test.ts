@@ -89,6 +89,19 @@ describe("buildReportModel", () => {
       makeIssue({ category: "tech", severity: "critical", checkId: "TECH-04:missing" }),
       makeIssue({ category: "aeo", severity: "warning", checkId: "RENDER-01:csr" }),
       makeIssue({ category: "onpage", severity: "ok", checkId: "ONPAGE-08:order" }),
+      makeIssue({
+        category: "schema",
+        severity: "warning",
+        checkId: "SCHEMA-05:product",
+        source: "https://example.com/producto/1",
+      }),
+      makeIssue({
+        category: "onpage",
+        severity: "ok",
+        checkId: "ONPAGE-09:no-url",
+        source: null,
+        scope: null,
+      }),
     ];
     const priority = detailIssues.filter((i) => i.severity !== "ok");
 
@@ -111,9 +124,25 @@ describe("buildReportModel", () => {
     // Every persisted issue is grouped under its category.
     expect(model!.issuesByCategory.tech).toHaveLength(1);
     expect(model!.issuesByCategory.aeo).toHaveLength(1);
-    expect(model!.issuesByCategory.onpage).toHaveLength(1);
+    // onpage has 2 fixtures now (the original + a null-url one added for the
+    // issuesByTemplate regression check below).
+    expect(model!.issuesByCategory.onpage).toHaveLength(2);
     // url derived from source like the report's issueUrl helper.
     expect(model!.issuesByCategory.tech[0]!.url).toBe("https://example.com/");
+
+    // issuesByTemplate: classified issue lands in its bucket.
+    expect(model!.issuesByTemplate.product).toHaveLength(1);
+    expect(model!.issuesByTemplate.product[0]!.checkId).toBe("SCHEMA-05:product");
+    // Issues without a resolvable url are skipped from issuesByTemplate but
+    // remain present in issuesByCategory (no regression to the existing axis).
+    const templateTotal = Object.values(model!.issuesByTemplate).reduce(
+      (sum, bucket) => sum + bucket.length,
+      0
+    );
+    const nullUrlCount = detailIssues.filter(
+      (i) => (i as { source: string | null }).source == null
+    ).length;
+    expect(templateTotal + nullUrlCount).toBe(detailIssues.length);
   });
 
   it("returns null for a non-existent audit", async () => {

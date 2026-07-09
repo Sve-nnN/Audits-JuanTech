@@ -9,6 +9,8 @@ import type {
   ReportSeverity,
   ReportDiffStatus,
 } from "./model";
+import { classifyTemplate, TEMPLATE_ORDER } from "./template";
+import type { PageTemplate } from "./template";
 
 /** Max priority rows the on-screen table renders (screen cap, NOT the total). */
 export const MAX_PRIORITY_ROWS = 60;
@@ -133,6 +135,16 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     if (bucket) bucket.push(toReportIssue(issue));
   }
 
+  const issuesByTemplate = Object.fromEntries(
+    TEMPLATE_ORDER.map((t) => [t, [] as ReportIssue[]])
+  ) as Record<PageTemplate, ReportIssue[]>;
+  for (const issue of issuesForDetail as unknown as IssueRow[]) {
+    const reportIssue = toReportIssue(issue);
+    if (reportIssue.url != null) {
+      issuesByTemplate[classifyTemplate(reportIssue.url)].push(reportIssue);
+    }
+  }
+
   const resolvedIssues: ReportResolvedIssue[] = (
     resolvedRaw as unknown as ReportResolvedIssue[]
   ).map((r) => ({ checkId: r.checkId, title: r.title, category: r.category }));
@@ -162,6 +174,7 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     priorityIssues,
     totalPriorityCandidates,
     issuesByCategory,
+    issuesByTemplate,
     perf,
   };
 }
