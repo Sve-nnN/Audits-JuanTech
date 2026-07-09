@@ -45,6 +45,28 @@ function formatDate(value: Date | null): string {
   return new Intl.DateTimeFormat("es", { dateStyle: "medium", timeStyle: "short" }).format(value);
 }
 
+/**
+ * Decide si la URL resuelta (URLRES-02) merece mostrarse en el reporte:
+ * solo cuando difiere del dominio ingresado (protocolo http, subdominio www,
+ * o cualquier path/host distinto). Comparación laxa: un `https://<domain>`
+ * con o sin barra final ni `www.` se considera equivalente y no se muestra.
+ */
+function resolvedDiffersFromDomain(resolvedUrl: string | null, domain: string): boolean {
+  if (!resolvedUrl) return false;
+  const stripWww = (host: string) => host.replace(/^www\./, "");
+  const bareDomain = stripWww(domain.toLowerCase());
+  try {
+    const parsed = new URL(resolvedUrl);
+    const sameHost = stripWww(parsed.hostname.toLowerCase()) === bareDomain;
+    const rootPath = parsed.pathname === "" || parsed.pathname === "/";
+    const httpsProtocol = parsed.protocol === "https:";
+    const noQueryOrHash = parsed.search === "" && parsed.hash === "";
+    return !(sameHost && rootPath && httpsProtocol && noQueryOrHash);
+  } catch {
+    return false;
+  }
+}
+
 function formatPerfNumber(value: number | null, unit: string): string {
   if (value === null) return "no disponible";
   return `${value}${unit}`;
@@ -110,6 +132,9 @@ export default async function AuditReportPage({ params }: PageProps) {
             <p className={styles.meta}>
               Auditoría completada el {formatDate(audit.finishedAt)} · {audit.urlLimit} URLs máx.
             </p>
+            {resolvedDiffersFromDomain(audit.resolvedUrl, audit.site.domain) && (
+              <p className={styles.meta}>Analizamos: {audit.resolvedUrl}</p>
+            )}
           </div>
           <div className={styles.headerActions}>
             <Link href={`/audits/${auditId}/pages`} className={styles.linkOut}>
