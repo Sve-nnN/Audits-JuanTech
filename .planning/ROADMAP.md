@@ -195,7 +195,10 @@ Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-
   2. Una página con múltiples grafos (ej. `BlogPosting` + `BreadcrumbList`) muestra cada componente conexo con su propio centro, sin superponerse.
   3. Sigue siendo SVG puro sin dependencias nuevas, con layout determinista.
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+- [ ] 23-01-PLAN.md — layout radial por componente conexo en EntityGraphSvg (módulo puro entityGraphLayout + rework del render + checkpoint visual) [SDVIZ-01]
+
 **UI hint**: yes
 
 ### Phase 24: Código + validación JSON-LD estilo Classy Schema
