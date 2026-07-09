@@ -30,6 +30,7 @@ import {
   runRenderSample,
   type RenderIssueDraft,
   type RenderSamplePage,
+  type RenderVerdict,
 } from "@auditor/render";
 
 // Phase 2: the worker now runs a real bounded crawl (Crawlee CheerioCrawler,
@@ -331,6 +332,47 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       graph = { nodes: [], edges: [], depthByUrl: {} };
     }
 
+    // Phase 12 (RENDER-01/03): selective Playwright render pass over a small
+    // representative sample (never the full crawl — see @auditor/render
+    // `runRenderSample`, which reuses `selectSample` with its own cap). It
+    // classifies each sampled page SSR/CSR (raw `Page.html` vs rendered DOM)
+    // and emits "aeo" issues. Best-effort AND double-guarded: `runRenderSample`
+    // already degrades any per-page failure/timeout to "undetermined" without
+    // throwing, and this try/catch is a belt-and-suspenders wrapper so that
+    // even a catastrophic render-layer failure (e.g. Chromium won't launch)
+    // never fails the audit — the crawl/checks/PSI results we already have are
+    // preserved and the audit still reaches status `done` (SC#3).
+    //
+    // 17-02: moved before `runAllChecks` (was previously after the perf
+    // sample) so its per-page verdict can be threaded into the check battery
+    // as `renderVerdictByPageId`, letting SD-06 suppress false positives on
+    // pages already confirmed CSR by this sample.
+    let renderIssues: RenderIssueDraft[] = [];
+    try {
+      const renderPages: RenderSamplePage[] = pages.map((page) => ({
+        id: page.id,
+        url: page.url,
+        finalUrl: page.finalUrl,
+        statusCode: page.statusCode,
+        contentType: page.contentType,
+        depth: page.depth,
+        html: page.html,
+      }));
+      renderIssues = await runRenderSample({ auditId, pages: renderPages });
+    } catch (error) {
+      console.error(`[worker] render sample failed for audit ${auditId}:`, error);
+      renderIssues = [];
+    }
+
+    // SCHEMA-07: per-page verdict lookup built from the render sample above,
+    // keyed by `Page.id`. Only pages actually included in the render sample
+    // get an entry — out-of-sample pages stay undefined so SD-06 evaluates
+    // them normally instead of assuming "csr".
+    const renderVerdictByPageId: Record<string, RenderVerdict> = {};
+    for (const draft of renderIssues) {
+      if (draft.pageId) renderVerdictByPageId[draft.pageId] = draft.verdict;
+    }
+
     await writePhase("analyzing");
     const { issues: issueDrafts, pageSchemaGraphs } = await runAllChecks({
       pages,
@@ -338,6 +380,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       robotsTxt,
       sitemapUrls,
       depthByUrl: graph.depthByUrl,
+      renderVerdictByPageId,
     });
 
     // Phase 5: PSI sample over a small representative subset of `pages`
@@ -360,33 +403,6 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
         desktop: summarizeStrategy([]),
         error: error instanceof Error ? error.message : "unknown perf sample error",
       };
-    }
-
-    // Phase 12 (RENDER-01/03): selective Playwright render pass over a small
-    // representative sample (never the full crawl — see @auditor/render
-    // `runRenderSample`, which reuses `selectSample` with its own cap). It
-    // classifies each sampled page SSR/CSR (raw `Page.html` vs rendered DOM)
-    // and emits "aeo" issues. Best-effort AND double-guarded: `runRenderSample`
-    // already degrades any per-page failure/timeout to "undetermined" without
-    // throwing, and this try/catch is a belt-and-suspenders wrapper so that
-    // even a catastrophic render-layer failure (e.g. Chromium won't launch)
-    // never fails the audit — the crawl/checks/PSI results we already have are
-    // preserved and the audit still reaches status `done` (SC#3).
-    let renderIssues: RenderIssueDraft[] = [];
-    try {
-      const renderPages: RenderSamplePage[] = pages.map((page) => ({
-        id: page.id,
-        url: page.url,
-        finalUrl: page.finalUrl,
-        statusCode: page.statusCode,
-        contentType: page.contentType,
-        depth: page.depth,
-        html: page.html,
-      }));
-      renderIssues = await runRenderSample({ auditId, pages: renderPages });
-    } catch (error) {
-      console.error(`[worker] render sample failed for audit ${auditId}:`, error);
-      renderIssues = [];
     }
 
     // Normalize both draft shapes (IssueDraft from @auditor/checks, and the
