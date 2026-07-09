@@ -15,6 +15,7 @@ import { Badge, DiffBadge } from "../../components/ui/Badge";
 import { EmptyState, ErrorState } from "../../components/ui/EmptyState";
 import { ExportMenu } from "../../components/ui/ExportMenu";
 import { Reveal } from "../../components/motion/useReveal";
+import { ArchitectureTreeSvg } from "../../components/ArchitectureTreeSvg";
 import {
   CATEGORY_LABEL,
   STATUS_LABEL,
@@ -358,6 +359,18 @@ export default async function AuditReportPage({ params }: PageProps) {
             }
           />
         </Reveal>
+
+        {/* Arquitectura del sitio */}
+        {model.architecture && (
+          <Reveal as="section" className={styles.section} delay={120}>
+            <h3 className={styles.sectionTitle}>Arquitectura del sitio</h3>
+            <ArchitectureTreeSvg architecture={model.architecture} />
+            <p className={styles.tableNote}>
+              Páginas agrupadas por profundidad de clics desde la home. Las huérfanas no tienen
+              ruta de enlaces desde la portada.
+            </p>
+          </Reveal>
+        )}
 
         <p className={styles.footerLinks}>
           <Link href={`/audits/${auditId}/pages`}>Ver páginas rastreadas y grafo de entidades</Link>
