@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Profundizar checks técnicos + visualización de arquitectura
-status: "Phase 17 in progress (Plan 17-01 executed)"
-stopped_at: "Plan 17-01 completado (SD-06 schemaContentMismatchCheck + contrato renderVerdictByPageId). Falta Plan 17-02."
-last_updated: "2026-07-09T15:09:50.853Z"
-last_activity: 2026-07-09 — Phase 17 Plan 01 ejecutado (SD-06 schemaContentMismatchCheck registrado en schemaSiteChecks, renderVerdictByPageId en SiteCheckCtx/RunAllChecksOptions)
+status: "Phase 17 complete (Plan 17-02 executed)"
+stopped_at: "Plan 17-02 completado (RenderIssueDraft.verdict + reordenamiento del pipeline del worker: runRenderSample antes de runAllChecks, renderVerdictByPageId cableado). Phase 17 cerrada."
+last_updated: "2026-07-09T15:20:00.000Z"
+last_activity: 2026-07-09 — Phase 17 Plan 02 ejecutado (verdict explícito en RenderIssueDraft; worker reordenado para pasar renderVerdictByPageId a runAllChecks)
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
-  percent: 20
+  completed_plans: 4
+  percent: 40
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 ## Current Position
 
-Phase: 17 (Check schema-contenido mismatch) — in progress
-Plan: 01 complete (SD-06 schemaContentMismatchCheck + contrato renderVerdictByPageId), 02 pending (reordenar runRenderSample antes de runAllChecks en el worker, exponer RenderIssueDraft.verdict)
-Status: Phase 17 in progress (Plan 17-01 executed)
-Last activity: 2026-07-09 — Phase 17 Plan 01 ejecutado (SD-06 schemaContentMismatchCheck registrado en schemaSiteChecks, renderVerdictByPageId en SiteCheckCtx/RunAllChecksOptions)
+Phase: 17 (Check schema-contenido mismatch) — complete
+Plan: 01 complete (SD-06 schemaContentMismatchCheck + contrato renderVerdictByPageId), 02 complete (RenderIssueDraft.verdict expuesto + worker reordenado, renderVerdictByPageId cableado en runAllChecks)
+Status: Phase 17 complete — próximo: `/gsd:plan-phase 18`
+Last activity: 2026-07-09 — Phase 17 Plan 02 ejecutado (verdict explícito en RenderIssueDraft; worker reordenado para pasar renderVerdictByPageId a runAllChecks)
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Last activity: 2026-07-09 — Phase 17 Plan 01 ejecutado (SD-06 schemaContentMis
 | Phase 16 P01 | ~20 min | 2 tasks | 6 files |
 | Phase 16 P02 | 20min | 2 tasks | 7 files |
 | Phase 17 P01 | 20min | 2 tasks | 5 files |
+| Phase 17 P02 | 15min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,7 @@ Recent decisions affecting current work:
 - [Phase 12]: 12-01 (RENDER-01/02): nuevo paquete worker-only @auditor/render (cheerio, cero Playwright); detectRenderVerdict puro compara raw Page.html vs RenderedSnapshot (title/H1/texto + ratio<0.60→CSR); severidad SSR→ok/CSR→warning, NUNCA critical; category "aeo"; fingerprint RENDER-01:<verdict>:<url>; RenderIssueDraft local decoplado de @auditor/checks; undeterminedVerdict() para degradación de 12-02; RENDER_CSR_RATIO=0.60 tuneable
 - [Phase 16]: 16-02 (DEPTH-01/02/03, cierre de fase): worker computa buildLinkGraph una sola vez post-crawl/pre-checks, pasa depthByUrl a runAllChecks (SiteCheckCtx/RunAllChecksOptions extendidos opcionalmente), nuevo SiteCheck TECH-14 emite un único issue agregado (ok/warning) con % de páginas a más de 3 clics de home vía siteFingerprint, y Audit.stats.graph ({nodes,edges,depthByUrl}) se persiste solo en la escritura final status:done (nunca en progreso intermedio), listo para Phase 20.
 - [Phase 17-01]: SCHEMA-06/07: schemaContentMismatchCheck (SD-06, site-level) detecta FAQPage/HowTo/Product+AggregateRating/Review sin contenido visible correspondiente, severidad warning siempre (literal hardcodeado, nunca critical), suprimido solo por veredicto explicito renderVerdictByPageId==='csr' (undetermined/ausente sigue evaluando normal). RenderVerdictValue redeclarado localmente en @auditor/checks sin dependencia real de @auditor/render (preserva assert-no-playwright-in-web.mjs).
+- [Phase 17-02, cierre de fase]: SCHEMA-07: RenderIssueDraft gana campo explícito verdict (ssr/csr/undetermined) poblado en las 3 ramas de @auditor/render (detect.ts). El worker mueve el bloque try/catch de runRenderSample para que corra justo después de buildLinkGraph y antes de runAllChecks (antes corría al final, tras el muestreo PSI); construye renderVerdictByPageId (Record<pageId, RenderVerdict>) solo con páginas realmente muestreadas y lo pasa a runAllChecks. RenderVerdict se importa solo en apps/worker (nunca re-exportado a @auditor/checks), preservando la frontera Playwright/apps-web. Best-effort preservado: la auditoría sigue llegando a status done si el render sample falla por completo.
 
 ### Pending Todos
 
@@ -159,6 +161,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T15:09:50.849Z
-Stopped at: Plan 17-01 completado (SD-06 schemaContentMismatchCheck + contrato renderVerdictByPageId). Falta Plan 17-02.
+Last session: 2026-07-09T15:20:00.000Z
+Stopped at: Plan 17-02 completado (RenderIssueDraft.verdict + reordenamiento del pipeline del worker: runRenderSample antes de runAllChecks, renderVerdictByPageId cableado). Phase 17 cerrada.
 Resume file: None

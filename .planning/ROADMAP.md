@@ -59,7 +59,7 @@ Detalle completo: `.planning/milestones/v1.2-ROADMAP.md`. Audit: `.planning/mile
 Aditivo sobre v1.0-v1.2 — cierra gaps encontrados vs. metodología SEO estándar (comparación contra las skills del diplomado "De Cero a SEO") y agrega visibilidad de arquitectura. Secuencia de riesgo ascendente según research: primero el fundamento compartido de grafo/BFS + check de profundidad (corrige la premisa original de que `Page.depth` sirve tal cual), luego dos checks aislados e independientes entre sí (schema-contenido, más riesgo de falso positivo; diagnósticos PSI, más disciplina de dónde extraer datos), después la agrupación por plantilla (decisión de UI compartida antes de construir sobre ella), y por último el visualizador de arquitectura (mayor superficie nueva, depende del grafo/BFS ya persistido en Phase 16).
 
 - [x] **Phase 16: Grafo de enlaces compartido + profundidad de clics real** (2 plans) - BFS único persistido en Audit.stats + check de profundidad de clics (completed 2026-07-08)
-- [ ] **Phase 17: Check schema-contenido mismatch** - JSON-LD sin contenido visible correspondiente, cruzado con muestra CSR/SSR
+- [x] **Phase 17: Check schema-contenido mismatch** - JSON-LD sin contenido visible correspondiente, cruzado con muestra CSR/SSR (completed 2026-07-09)
 - [ ] **Phase 18: Diagnósticos de Lighthouse desde PSI** - diagnósticos curados extraídos de la respuesta PSI ya pagada
 - [ ] **Phase 19: Agrupación por plantilla** - segundo eje de agrupación de issues (home/categoría/producto/artículo)
 - [ ] **Phase 20: Visualizador de arquitectura** - árbol jerárquico SVG por profundidad, reusa el grafo de Phase 16
@@ -97,8 +97,8 @@ Plans:
 **Plans**: 2 plans
 Plans:
 
-- [ ] 17-01-PLAN.md — Check SD-06 (schemaContentMismatchCheck) + contrato renderVerdictByPageId en @auditor/checks
-- [ ] 17-02-PLAN.md — Reordenar runRenderSample antes de runAllChecks en el worker, exponer RenderIssueDraft.verdict
+- [x] 17-01-PLAN.md — Check SD-06 (schemaContentMismatchCheck) + contrato renderVerdictByPageId en @auditor/checks
+- [x] 17-02-PLAN.md — Reordenar runRenderSample antes de runAllChecks en el worker, exponer RenderIssueDraft.verdict
 
 ### Phase 18: Diagnósticos de Lighthouse desde PSI
 
@@ -168,7 +168,7 @@ Próximo trabajo previsto tras v1.3 (scope por definir vía `/gsd:new-milestone`
 | 14. Botón Exportar (UI) | v1.2 | 1/1 | Complete ✅ | 2026-07-08 |
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 3/3 | Complete ✅ | 2026-07-08 |
 | 16. Grafo de enlaces compartido + profundidad de clics real | v1.3 | 2/2 | Complete   | 2026-07-08 |
-| 17. Check schema-contenido mismatch | v1.3 | 0/2 | Not started | - |
+| 17. Check schema-contenido mismatch | v1.3 | 2/2 | Complete   | 2026-07-09 |
 | 18. Diagnósticos de Lighthouse desde PSI | v1.3 | 0/? | Not started | - |
 | 19. Agrupación por plantilla | v1.3 | 0/? | Not started | - |
 | 20. Visualizador de arquitectura | v1.3 | 0/? | Not started | - |
