@@ -31,6 +31,7 @@ describe("detectRenderVerdict", () => {
     expect(issue.checkId).toBe(RENDER_CHECK_ID);
     expect(issue.category).toBe("aeo");
     expect(issue.severity).toBe("ok");
+    expect(issue.verdict).toBe("ssr");
     expect(issue.fingerprint).toBe(`${RENDER_CHECK_ID}:ssr:${URL}`);
     expect(issue.source).toBe(URL);
     expect(issue.pageId).toBe(PAGE_ID);
@@ -44,6 +45,7 @@ describe("detectRenderVerdict", () => {
       rendered: fullSnapshot,
     });
     expect(issue.severity).toBe("warning");
+    expect(issue.verdict).toBe("csr");
     expect(issue.fingerprint).toBe(`${RENDER_CHECK_ID}:csr:${URL}`);
     expect(issue.category).toBe("aeo");
   });
@@ -114,6 +116,7 @@ describe("undeterminedVerdict", () => {
     expect(issue.checkId).toBe(RENDER_CHECK_ID);
     expect(issue.category).toBe("aeo");
     expect(issue.severity).toBe("ok");
+    expect(issue.verdict).toBe("undetermined");
     expect(issue.fingerprint).toBe(`${RENDER_CHECK_ID}:undetermined:${URL}`);
     expect(issue.source).toBe(URL);
     expect(issue.pageId).toBe(PAGE_ID);

@@ -36,6 +36,12 @@ export interface RenderIssueDraft {
   category: string;
   title: string;
   severity: RenderSeverityValue;
+  /**
+   * Explicit verdict this draft was derived from — lets the worker build a
+   * per-page verdict lookup (renderVerdictByPageId) without re-parsing
+   * title/fingerprint strings.
+   */
+  verdict: RenderVerdict;
   measuredValue?: string;
   source?: string;
   criterion?: string;

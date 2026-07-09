@@ -83,6 +83,7 @@ export function detectRenderVerdict(input: DetectInput): RenderIssueDraft {
       category: "aeo",
       title: "Contenido clave solo visible tras render JS (CSR)",
       severity: "warning",
+      verdict: "csr",
       measuredValue,
       source: url,
       criterion:
@@ -99,6 +100,7 @@ export function detectRenderVerdict(input: DetectInput): RenderIssueDraft {
     category: "aeo",
     title: "Renderizado server-side (SSR)",
     severity: "ok",
+    verdict: "ssr",
     measuredValue,
     source: url,
     criterion:
@@ -124,6 +126,7 @@ export function undeterminedVerdict(
     category: "aeo",
     title: "Renderizado no determinado",
     severity: "ok",
+    verdict: "undetermined",
     source: url,
     criterion:
       "No fue posible comparar el HTML crudo con el DOM renderizado para esta página.",
