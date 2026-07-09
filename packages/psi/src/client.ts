@@ -1,4 +1,4 @@
-import { parsePsiResponse, type RawPsiResponse } from "./parser";
+import { parsePsiResponse, extractDiagnostics, type RawPsiResponse } from "./parser";
 import type { PsiRunResult, PsiStrategy } from "./types";
 
 const PSI_ENDPOINT = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
@@ -57,7 +57,7 @@ export async function runPsi(url: string, strategy: PsiStrategy): Promise<PsiRun
       }
 
       const json = (await res.json()) as RawPsiResponse;
-      const metrics = parsePsiResponse(json);
+      const metrics = { ...parsePsiResponse(json), diagnostics: extractDiagnostics(json) };
       return { ok: true, metrics };
     } catch (error) {
       clearTimeout(timeout);
