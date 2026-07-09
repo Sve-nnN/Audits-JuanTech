@@ -220,18 +220,45 @@ describe("buildReportModel", () => {
     expect(serialized).not.toContain(CANARY_TOKEN);
   });
 
-  // --- Architecture (Plan 20-02) --------------------------------------------
+  // --- Architecture (Plan 22-01) --------------------------------------------
 
   /** makeAudit variant that persists a link graph at stats.graph. */
-  function makeAuditWithGraph(depthByUrl: Record<string, number>, nodes: { url: string; pageId: string }[]) {
+  function makeAuditWithGraph(
+    depthByUrl: Record<string, number>,
+    nodes: { url: string; pageId: string }[],
+    edges: { from: string; to: string }[] = []
+  ) {
     return makeAudit({
       stats: {
-        graph: { nodes, edges: [], depthByUrl },
+        graph: { nodes, edges, depthByUrl },
       },
     });
   }
 
-  it("groups graph nodes into 0/1/2/3+ depth buckets with title from Page rows", async () => {
+  /** Find a node anywhere in the reconstructed tree by url. */
+  type TreeNode = {
+    url: string;
+    title: string | null;
+    depth: number;
+    template: string;
+    isDeep: boolean;
+    isOrphan: boolean;
+    children: TreeNode[];
+  };
+  function findInTree(tree: TreeNode[], url: string): TreeNode | undefined {
+    for (const node of tree) {
+      if (node.url === url) return node;
+      const found = findInTree(node.children, url);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  function childUrls(node: TreeNode | undefined): string[] {
+    return (node?.children ?? []).map((c) => c.url);
+  }
+
+  it("maps node signals (title, depth, template, isDeep) from Page rows", async () => {
+    // No edges → every valid node is a root; asserts the per-node v1.3 signals.
     const nodes = [
       { url: "https://example.com/", pageId: "p-home" },
       { url: "https://example.com/a", pageId: "p-a" },
@@ -265,34 +292,135 @@ describe("buildReportModel", () => {
     const arch = model!.architecture!;
     expect(arch).toBeDefined();
 
-    expect(arch.nodesByDepth["0"]).toHaveLength(1);
-    expect(arch.nodesByDepth["0"][0]!.url).toBe("https://example.com/");
-    expect(arch.nodesByDepth["0"][0]!.title).toBe("Inicio");
+    // No edges → 4 roots (all nodes), stable graph.nodes order.
+    expect(arch.tree.map((n) => n.url)).toEqual([
+      "https://example.com/",
+      "https://example.com/a",
+      "https://example.com/b",
+      "https://example.com/producto/c",
+    ]);
 
-    expect(arch.nodesByDepth["1"]).toHaveLength(1);
-    expect(arch.nodesByDepth["1"][0]!.url).toBe("https://example.com/a");
+    const home = findInTree(arch.tree, "https://example.com/")!;
+    expect(home.title).toBe("Inicio");
+    expect(home.isDeep).toBe(false);
+
+    const a = findInTree(arch.tree, "https://example.com/a")!;
     // title is null when the Page has no title.
-    expect(arch.nodesByDepth["1"][0]!.title).toBeNull();
+    expect(a.title).toBeNull();
+    expect(a.isDeep).toBe(false);
 
-    expect(arch.nodesByDepth["2"]).toHaveLength(1);
-    expect(arch.nodesByDepth["2"][0]!.url).toBe("https://example.com/b");
+    const b = findInTree(arch.tree, "https://example.com/b")!;
+    expect(b.depth).toBe(2);
+    expect(b.isDeep).toBe(false);
 
-    // depth 4 -> "3+" bucket, isDeep true; others isDeep false.
-    expect(arch.nodesByDepth["3+"]).toHaveLength(1);
-    const deep = arch.nodesByDepth["3+"][0]!;
-    expect(deep.url).toBe("https://example.com/producto/c");
+    // depth 4 -> isDeep true; template comes from classifyTemplate.
+    const deep = findInTree(arch.tree, "https://example.com/producto/c")!;
     expect(deep.isDeep).toBe(true);
-    // template comes from classifyTemplate.
     expect(deep.template).toBe("product");
-    expect(arch.nodesByDepth["0"][0]!.isDeep).toBe(false);
-    expect(arch.nodesByDepth["1"][0]!.isDeep).toBe(false);
-    expect(arch.nodesByDepth["2"][0]!.isDeep).toBe(false);
 
     // No orphans here — every page is a graph node.
     expect(arch.orphans).toHaveLength(0);
   });
 
-  it("puts depth exactly 3 in the 3+ bucket with isDeep=false", async () => {
+  it("reconstructs parent-child hierarchy from edges", async () => {
+    const nodes = [
+      { url: "https://example.com/", pageId: "p-home" },
+      { url: "https://example.com/a", pageId: "p-a" },
+      { url: "https://example.com/b", pageId: "p-b" },
+      { url: "https://example.com/a/c", pageId: "p-c" },
+    ];
+    const depthByUrl = {
+      "https://example.com/": 0,
+      "https://example.com/a": 1,
+      "https://example.com/b": 1,
+      "https://example.com/a/c": 2,
+    };
+    const edges = [
+      { from: "https://example.com/", to: "https://example.com/a" },
+      { from: "https://example.com/", to: "https://example.com/b" },
+      { from: "https://example.com/a", to: "https://example.com/a/c" },
+    ];
+    const pages = [
+      { id: "p-home", url: "https://example.com/", title: "Inicio", finalUrl: null, statusCode: 200, error: null },
+      { id: "p-a", url: "https://example.com/a", title: "A", finalUrl: null, statusCode: 200, error: null },
+      { id: "p-b", url: "https://example.com/b", title: "B", finalUrl: null, statusCode: 200, error: null },
+      { id: "p-c", url: "https://example.com/a/c", title: "C", finalUrl: null, statusCode: 200, error: null },
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAuditWithGraph(depthByUrl, nodes, edges) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pageFindMany.mockResolvedValueOnce(pages as any);
+
+    const model = await buildReportModel("audit-1");
+    const arch = model!.architecture!;
+
+    // Single root = home; A and B hang off home; C hangs off A.
+    expect(arch.tree.map((n) => n.url)).toEqual(["https://example.com/"]);
+    const home = arch.tree[0]! as unknown as TreeNode;
+    expect(childUrls(home)).toEqual(["https://example.com/a", "https://example.com/b"]);
+    const a = findInTree(arch.tree as unknown as TreeNode[], "https://example.com/a");
+    expect(childUrls(a)).toEqual(["https://example.com/a/c"]);
+
+    // C conserves its v1.3 signals.
+    const c = findInTree(arch.tree as unknown as TreeNode[], "https://example.com/a/c")!;
+    expect(c.depth).toBe(2);
+    expect(c.isDeep).toBe(false);
+    // template is preserved from classifyTemplate for the child node.
+    expect(c.template).toBe("category");
+  });
+
+  it("assigns the lowest-depth linker as parent", async () => {
+    // leaf (depth 2) is linked by BOTH mid (depth 1, listed first) and home
+    // (depth 0). The lower-depth linker (home) must win regardless of edge order.
+    const nodes = [
+      { url: "https://example.com/", pageId: "p-home" },
+      { url: "https://example.com/mid", pageId: "p-mid" },
+      { url: "https://example.com/leaf", pageId: "p-leaf" },
+    ];
+    const depthByUrl = {
+      "https://example.com/": 0,
+      "https://example.com/mid": 1,
+      "https://example.com/leaf": 2,
+    };
+    const edges = [
+      { from: "https://example.com/", to: "https://example.com/mid" },
+      { from: "https://example.com/mid", to: "https://example.com/leaf" },
+      { from: "https://example.com/", to: "https://example.com/leaf" },
+    ];
+    const pages = [
+      { id: "p-home", url: "https://example.com/", title: "Inicio", finalUrl: null, statusCode: 200, error: null },
+      { id: "p-mid", url: "https://example.com/mid", title: "Mid", finalUrl: null, statusCode: 200, error: null },
+      { id: "p-leaf", url: "https://example.com/leaf", title: "Leaf", finalUrl: null, statusCode: 200, error: null },
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAuditWithGraph(depthByUrl, nodes, edges) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pageFindMany.mockResolvedValueOnce(pages as any);
+
+    const model = await buildReportModel("audit-1");
+    const arch = model!.architecture! as unknown as { tree: TreeNode[]; orphans: unknown[] };
+
+    // Single root = home; leaf is a child of home, NOT of mid.
+    expect(arch.tree.map((n) => n.url)).toEqual(["https://example.com/"]);
+    const home = arch.tree[0]!;
+    expect(childUrls(home)).toEqual(["https://example.com/mid", "https://example.com/leaf"]);
+    const mid = findInTree(arch.tree, "https://example.com/mid");
+    expect(childUrls(mid)).toEqual([]);
+  });
+
+  it("keeps a node at depth exactly 3 with isDeep=false", async () => {
     const nodes = [{ url: "https://example.com/x", pageId: "p-x" }];
     const depthByUrl = { "https://example.com/x": 3 };
 
@@ -310,9 +438,9 @@ describe("buildReportModel", () => {
 
     const model = await buildReportModel("audit-1");
     const arch = model!.architecture!;
-    expect(arch.nodesByDepth["3+"]).toHaveLength(1);
-    expect(arch.nodesByDepth["3+"][0]!.depth).toBe(3);
-    expect(arch.nodesByDepth["3+"][0]!.isDeep).toBe(false);
+    expect(arch.tree).toHaveLength(1);
+    expect(arch.tree[0]!.depth).toBe(3);
+    expect(arch.tree[0]!.isDeep).toBe(false);
   });
 
   it("collects crawled pages absent from the graph as orphans", async () => {
@@ -342,9 +470,8 @@ describe("buildReportModel", () => {
     expect(orphan.isOrphan).toBe(true);
     expect(orphan.depth).toBe(-1);
     expect(orphan.title).toBe("Huérfana");
-    // Orphan is absent from every depth bucket.
-    const inBuckets = Object.values(arch.nodesByDepth).flat();
-    expect(inBuckets.some((n) => n.url === "https://example.com/orphan")).toBe(false);
+    // Orphan is absent from the tree.
+    expect(findInTree(arch.tree as unknown as TreeNode[], "https://example.com/orphan")).toBeUndefined();
   });
 
   it("excludes broken pages (4xx/5xx or error) from nodes and orphans (WR-01/WR-02)", async () => {
@@ -376,10 +503,8 @@ describe("buildReportModel", () => {
     const arch = model!.architecture!;
 
     // Only the healthy home node is drawn; the 404 node is dropped (WR-02).
-    const allNodes = Object.values(arch.nodesByDepth).flat();
-    expect(allNodes).toHaveLength(1);
-    expect(allNodes[0]!.url).toBe("https://example.com/");
-    expect(allNodes.some((n) => n.url === "https://example.com/gone")).toBe(false);
+    expect(arch.tree.map((n) => n.url)).toEqual(["https://example.com/"]);
+    expect(findInTree(arch.tree as unknown as TreeNode[], "https://example.com/gone")).toBeUndefined();
     // The failed off-graph page is NOT mislabeled as an orphan (WR-01).
     expect(arch.orphans).toHaveLength(0);
   });
