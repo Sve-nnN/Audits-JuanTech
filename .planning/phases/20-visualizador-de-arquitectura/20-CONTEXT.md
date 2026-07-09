@@ -13,10 +13,16 @@ El reporte incluye un árbol jerárquico en SVG puro que muestra la arquitectura
 <decisions>
 ## Implementation Decisions
 
+### Persistencia del título de página (prerequisito — decisión corregida)
+- **El modelo `Page` NO tiene columna `title` hoy** — nunca se persistió el `<title>` del HTML (corrección: el CONTEXT original asumió que existía). Decisión de Juan: **Opción A — agregar la columna** (entrega completa de ARCH-02 "URL/título").
+- Agregar `title String?` al modelo `Page` en `packages/db/prisma/schema.prisma` + migración Prisma.
+- Extraer el `<title>` durante el crawl: el `requestHandler` de `packages/crawler/src/crawl.ts` ya tiene Cheerio (`$`) cargado — agregar `title: $("title").text().trim() || null` al `create`/`update` del `page.upsert`. **No viola ARCH-03**: el parseo ocurre una sola vez en el crawl (donde el HTML ya está cargado), no en el visualizador ni en report-time.
+- Solo aplica a audits nuevos corridos después del cambio; audits viejos tendrán `title = null` y el nodo cae a mostrar la URL.
+
 ### Construcción del árbol (report-model)
 - `build.ts` lee `Audit.stats.graph` (persistido por Phase 16: `{ nodes, edges, depthByUrl }`).
 - Por cada nodo del grafo cruza `depthByUrl` (profundidad) + `pageId`.
-- Título y plantilla: cargar las `Page` rows UNA sola vez (`select { id, url, title, finalUrl }`) y mapear por `pageId`. La plantilla se deriva con `classifyTemplate` (Phase 19) sobre la URL del nodo — no se re-parsea HTML (ARCH-03).
+- Título y plantilla: cargar las `Page` rows UNA sola vez (`select { id, url, title, finalUrl }`, ahora que `title` existe) y mapear por `pageId`. La plantilla se deriva con `classifyTemplate` (Phase 19) sobre la URL del nodo — no se re-parsea HTML (ARCH-03).
 - **Orphan** = página crawleada (existe `Page` row) que NO aparece en `depthByUrl` del grafo (inalcanzable desde home vía BFS). Se muestran en un grupo "huérfanas" aparte del árbol por profundidad.
 
 ### Modelo de datos
