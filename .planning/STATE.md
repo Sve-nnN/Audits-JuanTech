@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Visualización avanzada + resolución de URL
-status: Phase 22 código completo (2/2 planes) — pendiente checkpoint visual de Juan (Task 3)
-last_updated: "2026-07-09T23:15:00.000Z"
-last_activity: 2026-07-09 — Phase 22 Plan 02 ejecutado (ArchitectureTreeSvg → dendrograma top-down con conectores; ARCH-06 código completo, pendiente aprobación visual)
+status: Phase 22 código completo (3/3 planes) — pendiente checkpoint visual de Juan (mapa navegable 22-03)
+last_updated: "2026-07-09T23:59:00.000Z"
+last_activity: 2026-07-09 — Phase 22 Plan 03 ejecutado (ArchitectureMap: página /arquitectura con zoom/pan/reset + tarjeta-link en el reporte; ARCH-06 código completo, pendiente aprobación visual)
 progress:
   total_phases: 4
   completed_phases: 1
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-09 after v1.3, v1.4 opened)
 
 ## Current Position
 
-Phase: 22 (Árbol de arquitectura estilo octopus) — código completo, checkpoint visual pendiente
-Plan: 02 completado en código (ArchitectureTreeSvg reescrito como dendrograma top-down con conectores padre-hijo, cap por rama "+N más", señales v1.3, SVG tokens-only; typecheck+build verdes)
-Status: Phase 22 con ambos planes en código (2/2); Task 3 de 22-02 es un checkpoint:human-verify — Juan debe confirmar visualmente el dendrograma en /audits/{id} para cerrar ARCH-06 y la fase
-Last activity: 2026-07-09 — Phase 22 Plan 02 ejecutado (ARCH-06 código completo, pendiente aprobación visual)
+Phase: 22 (Árbol de arquitectura estilo octopus) — código completo (3/3), checkpoint visual pendiente
+Plan: 03 completado en código (ArchitectureMap: viewport cliente con zoom rueda-hacia-cursor + botones acotado 0.2-3x, pan pointer+teclado, reajuste fit-to-view; nueva ruta /audits/[id]/arquitectura; tarjeta-link reemplaza el árbol embebido en el reporte; cero deps nuevas; typecheck+build verdes)
+Status: Phase 22 con los tres planes en código (3/3); Task 3 de 22-03 es un checkpoint:human-verify — Juan debe confirmar visualmente e interactivamente el mapa en /audits/{id}/arquitectura para cerrar ARCH-06 y la fase
+Last activity: 2026-07-09 — Phase 22 Plan 03 ejecutado (ARCH-06 código completo, pendiente aprobación visual)
 
 ## Milestone v1.4 — Phases
 
