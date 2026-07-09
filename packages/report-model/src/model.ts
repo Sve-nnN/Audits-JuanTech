@@ -93,12 +93,26 @@ export interface ArchNode {
 }
 
 /**
- * The serializable site-architecture model the SVG tree (Plan 20-03) renders.
- * Graph nodes are grouped by click-depth into "0"/"1"/"2"/"3+" buckets (depth
- * ≥ 3 collapses into "3+"); `orphans` holds crawled pages absent from the graph.
+ * A node in the reconstructed site-architecture tree (Plan 22-01, ARCH-05). It
+ * carries every {@link ArchNode} signal (url/title/depth/template/isDeep/
+ * isOrphan) plus its real children, so the dendrogram (Plan 22-02) can draw
+ * parent→child connections. The tree is rebuilt from `graph.edges`: each node
+ * hangs off the lowest-depth node that links to it.
+ */
+export interface ArchTreeNode extends ArchNode {
+  children: ArchTreeNode[];
+}
+
+/**
+ * The serializable site-architecture model the SVG tree (Plan 22-02) renders.
+ * `tree` holds the real nested hierarchy reconstructed from `graph.edges`
+ * (Plan 22-01, ARCH-05): its roots are normally the home page at depth 0, and
+ * every node hangs off the lowest-depth node that links to it — replacing the
+ * old flat depth buckets. `orphans` still holds crawled pages absent from the
+ * graph (no parent link, depth `-1`).
  */
 export interface ReportArchitecture {
-  nodesByDepth: Record<"0" | "1" | "2" | "3+", ArchNode[]>;
+  tree: ArchTreeNode[];
   orphans: ArchNode[];
 }
 

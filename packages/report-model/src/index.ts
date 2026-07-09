@@ -16,5 +16,6 @@ export type {
   ReportSeverity,
   ReportDiffStatus,
   ArchNode,
+  ArchTreeNode,
   ReportArchitecture,
 } from "./model";
