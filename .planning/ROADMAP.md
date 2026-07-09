@@ -176,10 +176,11 @@ Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-
   3. Cada nodo conserva sus señales de v1.3 (profundidad, indicador de huérfana, indicador de >3 clics, plantilla clasificada).
   4. Sigue siendo SVG puro sin dependencias nuevas (CSP estricta, patrón `EntityGraphSvg`/`ArchitectureTreeSvg`).
 
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 - [x] 22-01-PLAN.md — report-model reconstruye el árbol anidado (tree) desde graph.edges + tests [ARCH-05]
 - [x] 22-02-PLAN.md — ArchitectureTreeSvg dendrograma top-down con conectores + nota del reporte [ARCH-06] (código completo; pendiente verificación visual de Juan)
+- [ ] 22-03-PLAN.md — mapa de arquitectura en página aparte con zoom/pan/drag + tarjeta-link en el reporte [ARCH-06]
 
 **UI hint**: yes
 
