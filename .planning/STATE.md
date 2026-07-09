@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Profundizar checks técnicos + visualización de arquitectura
 status: completed
-stopped_at: "Phase 19 completa (Plan 01 classifyTemplate/issuesByTemplate + Plan 02 GroupingToggle UI). Próximo: Phase 20 (visualizador de arquitectura)."
-last_updated: "2026-07-09T17:09:00Z"
-last_activity: 2026-07-09 — Phase 19 Plan 02 ejecutado (GroupingToggle client component + Detalle por plantilla wired en page.tsx, TEMPLATE-02 completo, fase 19 cerrada)
+stopped_at: "Phase 20 Plan 01 ejecutado (Page.title String? + crawler persiste <title>). Próximo: Phase 20 Plan 02 (report-model)."
+last_updated: "2026-07-09T17:30:00Z"
+last_activity: 2026-07-09 — Phase 20 Plan 01 ejecutado (title String? en Page model + crawler extrae $("title") y lo persiste en ambas ramas del upsert, ARCH-02 data foundation)
 progress:
   total_phases: 5
   completed_phases: 4
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 ## Current Position
 
-Phase: 19 (Agrupación por plantilla) — completa (2/2 planes)
-Plan: 01 complete (classifyTemplate + ReportModel.issuesByTemplate en @auditor/report-model, TDD RED→GREEN), 02 complete (GroupingToggle client component + Detalle por plantilla cableado en apps/web/app/audits/[id]/page.tsx)
-Status: Phase 19 complete — próximo: Phase 20 (Visualizador de arquitectura)
-Last activity: 2026-07-09 — Phase 19 Plan 02 ejecutado (GroupingToggle toggle client-side sin fetch + bloque "Detalle por plantilla" reusando CategoryAccordion/AccordionSubgroup/IssueTypeGroup, TEMPLATE-02 completo)
+Phase: 20 (Visualizador de arquitectura) — en progreso
+Plan: 01 complete (Page.title String? + crawler persiste el HTML <title> en ambas ramas del upsert; ARCH-02 data foundation)
+Status: Phase 20 Plan 01 complete — próximo: Phase 20 Plan 02
+Last activity: 2026-07-09 — Phase 20 Plan 01 ejecutado (title String? aditivo/nullable + $("title") extraído una vez del Cheerio ya cargado, sin re-parse; @auditor/db y @auditor/crawler typecheck verdes)
 
 ## Performance Metrics
 
@@ -88,6 +88,7 @@ Last activity: 2026-07-09 — Phase 19 Plan 02 ejecutado (GroupingToggle toggle 
 | Phase 18 P02 | 15min | 2 tasks | 3 files |
 | Phase 19 P01 | 15min | 2 tasks | 6 files |
 | Phase 19 P02 | 12min | 2 tasks | 4 files |
+| Phase 20 P01 | ~3 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,7 @@ Recent decisions affecting current work:
 - [Phase 18-01]: PERF-05..PERF-09: extractDiagnostics(raw) en packages/psi/src/parser.ts lee 6 audit IDs de Lighthouse (modern-image-formats, unused-css-rules, render-blocking-resources, uses-text-compression, unminified-css, unminified-javascript) desde la misma respuesta PSI ya parseada, sin llamadas HTTP extra; parsePsiResponse queda intacto. mapDiagnosticIssues (issues.ts) produce hasta 5 PerfIssueDraft con severidad siempre ok/warning (nunca critical, hardcodeado en gradeDiagnostic), combinando unminified-css + unminified-javascript en un único PERF-09 (peor score de los dos). PsiMetrics.diagnostics es opcional — regresión de caché confirma que entradas Redis pre-v1.3 (sin ese campo) se leen sin excepción. Plan 18-02 pendiente cablea esto en el worker/cliente HTTP.
 - [Phase 18-02, cierre de fase]: runPsi (client.ts) mergea `extractDiagnostics(json)` en `metrics` sobre la misma respuesta `json` ya obtenida por `res.json()`, sin fetch adicional; camino de error (`res.ok=false`/reintentos agotados) intacto. El worker (runOnePage dentro de runPerfSample) llama `mapDiagnosticIssues({url, pageId, mobile, desktop})` inmediatamente después de `mapPerfIssues` con los mismos argumentos ya construidos, sin nuevo try/catch (función pura, mismo contrato). `perfIssues` fluye sin cambios hacia `Issue.createMany` vía `issueRowsWithoutDiff`. Phase 18 completa; PERF-05..PERF-09 cableados end-to-end.
 - [Phase 19]: 19-01 (TEMPLATE-01/02): classifyTemplate(url) heuristica pura de segmentos de URL en packages/report-model/src/template.ts (home/category/product/article/other, prioridad product>category>article, nunca lanza excepcion) + ReportModel.issuesByTemplate calculado en buildReportModel sobre el mismo issuesForDetail que issuesByCategory (segundo eje de agrupacion, sin regresion). Issues con url null se omiten de issuesByTemplate pero se mantienen en issuesByCategory.
+- [Phase 20]: 20-01 (ARCH-02 data foundation): `title String?` añadido al modelo Page (nullable + aditivo, filas/audits previos quedan con title=null, sin migración de datos, sin carpeta migrations — flujo schema-first db:push/generate). Crawler extrae `const title = $("title").first().text().trim() || null;` una sola vez del Cheerio `$` ya cargado en requestHandler (sin re-parse de HTML en report time, ARCH-03 respetado) y lo escribe en `Page.title` en AMBAS ramas (create + update) del `page.upsert` existente, para que páginas re-crawleadas refresquen su título. `<title>` vacío/ausente → NULL. Prisma client regenerado (v6.19.3); @auditor/db y @auditor/crawler typecheck verdes. Base para que Plan 02 (report-model) lea Page.title sin reparsear y Plan 03 (SVG tree) muestre URL/título por nodo.
 - [Phase 19, cierre de fase]: 19-02 (TEMPLATE-02): GroupingToggle (apps/web/app/audits/[id]/GroupingToggle.tsx) client component role=tab/tablist/tabpanel sobre Button existente, alterna dos ReactNode ya renderizados server-side (byType/byTemplate) via useState local, cero fetch adicional (T-19-03/04 aceptados). page.tsx agrega bloque "Detalle por plantilla" sobre TEMPLATE_ORDER + model.issuesByTemplate + TEMPLATE_LABEL (labels.ts), mirror exacto del bloque "Detalle por categoría" existente (mismo CategoryAccordion/AccordionSubgroup/IssueTypeGroup, cero componentes nuevos de diseño). Deferred out-of-scope: tests/pages/api/audits/[id]/export.test.ts tiene un mock de ReportModel desactualizado (falta issuesByTemplate, TS2741 preexistente de 19-01) — no se tocó por estar fuera del alcance de los archivos de este plan.
 
 ### Pending Todos
@@ -169,6 +171,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T17:09:00Z
-Stopped at: Phase 19 completa (Plan 01 classifyTemplate/issuesByTemplate + Plan 02 GroupingToggle UI). Próximo: Phase 20 (visualizador de arquitectura).
+Last session: 2026-07-09T17:30:00Z
+Stopped at: Phase 20 Plan 01 ejecutado (Page.title String? + crawler persiste <title>). Próximo: Phase 20 Plan 02.
 Resume file: None
