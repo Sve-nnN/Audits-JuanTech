@@ -1,4 +1,4 @@
-import type { PsiMetrics } from "./types";
+import type { PsiDiagnosticAudit, PsiDiagnostics, PsiMetrics } from "./types";
 
 /**
  * Minimal shape of the PageSpeed Insights v5 `runPagespeed` JSON response
@@ -10,7 +10,10 @@ export interface RawPsiResponse {
     categories?: {
       performance?: { score?: number | null };
     };
-    audits?: Record<string, { numericValue?: number | null } | undefined>;
+    audits?: Record<
+      string,
+      { numericValue?: number | null; score?: number | null; displayValue?: string } | undefined
+    >;
   };
   loadingExperience?: {
     metrics?: {
@@ -58,4 +61,40 @@ export function parsePsiResponse(raw: RawPsiResponse): PsiMetrics {
   );
 
   return { performanceScore, lcpMs, cls, inpMs, ttfbMs };
+}
+
+/** Maps `PsiDiagnostics` keys to their Lighthouse audit IDs. */
+const DIAGNOSTIC_AUDIT_IDS: Record<keyof PsiDiagnostics, string> = {
+  modernImageFormats: "modern-image-formats",
+  unusedCssRules: "unused-css-rules",
+  renderBlockingResources: "render-blocking-resources",
+  textCompression: "uses-text-compression",
+  unminifiedCss: "unminified-css",
+  unminifiedJavascript: "unminified-javascript",
+};
+
+/**
+ * Extracts Lighthouse diagnostic audits (PERF-05..PERF-09) from a raw PSI
+ * response. Reads from the same `lighthouseResult.audits` map already
+ * present in the response used by `parsePsiResponse` — no extra API calls.
+ * An audit missing from the response simply omits that key (no exception,
+ * no `undefined` placeholder).
+ */
+export function extractDiagnostics(raw: RawPsiResponse): PsiDiagnostics {
+  const audits = raw.lighthouseResult?.audits ?? {};
+  const result: PsiDiagnostics = {};
+
+  for (const [key, auditId] of Object.entries(DIAGNOSTIC_AUDIT_IDS) as [
+    keyof PsiDiagnostics,
+    string,
+  ][]) {
+    const audit = audits[auditId];
+    if (audit === undefined) continue;
+
+    const entry: PsiDiagnosticAudit = { score: audit.score ?? null };
+    if (audit.displayValue !== undefined) entry.displayValue = audit.displayValue;
+    result[key] = entry;
+  }
+
+  return result;
 }

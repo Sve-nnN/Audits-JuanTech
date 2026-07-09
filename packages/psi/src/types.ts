@@ -17,6 +17,32 @@ export interface PsiMetrics {
   inpMs: number | null;
   /** Time to First Byte / server response time, milliseconds (lab data, Lighthouse). */
   ttfbMs: number | null;
+  /**
+   * Lighthouse diagnostic audits (PERF-05..PERF-09), optional so cache
+   * entries written before this field existed still deserialize cleanly
+   * (T-18-01).
+   */
+  diagnostics?: PsiDiagnostics;
+}
+
+/** A single Lighthouse diagnostic audit's raw score + optional display value. */
+export interface PsiDiagnosticAudit {
+  score: number | null;
+  displayValue?: string;
+}
+
+/**
+ * Subset of Lighthouse diagnostic audits extracted from a PSI response
+ * (PERF-05..PERF-09). Each key is optional — absent when the audit was not
+ * present in the underlying Lighthouse run.
+ */
+export interface PsiDiagnostics {
+  modernImageFormats?: PsiDiagnosticAudit;
+  unusedCssRules?: PsiDiagnosticAudit;
+  renderBlockingResources?: PsiDiagnosticAudit;
+  textCompression?: PsiDiagnosticAudit;
+  unminifiedCss?: PsiDiagnosticAudit;
+  unminifiedJavascript?: PsiDiagnosticAudit;
 }
 
 export interface PsiRunResult {
