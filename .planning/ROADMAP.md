@@ -176,7 +176,11 @@ Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-
   3. Cada nodo conserva sus señales de v1.3 (profundidad, indicador de huérfana, indicador de >3 clics, plantilla clasificada).
   4. Sigue siendo SVG puro sin dependencias nuevas (CSP estricta, patrón `EntityGraphSvg`/`ArchitectureTreeSvg`).
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+- [ ] 22-01-PLAN.md — report-model reconstruye el árbol anidado (tree) desde graph.edges + tests [ARCH-05]
+- [ ] 22-02-PLAN.md — ArchitectureTreeSvg dendrograma top-down con conectores + nota del reporte [ARCH-06]
+
 **UI hint**: yes
 
 ### Phase 23: Grafo JSON-LD con layout radial
@@ -241,7 +245,7 @@ Próximo trabajo previsto tras v1.4 (scope por definir vía `/gsd:new-milestone`
 | 19. Agrupación por plantilla | v1.3 | 2/2 | Complete ✅ | 2026-07-09 |
 | 20. Visualizador de arquitectura | v1.3 | 3/3 | Complete ✅ | 2026-07-09 |
 | 21. Resolución canónica de la URL de entrada | v1.4 | 3/3 | Complete   | 2026-07-09 |
-| 22. Árbol de arquitectura estilo octopus | v1.4 | 0/? | Not started | - |
+| 22. Árbol de arquitectura estilo octopus | v1.4 | 0/2 | Planned | - |
 | 23. Grafo JSON-LD con layout radial | v1.4 | 0/? | Not started | - |
 | 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 0/? | Not started | - |
 
