@@ -44,6 +44,13 @@ function fixtureModel(): ReportModel {
     schema: [],
     aeo: [],
   };
+  const emptyByTemplate = {
+    home: [],
+    category: [],
+    product: [],
+    article: [],
+    other: [issue],
+  };
   return {
     audit: {
       domain: "example.com",
@@ -73,6 +80,7 @@ function fixtureModel(): ReportModel {
     priorityIssues: [issue],
     totalPriorityCandidates: 1,
     issuesByCategory: emptyByCat,
+    issuesByTemplate: emptyByTemplate,
   };
 }
 
