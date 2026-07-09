@@ -9,6 +9,7 @@ import type {
   ReportSeverity,
   ReportDiffStatus,
   ArchNode,
+  ArchTreeNode,
   ReportArchitecture,
 } from "./model";
 import { classifyTemplate, TEMPLATE_ORDER } from "./template";
@@ -38,11 +39,13 @@ interface AuditStats {
   perf?: ReportPerf;
   /**
    * Link graph persisted once per audit by the worker (Phase 16, mirrors the
-   * `LinkGraph` shape from `@auditor/graph`). `edges` is unused here.
+   * `LinkGraph` shape from `@auditor/graph`). `edges` (`{ from, to }`, URLs
+   * normalized) are consumed in Plan 22-01 to reconstruct the nested tree —
+   * they were previously unused (closes the v1.3 integration-checker note).
    */
   graph?: {
     nodes: { url: string; pageId: string }[];
-    edges: unknown[];
+    edges: { from: string; to: string }[];
     depthByUrl: Record<string, number>;
   };
 }
@@ -201,29 +204,57 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     const nodePageIds = new Set(graph.nodes.map((n) => n.pageId));
     const brokenPageIds = new Set(pages.filter(isBrokenPage).map((p) => p.id));
 
-    const nodesByDepth: ReportArchitecture["nodesByDepth"] = {
-      "0": [],
-      "1": [],
-      "2": [],
-      "3+": [],
-    };
+    // Build every valid tree node in stable graph.nodes order, keyed by URL.
+    // Broken pages (WR-02) are skipped so 4xx/5xx error pages that carried HTML
+    // into the persisted graph aren't drawn as real architecture nodes.
+    const archByUrl = new Map<string, ArchTreeNode>();
     for (const node of graph.nodes) {
-      // WR-02: a 4xx/5xx page can carry HTML (an error page) and thus land in
-      // the persisted graph — skip it so broken URLs aren't drawn as real
-      // architecture nodes.
       if (brokenPageIds.has(node.pageId)) continue;
       const depth = graph.depthByUrl[node.url] ?? 0;
-      const bucket = depth >= 3 ? "3+" : (String(depth) as "0" | "1" | "2");
-      const archNode: ArchNode = {
+      archByUrl.set(node.url, {
         url: node.url,
         title: pagesById.get(node.pageId)?.title ?? null,
         depth,
         template: classifyTemplate(node.url),
         isDeep: depth > 3,
         isOrphan: false,
-      };
-      nodesByDepth[bucket].push(archNode);
+        children: [],
+      });
     }
+
+    // Parent of a node = the VALID linker of strictly lower depth (depth < child)
+    // that links to it via graph.edges. This keeps the tree acyclic by
+    // construction (T-22-01) and is the safe reading of "lowest-depth node that
+    // links to it". Ties at the minimum qualifying depth keep the first linker
+    // seen in stable edge order. Self-loops (from===to) are ignored.
+    const parentUrlByChild = new Map<string, string>();
+    for (const edge of graph.edges) {
+      if (edge.from === edge.to) continue;
+      const parent = archByUrl.get(edge.from);
+      const child = archByUrl.get(edge.to);
+      if (!parent || !child) continue;
+      if (parent.depth >= child.depth) continue;
+      const current = parentUrlByChild.get(child.url);
+      // Keep the lower-depth candidate; on a tie, keep the first (don't
+      // overwrite) to respect stable order.
+      if (current == null || parent.depth < archByUrl.get(current)!.depth) {
+        parentUrlByChild.set(child.url, parent.url);
+      }
+    }
+
+    // Attach children / collect roots in stable graph.nodes order.
+    const roots: ArchTreeNode[] = [];
+    for (const node of graph.nodes) {
+      const archNode = archByUrl.get(node.url);
+      if (!archNode) continue;
+      const parentUrl = parentUrlByChild.get(node.url);
+      if (parentUrl != null) {
+        archByUrl.get(parentUrl)!.children.push(archNode);
+      } else {
+        roots.push(archNode);
+      }
+    }
+    const tree = roots;
 
     const orphans: ArchNode[] = [];
     for (const page of pages) {
@@ -241,7 +272,7 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
       });
     }
 
-    architecture = { nodesByDepth, orphans };
+    architecture = { tree, orphans };
   }
 
   const diff: ReportDiff = {
