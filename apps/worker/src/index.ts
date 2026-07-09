@@ -281,7 +281,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
    * at the last crawl count. Stamp the current phase so the report can show
    * "Analizando…" / "Midiendo rendimiento…" instead of a stuck progress bar.
    */
-  async function writePhase(phase: "analyzing" | "performance"): Promise<void> {
+  async function writePhase(phase: "rendering" | "analyzing" | "performance"): Promise<void> {
     await prisma.audit.update({
       where: { id: auditId },
       data: { stats: { ...lastCrawlProgress, phase } },
@@ -347,6 +347,10 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     // sample) so its per-page verdict can be threaded into the check battery
     // as `renderVerdictByPageId`, letting SD-06 suppress false positives on
     // pages already confirmed CSR by this sample.
+    // WR-01 (17-REVIEW.md): stamp a progress phase before the render sample
+    // — moved ahead of runAllChecks in 17-02, so without this the UI would
+    // show stale "crawling" stats while Playwright runs for up to 10 pages.
+    await writePhase("rendering");
     let renderIssues: RenderIssueDraft[] = [];
     try {
       const renderPages: RenderSamplePage[] = pages.map((page) => ({

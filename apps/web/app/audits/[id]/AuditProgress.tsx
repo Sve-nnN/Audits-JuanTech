@@ -9,15 +9,16 @@ interface AuditStats {
   crawled?: number;
   total?: number;
   failed?: number;
-  phase?: "crawling" | "analyzing" | "performance";
+  phase?: "crawling" | "rendering" | "analyzing" | "performance";
 }
 
-type Phase = "crawling" | "analyzing" | "performance";
+type Phase = "crawling" | "rendering" | "analyzing" | "performance";
 
-const PHASE_ORDER: Phase[] = ["crawling", "analyzing", "performance"];
+const PHASE_ORDER: Phase[] = ["crawling", "rendering", "analyzing", "performance"];
 
 const PHASE_LABEL: Record<Phase, string> = {
   crawling: "Rastreando páginas",
+  rendering: "Verificando renderizado (JS) en una muestra de páginas",
   analyzing: "Analizando checks (SEO técnico, on-page, datos estructurados y AEO)",
   performance: "Midiendo rendimiento y Core Web Vitals (PageSpeed Insights)",
 };
@@ -139,7 +140,7 @@ export function AuditProgress({ auditId }: { auditId: string }) {
           <p className={styles.phaseLabel} role="status" aria-live="polite">
             {phaseLabel}
           </p>
-          {phase === "analyzing" || phase === "performance" ? (
+          {phase === "rendering" || phase === "analyzing" || phase === "performance" ? (
             <p className={styles.phaseCaption}>
               Ya rastreamos {crawled} página(s). Esta etapa no tiene barra de progreso y puede
               tardar un poco. No cierres esta página.
