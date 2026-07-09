@@ -9,8 +9,8 @@ Milestone v1.4 = **Visualización avanzada + resolución de URL**. Origen: feedb
 
 ### Árbol de arquitectura estilo octopus
 
-- [ ] **ARCH-05**: El visualizador de arquitectura renderiza un árbol jerárquico real (dendrograma) con conexiones padre-hijo visibles entre nodos, reconstruyendo la jerarquía desde los edges del grafo de enlaces ya persistido (`Audit.stats.graph`) — no filas planas por profundidad. Cada nodo cuelga de su padre real (el nodo de menor profundidad que lo enlaza en el BFS).
-- [ ] **ARCH-06**: El árbol es más grande y legible (estilo Octopus.do), con layout determinista y ancho dinámico según la cantidad de nodos por nivel. Cada nodo conserva sus señales de v1.3 (profundidad, indicador de huérfana, indicador de >3 clics, plantilla clasificada). Sigue siendo SVG puro sin dependencias nuevas (CSP estricta, patrón `EntityGraphSvg`/`ArchitectureTreeSvg`).
+- [x] **ARCH-05**: El visualizador de arquitectura renderiza un árbol jerárquico real (dendrograma) con conexiones padre-hijo visibles entre nodos, reconstruyendo la jerarquía desde los edges del grafo de enlaces ya persistido (`Audit.stats.graph`) — no filas planas por profundidad. Cada nodo cuelga de su padre real (el nodo de menor profundidad que lo enlaza en el BFS).
+- [x] **ARCH-06**: El árbol es más grande y legible (estilo Octopus.do), con layout determinista y ancho dinámico según la cantidad de nodos por nivel. Cada nodo conserva sus señales de v1.3 (profundidad, indicador de huérfana, indicador de >3 clics, plantilla clasificada). Sigue siendo SVG puro sin dependencias nuevas (CSP estricta, patrón `EntityGraphSvg`/`ArchitectureTreeSvg`).
 
 ### Grafo JSON-LD con layout radial
 
@@ -41,8 +41,8 @@ Milestone v1.4 = **Visualización avanzada + resolución de URL**. Origen: feedb
 |-------------|-------|--------|
 | URLRES-01 | Phase 21 | Complete |
 | URLRES-02 | Phase 21 | Complete |
-| ARCH-05 | Phase 22 | Pending |
-| ARCH-06 | Phase 22 | Pending |
+| ARCH-05 | Phase 22 | Complete |
+| ARCH-06 | Phase 22 | Complete |
 | SDVIZ-01 | Phase 23 | Pending |
 | SDVIZ-02 | Phase 24 | Pending |
 | SDVIZ-03 | Phase 24 | Pending |
