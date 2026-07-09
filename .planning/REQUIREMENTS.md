@@ -20,8 +20,8 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 
 ### Agrupación por plantilla
 
-- [ ] **TEMPLATE-01**: El auditor clasifica cada página en una plantilla (home / categoría / producto / artículo / otras) mediante heurística de segmentos de URL, sin asumir un CMS específico.
-- [ ] **TEMPLATE-02**: El reporte agrupa issues por plantilla como eje complementario a la agrupación por tipo de issue (v1.2, Phase 15) — el usuario puede ver "qué le pasa a la plantilla de producto" además de "qué tipo de error se repite".
+- [x] **TEMPLATE-01**: El auditor clasifica cada página en una plantilla (home / categoría / producto / artículo / otras) mediante heurística de segmentos de URL, sin asumir un CMS específico.
+- [x] **TEMPLATE-02**: El reporte agrupa issues por plantilla como eje complementario a la agrupación por tipo de issue (v1.2, Phase 15) — el usuario puede ver "qué le pasa a la plantilla de producto" además de "qué tipo de error se repite".
 
 ### Schema-contenido mismatch
 
@@ -55,8 +55,8 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 | DEPTH-03 | Phase 16 | Complete |
 | PERF-05 | Phase 18 | Complete |
 | PERF-06 | Phase 18 | Complete |
-| TEMPLATE-01 | Phase 19 | Pending |
-| TEMPLATE-02 | Phase 19 | Pending |
+| TEMPLATE-01 | Phase 19 | Complete |
+| TEMPLATE-02 | Phase 19 | Complete |
 | SCHEMA-06 | Phase 17 | Complete |
 | SCHEMA-07 | Phase 17 | Complete |
 | ARCH-01 | Phase 20 | Pending |
