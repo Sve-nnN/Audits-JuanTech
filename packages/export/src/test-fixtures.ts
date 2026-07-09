@@ -1,4 +1,5 @@
-import type { ReportModel, ReportIssue } from "@auditor/report-model";
+import type { ReportModel, ReportIssue, PageTemplate } from "@auditor/report-model";
+import { classifyTemplate, TEMPLATE_ORDER } from "@auditor/report-model";
 import type { Category, CategoryScoreResult } from "@auditor/scoring";
 
 /**
@@ -84,6 +85,14 @@ export function buildModel(opts: BuildModelOptions = {}): ReportModel {
     if (issuesByCategory[cat]) issuesByCategory[cat].push(issue);
   }
 
+  const issuesByTemplate = Object.fromEntries(
+    TEMPLATE_ORDER.map((t) => [t, [] as ReportIssue[]])
+  ) as Record<PageTemplate, ReportIssue[]>;
+  for (const issue of candidates) {
+    const template = issue.url ? classifyTemplate(issue.url) : "other";
+    issuesByTemplate[template].push(issue);
+  }
+
   return {
     audit: {
       domain: "example.com",
@@ -107,6 +116,7 @@ export function buildModel(opts: BuildModelOptions = {}): ReportModel {
     priorityIssues,
     totalPriorityCandidates: candidates.length,
     issuesByCategory,
+    issuesByTemplate,
   };
 }
 
