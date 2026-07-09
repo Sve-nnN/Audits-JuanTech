@@ -53,4 +53,20 @@ describe("psi cache (PERF-03)", () => {
     const desktopResult = await getCached("https://example.com/", "desktop");
     expect(desktopResult).toBeNull();
   });
+
+  it("reads a pre-v1.3 cache entry (no diagnostics field) without throwing", async () => {
+    const redis = new FakeRedis();
+    setPsiCacheConnection(redis as unknown as Parameters<typeof setPsiCacheConnection>[0]);
+    // Simulates a value written by a worker running before this phase, when
+    // PsiMetrics had no `diagnostics` field at all.
+    await redis.set(
+      cacheKey("https://example.com/legacy", "mobile"),
+      JSON.stringify({ performanceScore: 81, lcpMs: 4876, cls: 0, inpMs: null, ttfbMs: 7 }),
+      "EX",
+      86400
+    );
+    const result = await getCached("https://example.com/legacy", "mobile");
+    expect(result).not.toBeNull();
+    expect(result?.diagnostics).toBeUndefined();
+  });
 });
