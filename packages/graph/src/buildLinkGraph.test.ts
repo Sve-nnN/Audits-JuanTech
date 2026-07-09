@@ -88,6 +88,24 @@ describe("buildLinkGraph", () => {
     expect(graph).toEqual({ nodes: [], edges: [], depthByUrl: {} });
   });
 
+  it("Test 9: resolves home when the site redirects to www and origin is bare (www regression)", () => {
+    // Real-world case: origin is the stored bare domain, but every crawled
+    // page lives on www.* because the site redirects. Home lookup must still
+    // find the root page instead of returning an empty graph.
+    const pages: GraphPage[] = [
+      page("https://www.example.com/", ["https://www.example.com/a"]),
+      page("https://www.example.com/a", ["https://www.example.com/b"]),
+      page("https://www.example.com/b", []),
+    ];
+
+    const graph = buildLinkGraph(pages, "https://example.com");
+
+    expect(graph.depthByUrl["https://www.example.com/"]).toBe(0);
+    expect(graph.depthByUrl["https://www.example.com/a"]).toBe(1);
+    expect(graph.depthByUrl["https://www.example.com/b"]).toBe(2);
+    expect(graph.nodes.length).toBe(3);
+  });
+
   it("Test 8: BFS discovered via pre-redirect url still yields outbound links (CR-01 regression)", () => {
     const pages: GraphPage[] = [
       // Home links to the pre-redirect url of /a, but /a's own crawled record
