@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Profundizar checks técnicos + visualización de arquitectura
-status: Phase 16 complete (Plan 16-02 executed)
-stopped_at: "Plan 16-02 completado. Phase 16 cerrada (DEPTH-01/02/03 end-to-end). Próximo: Phase 17."
-last_updated: "2026-07-08T20:08:03.976Z"
-last_activity: 2026-07-08 — Phase 16 Plan 02 ejecutado (buildLinkGraph cableado al worker, TECH-14, Audit.stats.graph persistido)
+status: "Phase 17 in progress (Plan 17-01 executed)"
+stopped_at: "Plan 17-01 completado (SD-06 schemaContentMismatchCheck + contrato renderVerdictByPageId). Falta Plan 17-02."
+last_updated: "2026-07-09T15:09:50.853Z"
+last_activity: 2026-07-09 — Phase 17 Plan 01 ejecutado (SD-06 schemaContentMismatchCheck registrado en schemaSiteChecks, renderVerdictByPageId en SiteCheckCtx/RunAllChecksOptions)
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
   percent: 20
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 ## Current Position
 
-Phase: 16 (Grafo de enlaces compartido + profundidad de clics real) — complete
-Plan: 01 complete (@auditor/graph + buildLinkGraph BFS), 02 complete (integración worker + TECH-14 + Audit.stats.graph)
-Status: Phase 16 complete (Plan 16-02 executed)
-Last activity: 2026-07-08 — Phase 16 Plan 02 ejecutado (buildLinkGraph cableado al worker, TECH-14, Audit.stats.graph persistido)
+Phase: 17 (Check schema-contenido mismatch) — in progress
+Plan: 01 complete (SD-06 schemaContentMismatchCheck + contrato renderVerdictByPageId), 02 pending (reordenar runRenderSample antes de runAllChecks en el worker, exponer RenderIssueDraft.verdict)
+Status: Phase 17 in progress (Plan 17-01 executed)
+Last activity: 2026-07-09 — Phase 17 Plan 01 ejecutado (SD-06 schemaContentMismatchCheck registrado en schemaSiteChecks, renderVerdictByPageId en SiteCheckCtx/RunAllChecksOptions)
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ Last activity: 2026-07-08 — Phase 16 Plan 02 ejecutado (buildLinkGraph cablead
 | Phase 15 P03 | ~6 min | 2 tasks | 3 files |
 | Phase 16 P01 | ~20 min | 2 tasks | 6 files |
 | Phase 16 P02 | 20min | 2 tasks | 7 files |
+| Phase 17 P01 | 20min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,7 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-01 (EXPORT-01/02/03/05): nuevo paquete puro @auditor/report-model — buildReportModel(auditId) devuelve un ReportModel serializable (cero React/Prisma/PII) que reemplaza el ensamblado inline de page.tsx; expone priorityCandidates (set completo critical+warning, fuente de la M en "N de M") aparte de priorityIssues (cap 60) y totalPriorityCandidates; url del issue derivada replicando issueUrl (source ?? scope) para render idéntico; buildReportModel retorna null para audit inexistente O status != done (page.tsx conserva consulta ligera para notFound vs progreso). Base compartida para los serializers de export (Plans 02/03).
 - [Phase 12]: 12-01 (RENDER-01/02): nuevo paquete worker-only @auditor/render (cheerio, cero Playwright); detectRenderVerdict puro compara raw Page.html vs RenderedSnapshot (title/H1/texto + ratio<0.60→CSR); severidad SSR→ok/CSR→warning, NUNCA critical; category "aeo"; fingerprint RENDER-01:<verdict>:<url>; RenderIssueDraft local decoplado de @auditor/checks; undeterminedVerdict() para degradación de 12-02; RENDER_CSR_RATIO=0.60 tuneable
 - [Phase 16]: 16-02 (DEPTH-01/02/03, cierre de fase): worker computa buildLinkGraph una sola vez post-crawl/pre-checks, pasa depthByUrl a runAllChecks (SiteCheckCtx/RunAllChecksOptions extendidos opcionalmente), nuevo SiteCheck TECH-14 emite un único issue agregado (ok/warning) con % de páginas a más de 3 clics de home vía siteFingerprint, y Audit.stats.graph ({nodes,edges,depthByUrl}) se persiste solo en la escritura final status:done (nunca en progreso intermedio), listo para Phase 20.
+- [Phase 17-01]: SCHEMA-06/07: schemaContentMismatchCheck (SD-06, site-level) detecta FAQPage/HowTo/Product+AggregateRating/Review sin contenido visible correspondiente, severidad warning siempre (literal hardcodeado, nunca critical), suprimido solo por veredicto explicito renderVerdictByPageId==='csr' (undetermined/ausente sigue evaluando normal). RenderVerdictValue redeclarado localmente en @auditor/checks sin dependencia real de @auditor/render (preserva assert-no-playwright-in-web.mjs).
 
 ### Pending Todos
 
@@ -157,6 +159,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T20:08:03.970Z
-Stopped at: Plan 16-02 completado. Phase 16 cerrada (DEPTH-01/02/03 end-to-end). Próximo: Phase 17.
+Last session: 2026-07-09T15:09:50.849Z
+Stopped at: Plan 17-01 completado (SD-06 schemaContentMismatchCheck + contrato renderVerdictByPageId). Falta Plan 17-02.
 Resume file: None

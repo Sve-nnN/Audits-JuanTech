@@ -25,8 +25,8 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 
 ### Schema-contenido mismatch
 
-- [ ] **SCHEMA-06**: El auditor detecta cuando una página declara JSON-LD `FAQPage`, `HowTo`, `Product`+`AggregateRating` o `Review` sin contenido visible correspondiente en el HTML (riesgo real de acción manual de Google por "datos estructurados engañosos").
-- [ ] **SCHEMA-07**: El hallazgo se reporta con severidad `warning` por defecto (nunca `critical` automático dado el riesgo heurístico de falso positivo) y cruza con la muestra CSR/SSR de v1.2 (`@auditor/render`) para suprimir falsos positivos en páginas confirmadas como renderizadas por JS.
+- [x] **SCHEMA-06**: El auditor detecta cuando una página declara JSON-LD `FAQPage`, `HowTo`, `Product`+`AggregateRating` o `Review` sin contenido visible correspondiente en el HTML (riesgo real de acción manual de Google por "datos estructurados engañosos").
+- [x] **SCHEMA-07**: El hallazgo se reporta con severidad `warning` por defecto (nunca `critical` automático dado el riesgo heurístico de falso positivo) y cruza con la muestra CSR/SSR de v1.2 (`@auditor/render`) para suprimir falsos positivos en páginas confirmadas como renderizadas por JS.
 
 ### Visualizador de arquitectura
 
@@ -57,8 +57,8 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 | PERF-06 | Phase 18 | Pending |
 | TEMPLATE-01 | Phase 19 | Pending |
 | TEMPLATE-02 | Phase 19 | Pending |
-| SCHEMA-06 | Phase 17 | Pending |
-| SCHEMA-07 | Phase 17 | Pending |
+| SCHEMA-06 | Phase 17 | Complete |
+| SCHEMA-07 | Phase 17 | Complete |
 | ARCH-01 | Phase 20 | Pending |
 | ARCH-02 | Phase 20 | Pending |
 | ARCH-03 | Phase 20 | Pending |
