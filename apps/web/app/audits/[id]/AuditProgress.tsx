@@ -74,11 +74,18 @@ export function AuditProgress({ auditId }: { auditId: string }) {
   const currentIndex = PHASE_ORDER.indexOf(phase);
 
   const crawled = stats?.crawled ?? 0;
-  const total = typeof stats?.total === "number" ? stats.total : undefined;
+  const discovered = typeof stats?.discovered === "number" ? stats.discovered : undefined;
+  const urlCap = typeof stats?.total === "number" ? stats.total : undefined;
+  // Progress is measured against how many pages were actually DISCOVERED for
+  // this site (e.g. 81), not the 500-URL free-tier cap. A site with 81 pages
+  // should read "81/81" with a full bar, not "81/500". Fall back to the cap
+  // only before discovery has reported anything.
+  const denominator =
+    typeof discovered === "number" && discovered > 0 ? discovered : urlCap;
   const isCrawlingDeterminate =
-    phase === "crawling" && typeof total === "number" && total > 0;
+    phase === "crawling" && typeof denominator === "number" && denominator > 0;
   const ratio = isCrawlingDeterminate
-    ? Math.min(1, Math.max(0, crawled / (total as number)))
+    ? Math.min(1, Math.max(0, crawled / (denominator as number)))
     : 0;
 
   const phaseLabel = PHASE_LABEL[phase] ?? "Procesando";
@@ -89,7 +96,7 @@ export function AuditProgress({ auditId }: { auditId: string }) {
     ? {
         "aria-valuenow": crawled,
         "aria-valuemin": 0,
-        "aria-valuemax": total,
+        "aria-valuemax": denominator,
       }
     : { "aria-busy": true as const };
 
@@ -147,8 +154,7 @@ export function AuditProgress({ auditId }: { auditId: string }) {
             </p>
           ) : (
             <p className={styles.readout}>
-              {crawled}/{typeof total === "number" ? total : "?"} páginas rastreadas
-              {typeof stats?.discovered === "number" ? ` · ${stats.discovered} descubiertas` : ""}
+              {crawled}/{typeof denominator === "number" ? denominator : "?"} páginas rastreadas
               {typeof stats?.failed === "number" && stats.failed > 0
                 ? ` · ${stats.failed} fallidas`
                 : ""}
