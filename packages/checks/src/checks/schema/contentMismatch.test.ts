@@ -72,9 +72,9 @@ describe("schemaContentMismatchCheck (SD-06 site-level)", () => {
     const pages = [makePage({ id: "p1", url: "https://site.example/faq", html: faqMismatchHtml })];
     const issues = schemaContentMismatchCheck.run({ pages, origin: "https://site.example", sitemapUrls: [] });
     expect(issues).toHaveLength(1);
-    expect(issues[0].checkId).toBe("SD-06");
-    expect(issues[0].severity).toBe("warning");
-    expect(issues[0].title).toBe(SD06_TITLE);
+    expect(issues[0]?.checkId).toBe("SD-06");
+    expect(issues[0]?.severity).toBe("warning");
+    expect(issues[0]?.title).toBe(SD06_TITLE);
   });
 
   it("Test 2: does NOT flag FAQPage when visible body contains the question texts", () => {
@@ -159,8 +159,8 @@ describe("schemaContentMismatchCheck (SD-06 site-level)", () => {
     const pages = [makePage({ id: "p1", url: "https://site.example/multi", html: multiMismatchHtml })];
     const issues = schemaContentMismatchCheck.run({ pages, origin: "https://site.example", sitemapUrls: [] });
     expect(issues).toHaveLength(1);
-    expect(issues[0].measuredValue).toContain("FAQPage");
-    expect(issues[0].measuredValue).toContain("Review");
+    expect(issues[0]?.measuredValue).toContain("FAQPage");
+    expect(issues[0]?.measuredValue).toContain("Review");
   });
 
   it("Test 13 (guardrail): severity is always warning, never critical, across all fixtures", () => {

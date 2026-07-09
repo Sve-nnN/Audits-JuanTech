@@ -5,6 +5,7 @@ import { schemaTypesCheck } from "./schemaTypes";
 import { schemaValidateCheck } from "./schemaValidate";
 import { entityGraphCheck } from "./entityGraph";
 import { danglingIdRefsCheck } from "./danglingIds";
+import { schemaContentMismatchCheck } from "./contentMismatch";
 
 export const schemaPageChecks: PageCheck[] = [
   jsonldPresenceCheck,
@@ -14,7 +15,7 @@ export const schemaPageChecks: PageCheck[] = [
   entityGraphCheck,
 ];
 
-export const schemaSiteChecks: SiteCheck[] = [danglingIdRefsCheck];
+export const schemaSiteChecks: SiteCheck[] = [danglingIdRefsCheck, schemaContentMismatchCheck];
 
 export {
   jsonldPresenceCheck,
@@ -23,6 +24,7 @@ export {
   schemaValidateCheck,
   entityGraphCheck,
   danglingIdRefsCheck,
+  schemaContentMismatchCheck,
 };
 
 export { SCHEMA_RULES } from "./schemaValidate";
