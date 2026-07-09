@@ -1,6 +1,11 @@
 import { Worker, type Job } from "bullmq";
 import { prisma, Prisma, type Page as PageRow } from "@auditor/db";
-import { runCrawl, discoverSitemapUrls, DEFAULT_USER_AGENT } from "@auditor/crawler";
+import {
+  runCrawl,
+  discoverSitemapUrls,
+  resolveCanonicalUrl,
+  DEFAULT_USER_AGENT,
+} from "@auditor/crawler";
 import { runAllChecks } from "@auditor/checks";
 import { buildLinkGraph, type LinkGraph } from "@auditor/graph";
 import {
@@ -269,7 +274,30 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     throw new Error("simulated failure (test hook)");
   }
 
-  const startUrl = `https://${audit.site.domain}`;
+  // URLRES-02: resolve the canonical entry URL BEFORE crawling. Unlike the
+  // PSI/render passes (which degrade), a resolution failure MUST fail the
+  // audit — without a reachable URL there is no crawl to run, and a bare
+  // `https://${domain}` guess would silently produce an empty audit for a
+  // site that only serves http or redirects bare→www. `resolveCanonicalUrl`
+  // probes https→http, follows redirects and returns the real finalUrl (or
+  // null on total failure). The resolved URL becomes the single `startUrl`
+  // for the whole pipeline (crawl → sitemap → graph → checks), since
+  // `origin` is derived from it below.
+  const resolvedUrl = await resolveCanonicalUrl(audit.site.domain);
+  if (!resolvedUrl) {
+    throw new Error(
+      `No pudimos conectar con ${audit.site.domain}. Verifica que el sitio esté en línea e intenta de nuevo.`
+    );
+  }
+
+  // Persist the resolved URL early (alongside the running state) so the
+  // report can show it even while the crawl is still in progress.
+  await prisma.audit.update({
+    where: { id: auditId },
+    data: { resolvedUrl },
+  });
+
+  const startUrl = resolvedUrl;
   let lastStatsWriteAt = 0;
   let lastCrawlProgress = { discovered: 0, crawled: 0, total: audit.urlLimit };
 
@@ -571,6 +599,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     data: {
       status: "done",
       finishedAt: new Date(),
+      resolvedUrl,
       stats: {
         discovered: summary.discovered,
         crawled: summary.crawled,

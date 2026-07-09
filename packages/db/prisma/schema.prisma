@@ -80,6 +80,13 @@ model Audit {
    */
   scores    Json?
   error     String?
+  /**
+   * URL canónica efectivamente auditada, resuelta desde `site.domain` antes
+   * del crawl (Phase 21, URLRES-02): resolveCanonicalUrl prueba https→http,
+   * sigue redirects y devuelve la finalUrl real. Nullable/aditivo: null en
+   * auditorías previas a v1.4 y mientras el worker aún no resolvió la URL.
+   */
+  resolvedUrl String?
   createdAt DateTime    @default(now())
   startedAt DateTime?
   finishedAt DateTime?
