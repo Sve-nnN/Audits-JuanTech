@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Visualización avanzada + resolución de URL
-status: Phase 21 completada (3/3 planes)
-last_updated: "2026-07-09T22:30:00.000Z"
-last_activity: 2026-07-09 — Phase 22 Plan 01 ejecutado (report-model reconstruye tree anidado desde graph.edges; ARCH-05 cerrado)
+status: Phase 22 código completo (2/2 planes) — pendiente checkpoint visual de Juan (Task 3)
+last_updated: "2026-07-09T23:15:00.000Z"
+last_activity: 2026-07-09 — Phase 22 Plan 02 ejecutado (ArchitectureTreeSvg → dendrograma top-down con conectores; ARCH-06 código completo, pendiente aprobación visual)
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 25
+  total_plans: 5
+  completed_plans: 5
+  percent: 50
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-09 after v1.3, v1.4 opened)
 
 ## Current Position
 
-Phase: 22 (Árbol de arquitectura estilo octopus) — en progreso
-Plan: 01 completado (report-model expone ReportArchitecture.tree anidado reconstruido desde graph.edges; ArchTreeNode exportado; ARCH-05 cerrado)
-Status: Phase 22 Plan 01 completado — pendiente Plan 22-02 (dendrograma SVG + adaptar ArchitectureTreeSvg.tsx)
-Last activity: 2026-07-09 — Phase 22 Plan 01 ejecutado (ARCH-05 cerrado)
+Phase: 22 (Árbol de arquitectura estilo octopus) — código completo, checkpoint visual pendiente
+Plan: 02 completado en código (ArchitectureTreeSvg reescrito como dendrograma top-down con conectores padre-hijo, cap por rama "+N más", señales v1.3, SVG tokens-only; typecheck+build verdes)
+Status: Phase 22 con ambos planes en código (2/2); Task 3 de 22-02 es un checkpoint:human-verify — Juan debe confirmar visualmente el dendrograma en /audits/{id} para cerrar ARCH-06 y la fase
+Last activity: 2026-07-09 — Phase 22 Plan 02 ejecutado (ARCH-06 código completo, pendiente aprobación visual)
 
 ## Milestone v1.4 — Phases
 
