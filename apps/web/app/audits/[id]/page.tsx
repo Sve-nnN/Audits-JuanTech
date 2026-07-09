@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@auditor/db";
 import type { Category, ScoreStatus } from "@auditor/scoring";
-import { buildReportModel } from "@auditor/report-model";
+import { buildReportModel, TEMPLATE_ORDER, type PageTemplate } from "@auditor/report-model";
 import { ScoreGauge } from "../../components/ui/ScoreGauge";
 import { CategoryCard } from "../../components/ui/CategoryCard";
 import {
@@ -19,8 +19,10 @@ import {
   CATEGORY_LABEL,
   STATUS_LABEL,
   STRATEGY_LABEL,
+  TEMPLATE_LABEL,
 } from "../../components/ui/labels";
 import { AuditProgress } from "./AuditProgress";
+import { GroupingToggle } from "./GroupingToggle";
 import { ScoreGaugeAnimated } from "./ScoreGaugeAnimated";
 import styles from "./report.module.css";
 
@@ -86,6 +88,7 @@ export default async function AuditReportPage({ params }: PageProps) {
   const { byCategory, diff, perf, priorityCandidates } = model;
   const resolvedIssues = diff.resolvedIssues;
   const issuesByCategory = model.issuesByCategory;
+  const issuesByTemplate = model.issuesByTemplate;
 
   const overallStatus = model.status;
   const overall = model.overall;
@@ -295,32 +298,65 @@ export default async function AuditReportPage({ params }: PageProps) {
           )}
         </Reveal>
 
-        {/* Detalle por categoría */}
+        {/* Detalle por categoría / plantilla */}
         <Reveal as="section" className={styles.section} delay={60}>
-          <h3 className={styles.sectionTitle}>Detalle por categoría</h3>
-          {CATEGORY_ORDER.map((category) => {
-            const issues = issuesByCategory[category] ?? [];
-            if (issues.length === 0) return null;
-            const problems = issues.filter(
-              (i) => i.severity === "critical" || i.severity === "warning"
-            );
-            const passing = issues.filter((i) => i.severity === "ok");
+          <h3 className={styles.sectionTitle}>Detalle por categoría / plantilla</h3>
+          <GroupingToggle
+            byType={
+              <>
+                {CATEGORY_ORDER.map((category) => {
+                  const issues = issuesByCategory[category] ?? [];
+                  if (issues.length === 0) return null;
+                  const problems = issues.filter(
+                    (i) => i.severity === "critical" || i.severity === "warning"
+                  );
+                  const passing = issues.filter((i) => i.severity === "ok");
 
-            return (
-              <CategoryAccordion
-                key={category}
-                title={CATEGORY_LABEL[category]}
-                count={`${problems.length} problema(s) · ${passing.length} correcto(s)`}
-              >
-                <AccordionSubgroup kind="problems" count={problems.length}>
-                  <IssueTypeGroup issues={problems} />
-                </AccordionSubgroup>
-                <AccordionSubgroup kind="correct" count={passing.length}>
-                  <IssueTypeGroup issues={passing} />
-                </AccordionSubgroup>
-              </CategoryAccordion>
-            );
-          })}
+                  return (
+                    <CategoryAccordion
+                      key={category}
+                      title={CATEGORY_LABEL[category]}
+                      count={`${problems.length} problema(s) · ${passing.length} correcto(s)`}
+                    >
+                      <AccordionSubgroup kind="problems" count={problems.length}>
+                        <IssueTypeGroup issues={problems} />
+                      </AccordionSubgroup>
+                      <AccordionSubgroup kind="correct" count={passing.length}>
+                        <IssueTypeGroup issues={passing} />
+                      </AccordionSubgroup>
+                    </CategoryAccordion>
+                  );
+                })}
+              </>
+            }
+            byTemplate={
+              <>
+                {TEMPLATE_ORDER.map((template: PageTemplate) => {
+                  const issues = issuesByTemplate[template] ?? [];
+                  if (issues.length === 0) return null;
+                  const problems = issues.filter(
+                    (i) => i.severity === "critical" || i.severity === "warning"
+                  );
+                  const passing = issues.filter((i) => i.severity === "ok");
+
+                  return (
+                    <CategoryAccordion
+                      key={template}
+                      title={TEMPLATE_LABEL[template]}
+                      count={`${problems.length} problema(s) · ${passing.length} correcto(s)`}
+                    >
+                      <AccordionSubgroup kind="problems" count={problems.length}>
+                        <IssueTypeGroup issues={problems} />
+                      </AccordionSubgroup>
+                      <AccordionSubgroup kind="correct" count={passing.length}>
+                        <IssueTypeGroup issues={passing} />
+                      </AccordionSubgroup>
+                    </CategoryAccordion>
+                  );
+                })}
+              </>
+            }
+          />
         </Reveal>
 
         <p className={styles.footerLinks}>
