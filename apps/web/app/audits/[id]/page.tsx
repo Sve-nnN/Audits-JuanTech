@@ -391,8 +391,9 @@ export default async function AuditReportPage({ params }: PageProps) {
             <h3 className={styles.sectionTitle}>Arquitectura del sitio</h3>
             <ArchitectureTreeSvg architecture={model.architecture} />
             <p className={styles.tableNote}>
-              Páginas agrupadas por profundidad de clics desde la home. Las huérfanas no tienen
-              ruta de enlaces desde la portada.
+              Jerarquía de páginas del sitio: cada página cuelga de la de menor profundidad que la
+              enlaza desde la portada, con los conectores padre-hijo. Las huérfanas no tienen ruta de
+              enlaces desde la home.
             </p>
           </Reveal>
         )}

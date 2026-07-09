@@ -42,12 +42,27 @@
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+/* ---------- Conectores padre → hijo (dendrograma) ---------- */
+
+.connector {
+  stroke: var(--border);
+  stroke-width: 1.5;
+  fill: none; /* obligatorio en curvas bezier <path> */
+}
+
 /* ---------- Tarjeta de nodo ---------- */
 
 .cardBg {
   fill: var(--surface-raised);
   stroke: var(--border);
   stroke-width: 1;
+}
+
+.moreCardBg {
+  fill: var(--surface-hover);
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
 }
 
 .cardTitle {
