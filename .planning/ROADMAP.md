@@ -126,11 +126,12 @@ Plans:
   1. Cada página del sitio queda clasificada en una plantilla (home / categoría / producto / artículo / otras) mediante heurística de segmentos de URL, sin asumir un CMS específico.
   2. El reporte permite ver los issues agrupados por plantilla, como eje complementario a la agrupación por tipo de issue ya existente (v1.2).
 
-**Plans**: 2 plans
+**Plans**: 3 plans
 Plans:
 
-- [ ] 20-01-PLAN.md — Modelo de arquitectura en @auditor/report-model (ArchNode/ReportArchitecture desde Audit.stats.graph, sin re-parsear HTML)
-- [ ] 20-02-PLAN.md — Componente SVG puro ArchitectureTreeSvg + cableado condicional en el reporte
+- [ ] 20-01-PLAN.md — Añadir Page.title + persistir el <title> en el crawl (prerequisito ARCH-02)
+- [ ] 20-02-PLAN.md — Modelo de arquitectura en @auditor/report-model (ArchNode/ReportArchitecture desde Audit.stats.graph, título real desde Page.title)
+- [ ] 20-03-PLAN.md — Componente SVG puro ArchitectureTreeSvg + cableado condicional en el reporte
 **UI hint**: yes
 
 ### Phase 20: Visualizador de arquitectura
@@ -145,7 +146,12 @@ Plans:
   3. El árbol reusa el grafo/BFS ya calculado y persistido en Phase 16, sin volver a parsear el HTML de las páginas.
   4. Cuando la clasificación de plantilla (Phase 19) ya está disponible, el nodo también muestra la plantilla de esa página.
 
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+
+- [ ] 20-01-PLAN.md — Añadir Page.title + persistir el <title> en el crawl (prerequisito ARCH-02)
+- [ ] 20-02-PLAN.md — Modelo de arquitectura en @auditor/report-model (ArchNode/ReportArchitecture desde Audit.stats.graph, título real desde Page.title)
+- [ ] 20-03-PLAN.md — Componente SVG puro ArchitectureTreeSvg + cableado condicional en el reporte
 **UI hint**: yes
 
 ### 📋 Next (Planned)
