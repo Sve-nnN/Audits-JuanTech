@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Visualización avanzada + resolución de URL
 status: Phase 21 completada (3/3 planes)
-last_updated: "2026-07-09T21:10:00.000Z"
-last_activity: 2026-07-09 — Phase 21 Plan 03 ejecutado (worker resuelve URL canónica antes de crawlear; URLRES-02 cerrado)
+last_updated: "2026-07-09T22:30:00.000Z"
+last_activity: 2026-07-09 — Phase 22 Plan 01 ejecutado (report-model reconstruye tree anidado desde graph.edges; ARCH-05 cerrado)
 progress:
   total_phases: 4
   completed_phases: 1
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-09 after v1.3, v1.4 opened)
 
 ## Current Position
 
-Phase: 21 (Resolución canónica de la URL de entrada) — completada (3/3 planes)
-Plan: 03 completado (worker resuelve la URL canónica antes de crawlear, la persiste en Audit.resolvedUrl y el reporte la muestra)
-Status: Phase 21 completada — próximo: `/gsd:plan-phase 22`
-Last activity: 2026-07-09 — Phase 21 Plan 03 ejecutado (URLRES-02 cerrado)
+Phase: 22 (Árbol de arquitectura estilo octopus) — en progreso
+Plan: 01 completado (report-model expone ReportArchitecture.tree anidado reconstruido desde graph.edges; ArchTreeNode exportado; ARCH-05 cerrado)
+Status: Phase 22 Plan 01 completado — pendiente Plan 22-02 (dendrograma SVG + adaptar ArchitectureTreeSvg.tsx)
+Last activity: 2026-07-09 — Phase 22 Plan 01 ejecutado (ARCH-05 cerrado)
 
 ## Milestone v1.4 — Phases
 
