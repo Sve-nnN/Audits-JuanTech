@@ -126,7 +126,11 @@ Plans:
   1. Cada página del sitio queda clasificada en una plantilla (home / categoría / producto / artículo / otras) mediante heurística de segmentos de URL, sin asumir un CMS específico.
   2. El reporte permite ver los issues agrupados por plantilla, como eje complementario a la agrupación por tipo de issue ya existente (v1.2).
 
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+
+- [ ] 20-01-PLAN.md — Modelo de arquitectura en @auditor/report-model (ArchNode/ReportArchitecture desde Audit.stats.graph, sin re-parsear HTML)
+- [ ] 20-02-PLAN.md — Componente SVG puro ArchitectureTreeSvg + cableado condicional en el reporte
 **UI hint**: yes
 
 ### Phase 20: Visualizador de arquitectura
@@ -175,7 +179,7 @@ Próximo trabajo previsto tras v1.3 (scope por definir vía `/gsd:new-milestone`
 | 17. Check schema-contenido mismatch | v1.3 | 2/2 | Complete   | 2026-07-09 |
 | 18. Diagnósticos de Lighthouse desde PSI | v1.3 | 2/2 | Complete   | 2026-07-09 |
 | 19. Agrupación por plantilla | v1.3 | 2/2 | Complete   | 2026-07-09 |
-| 20. Visualizador de arquitectura | v1.3 | 0/? | Not started | - |
+| 20. Visualizador de arquitectura | v1.3 | 0/2 | Planned | - |
 
 ---
 *Roadmap created: 2026-07-05*
