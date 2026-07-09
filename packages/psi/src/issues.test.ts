@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapPerfIssues } from "./issues";
+import { mapDiagnosticIssues, mapPerfIssues } from "./issues";
 import type { PsiMetrics } from "./types";
 
 const mobile: PsiMetrics = { performanceScore: 81, lcpMs: 4876, cls: 0, inpMs: null, ttfbMs: 7 };
@@ -60,5 +60,107 @@ describe("mapPerfIssues (PERF-02/04)", () => {
     const issues = mapPerfIssues({ url, mobile: null, desktop: null });
     expect(issues).toHaveLength(1);
     expect(issues[0]?.source).toBe(url);
+  });
+});
+
+describe("mapDiagnosticIssues (PERF-05..09)", () => {
+  const fullDiagnostics: NonNullable<PsiMetrics["diagnostics"]> = {
+    modernImageFormats: { score: 0.4 },
+    unusedCssRules: { score: 0.6 },
+    renderBlockingResources: { score: 0.3 },
+    textCompression: { score: 1 },
+    unminifiedCss: { score: 0.8 },
+    unminifiedJavascript: { score: 0.5 },
+  };
+
+  it("produces PERF-05 with worst-case severity across strategies", () => {
+    const mobileDiag: PsiMetrics = {
+      ...mobile,
+      diagnostics: { modernImageFormats: { score: 0.4 } },
+    };
+    const desktopDiag: PsiMetrics = {
+      ...desktop,
+      diagnostics: { modernImageFormats: { score: 0.95 } },
+    };
+    const issues = mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: desktopDiag });
+    const issue = issues.find((i) => i.checkId === "PERF-05");
+    expect(issue?.severity).toBe("warning");
+    expect(issue?.measuredValue).toContain("Móvil");
+    expect(issue?.measuredValue).toContain("Desktop");
+  });
+
+  it("never emits severity 'critical', even for a score of 0", () => {
+    const mobileDiag: PsiMetrics = {
+      ...mobile,
+      diagnostics: {
+        modernImageFormats: { score: 0 },
+        unusedCssRules: { score: 0.6 },
+        renderBlockingResources: { score: 0.3 },
+        textCompression: { score: 1 },
+        unminifiedCss: { score: 0.8 },
+        unminifiedJavascript: { score: 0.5 },
+      },
+    };
+    const issues = mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: null });
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues.every((i) => i.severity !== "critical")).toBe(true);
+  });
+
+  it("scores >= 0.9 grade 'ok', scores < 0.9 grade 'warning'", () => {
+    const mobileDiag: PsiMetrics = { ...mobile, diagnostics: { textCompression: { score: 1 } } };
+    const issues = mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: null });
+    const issue = issues.find((i) => i.checkId === "PERF-08");
+    expect(issue?.severity).toBe("ok");
+  });
+
+  it("omits the checkId when the diagnostic is absent in both strategies", () => {
+    const mobileDiag: PsiMetrics = { ...mobile, diagnostics: { modernImageFormats: { score: 0.4 } } };
+    const desktopDiag: PsiMetrics = { ...desktop, diagnostics: { modernImageFormats: { score: 0.5 } } };
+    const issues = mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: desktopDiag });
+    expect(issues.find((i) => i.checkId === "PERF-07")).toBeUndefined();
+  });
+
+  it("combines unminified-css + unminified-javascript into a single PERF-09 using the worst score", () => {
+    const mobileDiag: PsiMetrics = {
+      ...mobile,
+      diagnostics: { unminifiedCss: { score: 0.9 }, unminifiedJavascript: { score: 0.3 } },
+    };
+    const issues = mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: null });
+    const combined = issues.filter((i) => i.checkId === "PERF-09");
+    expect(combined).toHaveLength(1);
+    expect(combined[0]?.severity).toBe("warning");
+  });
+
+  it("PERF-09 uses the single present diagnostic when the other is absent, without throwing", () => {
+    const mobileDiag: PsiMetrics = { ...mobile, diagnostics: { unminifiedCss: { score: 0.95 } } };
+    expect(() =>
+      mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: null })
+    ).not.toThrow();
+    const issues = mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: null });
+    const combined = issues.find((i) => i.checkId === "PERF-09");
+    expect(combined?.severity).toBe("ok");
+  });
+
+  it("produces exactly 5 distinct checkIds when all 6 audits are present in both strategies", () => {
+    const mobileDiag: PsiMetrics = { ...mobile, diagnostics: fullDiagnostics };
+    const desktopDiag: PsiMetrics = { ...desktop, diagnostics: fullDiagnostics };
+    const issues = mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: desktopDiag });
+    expect(new Set(issues.map((i) => i.checkId)).size).toBe(5);
+    expect(new Set(issues.map((i) => i.checkId))).toEqual(
+      new Set(["PERF-05", "PERF-06", "PERF-07", "PERF-08", "PERF-09"])
+    );
+  });
+
+  it("returns an empty array when neither strategy has data", () => {
+    const issues = mapDiagnosticIssues({ url: "https://example.com/broken", mobile: null, desktop: null });
+    expect(issues).toEqual([]);
+  });
+
+  it("fingerprints are stable across repeated calls with the same input", () => {
+    const mobileDiag: PsiMetrics = { ...mobile, diagnostics: fullDiagnostics };
+    const desktopDiag: PsiMetrics = { ...desktop, diagnostics: fullDiagnostics };
+    const first = mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: desktopDiag });
+    const second = mapDiagnosticIssues({ url: "https://example.com/", mobile: mobileDiag, desktop: desktopDiag });
+    expect(first.map((i) => i.fingerprint)).toEqual(second.map((i) => i.fingerprint));
   });
 });

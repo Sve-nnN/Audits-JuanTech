@@ -207,3 +207,120 @@ export function mapPerfIssues(result: PagePerfResult): PerfIssueDraft[] {
 
   return issues;
 }
+
+interface DiagnosticSpec {
+  checkId: string;
+  title: string;
+  criterion: string;
+  recommendation: string;
+  /** Returns null when the diagnostic is absent or its score is non-gradable (null). */
+  pick: (metrics: PsiMetrics) => { score: number; displayValue?: string } | null;
+}
+
+function pickAudit(
+  audit: { score: number | null; displayValue?: string } | undefined
+): { score: number; displayValue?: string } | null {
+  if (!audit || audit.score === null) return null;
+  return audit.displayValue !== undefined
+    ? { score: audit.score, displayValue: audit.displayValue }
+    : { score: audit.score };
+}
+
+const DIAGNOSTIC_SPECS: DiagnosticSpec[] = [
+  {
+    checkId: "PERF-05",
+    title: "Formatos de imagen modernos (WebP/AVIF)",
+    criterion: "Puntaje Lighthouse >= 0.9 óptimo, < 0.9 mejorable",
+    recommendation:
+      "Serví las imágenes en formatos modernos (WebP o AVIF) en lugar de JPEG/PNG para reducir su peso sin perder calidad visual.",
+    pick: (m) => pickAudit(m.diagnostics?.modernImageFormats),
+  },
+  {
+    checkId: "PERF-06",
+    title: "CSS sin usar",
+    criterion: "Puntaje Lighthouse >= 0.9 óptimo, < 0.9 mejorable",
+    recommendation:
+      "Eliminá o difierí las reglas CSS que no se usan en la carga inicial de la página para reducir el tamaño de las hojas de estilo descargadas.",
+    pick: (m) => pickAudit(m.diagnostics?.unusedCssRules),
+  },
+  {
+    checkId: "PERF-07",
+    title: "Recursos que bloquean el renderizado",
+    criterion: "Puntaje Lighthouse >= 0.9 óptimo, < 0.9 mejorable",
+    recommendation:
+      "Diferí o incluí en línea el CSS/JavaScript crítico para evitar que recursos externos bloqueen el primer renderizado de la página.",
+    pick: (m) => pickAudit(m.diagnostics?.renderBlockingResources),
+  },
+  {
+    checkId: "PERF-08",
+    title: "Compresión de texto",
+    criterion: "Puntaje Lighthouse >= 0.9 óptimo, < 0.9 mejorable",
+    recommendation:
+      "Activá compresión (gzip o brotli) en el servidor/CDN para los recursos de texto (HTML, CSS, JavaScript) y reducir el tiempo de descarga.",
+    pick: (m) => pickAudit(m.diagnostics?.textCompression),
+  },
+  {
+    checkId: "PERF-09",
+    title: "CSS/JS sin minificar",
+    criterion: "Puntaje Lighthouse >= 0.9 óptimo, < 0.9 mejorable",
+    recommendation:
+      "Minificá los archivos CSS y JavaScript (eliminando espacios, comentarios y nombres largos) para reducir su tamaño de descarga.",
+    pick: (m) => {
+      const css = pickAudit(m.diagnostics?.unminifiedCss);
+      const js = pickAudit(m.diagnostics?.unminifiedJavascript);
+      if (css === null && js === null) return null;
+      if (css === null) return js;
+      if (js === null) return css;
+      return css.score <= js.score ? css : js;
+    },
+  },
+];
+
+/** Grades a Lighthouse diagnostic score: never "critical" (informational, not a hard failure). */
+function gradeDiagnostic(score: number): PerfIssueSeverity {
+  return score >= 0.9 ? "ok" : "warning";
+}
+
+/**
+ * Maps a page's mobile/desktop PSI diagnostics into `PerfIssueDraft`s
+ * (PERF-05..PERF-09). Diagnostics absent from both strategies are silently
+ * skipped (no issue emitted). Severity is always "ok" or "warning", never
+ * "critical" — these are optimization opportunities, not hard failures.
+ * Returns `[]` when there's no data at all (mirrors `mapPerfIssues`'s own
+ * PERF-01 "not available" issue covering the "PSI didn't respond" case).
+ */
+export function mapDiagnosticIssues(result: PagePerfResult): PerfIssueDraft[] {
+  const { url, pageId, mobile, desktop } = result;
+  const issues: PerfIssueDraft[] = [];
+
+  for (const spec of DIAGNOSTIC_SPECS) {
+    const mobilePick = mobile ? spec.pick(mobile) : null;
+    const desktopPick = desktop ? spec.pick(desktop) : null;
+    if (mobilePick === null && desktopPick === null) continue;
+
+    const severities: PerfIssueSeverity[] = [];
+    if (mobilePick !== null) severities.push(gradeDiagnostic(mobilePick.score));
+    if (desktopPick !== null) severities.push(gradeDiagnostic(desktopPick.score));
+    const severity = severities.includes("warning") ? "warning" : "ok";
+
+    const formatPick = (pick: { score: number; displayValue?: string } | null): string | undefined => {
+      if (pick === null) return undefined;
+      return pick.displayValue ?? `score ${Math.round(pick.score * 100)}/100`;
+    };
+
+    issues.push({
+      checkId: spec.checkId,
+      category: "perf",
+      title: spec.title,
+      severity,
+      measuredValue: combineMeasured(formatPick(mobilePick), formatPick(desktopPick)),
+      criterion: spec.criterion,
+      recommendation: spec.recommendation,
+      pageId,
+      source: url,
+      fingerprint: `${spec.checkId}:${url}`,
+    });
+  }
+
+  return issues;
+}
