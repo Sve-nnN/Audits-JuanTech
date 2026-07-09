@@ -1,0 +1,116 @@
+/*
+ * ArchitectureTreeSvg.module.css — estilos del árbol de arquitectura (DS-01).
+ * Solo tokens semánticos, CSP-safe, sin hex crudo. El layout vive en el
+ * componente; aquí solo color/tipografía/escala responsive, espejando
+ * EntityGraphSvg.module.css.
+ */
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: var(--container-narrow);
+  margin-inline: auto;
+  background: transparent; /* hereda --surface del card contenedor */
+  animation: treeFade var(--motion-base) var(--ease-out) both;
+}
+
+@keyframes treeFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- Etiquetas de fila ---------- */
+
+.rowLabel {
+  fill: var(--text-secondary);
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-weight: 600;
+}
+
+.placeholderText {
+  fill: var(--text-muted);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.emptyText {
+  fill: var(--text-secondary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* ---------- Tarjeta de nodo ---------- */
+
+.cardBg {
+  fill: var(--surface-raised);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.cardTitle {
+  fill: var(--text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 500;
+}
+
+.cardTemplate {
+  fill: var(--text-secondary);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* ---------- Insignias e indicadores ---------- */
+
+.depthBadge {
+  fill: var(--surface-hover);
+}
+
+.depthText {
+  fill: var(--text-secondary);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+.orphanMark {
+  fill: var(--text-muted);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.deepMark {
+  fill: var(--warning);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 600;
+}
+
+.moreText {
+  fill: var(--text-muted);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* ---------- Franja de color por plantilla (setea currentColor) ---------- */
+
+.tplHome {
+  color: var(--accent-text);
+  fill: currentColor;
+}
+
+.tplCategory {
+  color: var(--success);
+  fill: currentColor;
+}
+
+.tplProduct {
+  color: var(--warning);
+  fill: currentColor;
+}
+
+.tplArticle {
+  color: var(--accent);
+  fill: currentColor;
+}
+
+.tplOther {
+  color: var(--text-muted);
+  fill: currentColor;
+}
