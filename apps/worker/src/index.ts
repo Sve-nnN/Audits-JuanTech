@@ -15,6 +15,7 @@ import {
   getCached,
   setCached,
   mapPerfIssues,
+  mapDiagnosticIssues,
   type PsiStrategy,
   type PsiMetrics,
   type PerfIssueDraft,
@@ -207,6 +208,14 @@ async function runPerfSample(
 
     issues.push(
       ...mapPerfIssues({
+        url,
+        pageId: page.id,
+        mobile: perPageMetrics.mobile,
+        desktop: perPageMetrics.desktop,
+      })
+    );
+    issues.push(
+      ...mapDiagnosticIssues({
         url,
         pageId: page.id,
         mobile: perPageMetrics.mobile,
