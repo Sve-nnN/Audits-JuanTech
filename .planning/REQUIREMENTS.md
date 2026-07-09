@@ -23,7 +23,7 @@ Milestone v1.4 = **Visualización avanzada + resolución de URL**. Origen: feedb
 
 ### Resolución canónica de la URL de entrada
 
-- [ ] **URLRES-01**: Antes de crawlear, el auditor resuelve la URL canónica real del dominio de entrada: prueba `https://`, cae a `http://` si no responde, y sigue los redirects del home hasta su URL final (con/sin `www`, con/sin barra). El usuario puede ingresar solo `aprendoclub.com` y el sistema resuelve todo.
+- [x] **URLRES-01**: Antes de crawlear, el auditor resuelve la URL canónica real del dominio de entrada: prueba `https://`, cae a `http://` si no responde, y sigue los redirects del home hasta su URL final (con/sin `www`, con/sin barra). El usuario puede ingresar solo `aprendoclub.com` y el sistema resuelve todo.
 - [ ] **URLRES-02**: La URL resuelta se usa como `origin`/`startUrl` en todo el pipeline (crawl, sitemap discovery, grafo de enlaces, checks) y se persiste para mostrarla en el reporte. Reemplaza la mitigación puntual de v1.3 (`resolveHomeKey` en `buildLinkGraph`) por una resolución correcta aguas arriba. Maneja con gracia dominios que no responden en ningún protocolo (error claro, no crawl vacío).
 
 ## Out of Scope
@@ -39,7 +39,7 @@ Milestone v1.4 = **Visualización avanzada + resolución de URL**. Origen: feedb
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| URLRES-01 | Phase 21 | Pending |
+| URLRES-01 | Phase 21 | Complete |
 | URLRES-02 | Phase 21 | Pending |
 | ARCH-05 | Phase 22 | Pending |
 | ARCH-06 | Phase 22 | Pending |
