@@ -86,11 +86,7 @@ describe("layoutEntityGraph", () => {
         { from: "R2", to: "A2", rel: "r" },
       ],
     };
-    const single = layoutEntityGraph({
-      nodes: [node("R1"), node("A1")],
-      edges: [{ from: "R1", to: "A1", rel: "r" }],
-    });
-    const { height, positions } = layoutEntityGraph(graph);
+    const { positions } = layoutEntityGraph(graph);
     const R1 = positions.get("R1")!;
     const R2 = positions.get("R2")!;
     expect(R1.x !== R2.x || R1.y !== R2.y).toBe(true);
@@ -109,8 +105,20 @@ describe("layoutEntityGraph", () => {
     const disjoint =
       b1.maxx < b2.minx || b2.maxx < b1.minx || b1.maxy < b2.miny || b2.maxy < b1.miny;
     expect(disjoint).toBe(true);
-    // canvas nunca colapsa por debajo de un solo componente
-    expect(height).toBeGreaterThanOrEqual(single.height);
+  });
+
+  it("grid con 2 filas: alto mayor que un solo componente", () => {
+    const single = layoutEntityGraph({
+      nodes: [node("S")],
+      edges: [],
+    });
+    // 3 componentes → 2 columnas × 2 filas
+    const threeComponents: EntityGraph = {
+      nodes: [node("R1"), node("R2"), node("R3")],
+      edges: [],
+    };
+    const multi = layoutEntityGraph(threeComponents);
+    expect(multi.height).toBeGreaterThan(single.height);
   });
 
   it("anillos por BFS: nieto en anillo exterior", () => {
