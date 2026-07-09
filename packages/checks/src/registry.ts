@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import type { Page } from "@auditor/db";
-import type { IssueDraft, PageCheck, SiteCheck, NetworkCheck } from "./types";
+import type { IssueDraft, PageCheck, SiteCheck, NetworkCheck, RenderVerdictValue } from "./types";
 import { onPageChecks } from "./checks/onpage";
 import { techPageChecks, techSiteChecks } from "./checks/tech";
 import { networkChecks as baseNetworkChecks } from "./checks/network";
@@ -25,6 +25,8 @@ export interface RunAllChecksOptions {
   includeNetworkChecks?: boolean;
   /** BFS click-depth from home, keyed by normalized URL — see `SiteCheckCtx.depthByUrl`. */
   depthByUrl?: Record<string, number>;
+  /** Per-page render verdict — see `SiteCheckCtx.renderVerdictByPageId`. */
+  renderVerdictByPageId?: Record<string, RenderVerdictValue>;
 }
 
 export interface RunAllChecksResult {
@@ -39,7 +41,8 @@ export interface RunAllChecksResult {
  * plus the per-page entity graphs built from each page's JSON-LD (Phase 4).
  */
 export async function runAllChecks(options: RunAllChecksOptions): Promise<RunAllChecksResult> {
-  const { pages, origin, robotsTxt, sitemapUrls, includeNetworkChecks = true, depthByUrl } = options;
+  const { pages, origin, robotsTxt, sitemapUrls, includeNetworkChecks = true, depthByUrl, renderVerdictByPageId } =
+    options;
   const issues: IssueDraft[] = [];
   const pageSchemaGraphs = new Map<string, EntityGraph>();
 
@@ -53,7 +56,7 @@ export async function runAllChecks(options: RunAllChecksOptions): Promise<RunAll
     if (graph) pageSchemaGraphs.set(page.id, graph);
   }
 
-  const siteCtx = { pages, origin, robotsTxt, sitemapUrls, depthByUrl };
+  const siteCtx = { pages, origin, robotsTxt, sitemapUrls, depthByUrl, renderVerdictByPageId };
   for (const check of siteChecks) {
     issues.push(...check.run(siteCtx));
   }

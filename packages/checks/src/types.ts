@@ -4,6 +4,15 @@ import type { Page } from "@auditor/db";
 export type IssueSeverityValue = "critical" | "warning" | "ok";
 
 /**
+ * Mirrors `@auditor/render`'s `RenderVerdict` ("ssr" | "csr" | "undetermined"),
+ * but is redeclared locally so `@auditor/checks` never takes a dependency on
+ * the worker-only, Playwright-carrying `@auditor/render` package — apps/web
+ * depends on `@auditor/checks` and must never resolve Playwright (see
+ * scripts/assert-no-playwright-in-web.mjs).
+ */
+export type RenderVerdictValue = "ssr" | "csr" | "undetermined";
+
+/**
  * A single finding produced by a check, ready to persist as an `Issue` row
  * (minus `id`/`auditId`/`createdAt`, which the caller fills in).
  *
@@ -45,6 +54,16 @@ export interface SiteCheckCtx {
    * `Page.depth`, which is always 0 in sitemap-seeded crawls.
    */
   depthByUrl?: Record<string, number>;
+  /**
+   * Per-page SSR/CSR/undetermined verdict from the v1.2 render sample
+   * (`@auditor/render`), keyed by `Page.id` — computed once by the worker
+   * (best-effort, only covers the sampled subset, see `MAX_RENDER_PAGES`)
+   * and passed through so checks (SD-06) can suppress false positives on
+   * confirmed-CSR pages. Pages outside the sample or with an "undetermined"
+   * verdict are NOT present/NOT "csr" here and must still be evaluated
+   * normally.
+   */
+  renderVerdictByPageId?: Record<string, RenderVerdictValue>;
 }
 
 export interface PageCheck {
