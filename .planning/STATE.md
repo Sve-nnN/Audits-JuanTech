@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Visualización avanzada + resolución de URL
-status: Roadmap aprobado, esperando planificación de fase
-last_updated: "2026-07-09T20:52:00.000Z"
-last_activity: 2026-07-09 — Phase 21 Plan 02 ejecutado (eliminada resolveHomeKey del grafo)
+status: Phase 21 completada (3/3 planes)
+last_updated: "2026-07-09T21:10:00.000Z"
+last_activity: 2026-07-09 — Phase 21 Plan 03 ejecutado (worker resuelve URL canónica antes de crawlear; URLRES-02 cerrado)
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 25
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-09 after v1.3, v1.4 opened)
 
 ## Current Position
 
-Phase: 21 (Resolución canónica de la URL de entrada) — in progress
-Plan: 02 completado (eliminada resolveHomeKey; home del grafo por match exacto de normalizeUrl(origin))
-Status: Plan 21-02 ejecutado
-Last activity: 2026-07-09 — Phase 21 Plan 02 ejecutado (buildLinkGraph sin heurística resolveHomeKey)
+Phase: 21 (Resolución canónica de la URL de entrada) — completada (3/3 planes)
+Plan: 03 completado (worker resuelve la URL canónica antes de crawlear, la persiste en Audit.resolvedUrl y el reporte la muestra)
+Status: Phase 21 completada — próximo: `/gsd:plan-phase 22`
+Last activity: 2026-07-09 — Phase 21 Plan 03 ejecutado (URLRES-02 cerrado)
 
 ## Milestone v1.4 — Phases
 

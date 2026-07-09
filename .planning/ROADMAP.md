@@ -139,7 +139,7 @@ Detalle completo: `.planning/MILESTONES.md`.
 
 Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-09), con capturas de referencia de Octopus.do (árbol) y Classy Schema (grafo/validación JSON-LD). Milestone design-heavy: tres de las cuatro fases son visualizaciones que Juan va a iterar hasta que el look sea correcto. Secuencia de riesgo ascendente: primero el único bloque backend puro (resolución canónica de URL, sin UI, corrige aguas arriba la mitigación puntual de v1.3), luego el rework del árbol de arquitectura (superficie SVG conocida + jerarquía real desde edges ya persistidos), después el rework acotado del grafo JSON-LD radial (un solo componente), y por último la pieza más pesada y candidata a research (código + validación por propiedad contra schema.org, toca `packages/checks` + UI).
 
-- [ ] **Phase 21: Resolución canónica de la URL de entrada** — resuelve https/http + redirects del home antes de crawlear, origin único en todo el pipeline (backend, sin UI)
+- [x] **Phase 21: Resolución canónica de la URL de entrada** — resuelve https/http + redirects del home antes de crawlear, origin único en todo el pipeline (backend, sin UI) (completed 2026-07-09)
 - [ ] **Phase 22: Árbol de arquitectura estilo octopus** — dendrograma jerárquico real con conexiones padre-hijo, más grande y legible
 - [ ] **Phase 23: Grafo JSON-LD con layout radial** — cada componente conexo con su raíz al centro, en vez del círculo uniforme
 - [ ] **Phase 24: Código + validación JSON-LD estilo Classy Schema** — JSON-LD formateado por entidad + validación por propiedad/tipo contra schema.org
@@ -159,9 +159,10 @@ Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-
   4. Un dominio que no responde en ningún protocolo produce un error claro al usuario, no un crawl vacío.
 
 **Plans**: 3 plans
-- [ ] 21-01-PLAN.md — resolveCanonicalUrl(domain) en packages/crawler (https→http, redirects del home, finalUrl) [URLRES-01]
-- [ ] 21-02-PLAN.md — eliminar resolveHomeKey de buildLinkGraph + ajustar test (match exacto del origin resuelto) [URLRES-02]
-- [ ] 21-03-PLAN.md — worker cablea resolveCanonicalUrl + Audit.resolvedUrl (db:push) + fallo español + mostrar en reporte [URLRES-02]
+
+- [x] 21-01-PLAN.md — resolveCanonicalUrl(domain) en packages/crawler (https→http, redirects del home, finalUrl) [URLRES-01]
+- [x] 21-02-PLAN.md — eliminar resolveHomeKey de buildLinkGraph + ajustar test (match exacto del origin resuelto) [URLRES-02]
+- [x] 21-03-PLAN.md — worker cablea resolveCanonicalUrl + Audit.resolvedUrl (db:push) + fallo español + mostrar en reporte [URLRES-02]
 
 ### Phase 22: Árbol de arquitectura estilo octopus
 
@@ -239,7 +240,7 @@ Próximo trabajo previsto tras v1.4 (scope por definir vía `/gsd:new-milestone`
 | 18. Diagnósticos de Lighthouse desde PSI | v1.3 | 2/2 | Complete ✅ | 2026-07-09 |
 | 19. Agrupación por plantilla | v1.3 | 2/2 | Complete ✅ | 2026-07-09 |
 | 20. Visualizador de arquitectura | v1.3 | 3/3 | Complete ✅ | 2026-07-09 |
-| 21. Resolución canónica de la URL de entrada | v1.4 | 0/? | Not started | - |
+| 21. Resolución canónica de la URL de entrada | v1.4 | 3/3 | Complete   | 2026-07-09 |
 | 22. Árbol de arquitectura estilo octopus | v1.4 | 0/? | Not started | - |
 | 23. Grafo JSON-LD con layout radial | v1.4 | 0/? | Not started | - |
 | 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 0/? | Not started | - |
