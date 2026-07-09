@@ -110,7 +110,11 @@ Plans:
   1. El reporte muestra diagnósticos curados (WebP/AVIF, CSS sin usar, recursos que bloquean el renderizado, compresión de texto, CSS/JS sin minificar) extraídos de la respuesta PSI que el auditor ya obtiene, sin llamadas adicionales a la API.
   2. Cada diagnóstico aparece como issue con severidad `warning`/`ok` (nunca `critical`) y no duplica la señal ya cubierta por las métricas LCP/CLS/TTFB/INP existentes.
 
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+
+- [ ] 18-01-PLAN.md — Tipos PsiDiagnostics + extractDiagnostics() + DIAGNOSTIC_SPECS/mapDiagnosticIssues() en @auditor/psi (TDD)
+- [ ] 18-02-PLAN.md — Cablear client.ts (diagnostics en runPsi) + worker (persistir issues PERF-05..PERF-09)
 
 ### Phase 19: Agrupación por plantilla
 
@@ -169,7 +173,7 @@ Próximo trabajo previsto tras v1.3 (scope por definir vía `/gsd:new-milestone`
 | 15. UX del reporte — agrupación e indicadores | v1.2 | 3/3 | Complete ✅ | 2026-07-08 |
 | 16. Grafo de enlaces compartido + profundidad de clics real | v1.3 | 2/2 | Complete   | 2026-07-08 |
 | 17. Check schema-contenido mismatch | v1.3 | 2/2 | Complete   | 2026-07-09 |
-| 18. Diagnósticos de Lighthouse desde PSI | v1.3 | 0/? | Not started | - |
+| 18. Diagnósticos de Lighthouse desde PSI | v1.3 | 0/2 | Not started | - |
 | 19. Agrupación por plantilla | v1.3 | 0/? | Not started | - |
 | 20. Visualizador de arquitectura | v1.3 | 0/? | Not started | - |
 
