@@ -32,11 +32,6 @@
   font-weight: 600;
 }
 
-.placeholderText {
-  fill: var(--text-muted);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-}
-
 .emptyText {
   fill: var(--text-secondary);
   font-family: var(--font-geist-sans), system-ui, sans-serif;

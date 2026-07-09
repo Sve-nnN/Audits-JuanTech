@@ -14,7 +14,7 @@ interface ArchitectureTreeSvgProps {
 /**
  * Cap por rama: si un nodo tiene más de este número de hijos, se dibujan los
  * primeros N y un nodo-resumen "+K más" como hijo adicional VISIBLE (nunca un
- * truncado silencioso, T-22-04). Alineado con el antiguo MAX_NODES_PER_ROW=12.
+ * truncado silencioso, T-22-04). Cap por rama para no saturar sitios grandes.
  */
 const MAX_CHILDREN_PER_NODE = 12;
 
@@ -178,8 +178,11 @@ export function ArchitectureTreeSvg({ architecture }: ArchitectureTreeSvgProps) 
   const treeBlockH =
     treeLeaves > 0 ? (treeMaxLevel + 1) * NODE_H + treeMaxLevel * GAP_Y : 0;
   const sectionGap = treeLeaves > 0 && hasOrphans ? SECTION_GAP : 0;
+  // WR-01: reserve a row for the "+N más" note so it stays inside the viewBox
+  // instead of being clipped below the band.
+  const orphanMoreH = hiddenOrphans > 0 ? GAP_Y + 18 : 0;
   const orphanBandH = hasOrphans
-    ? ORPHAN_LABEL_H + orphanRows * NODE_H + (orphanRows - 1) * GAP_Y
+    ? ORPHAN_LABEL_H + orphanRows * NODE_H + (orphanRows - 1) * GAP_Y + orphanMoreH
     : 0;
   const height = PAD * 2 + treeBlockH + sectionGap + orphanBandH;
 
@@ -240,7 +243,14 @@ export function ArchitectureTreeSvg({ architecture }: ArchitectureTreeSvgProps) 
             <text
               className={styles.moreText}
               x={PAD}
-              y={orphanBandTop + ORPHAN_LABEL_H + orphanRows * (NODE_H + GAP_Y) - GAP_Y + NODE_H / 2}
+              y={
+                orphanBandTop +
+                ORPHAN_LABEL_H +
+                orphanRows * NODE_H +
+                (orphanRows - 1) * GAP_Y +
+                GAP_Y +
+                12
+              }
               fontSize={12}
             >
               +{hiddenOrphans} más
@@ -272,7 +282,7 @@ function nodeCard(key: string, left: number, top: number, node: ArchNode) {
         className={styles.depthBadge}
         x={left + 14}
         y={top + 54}
-        width={node.isOrphan ? 66 : 66}
+        width={66}
         height={20}
         rx={10}
       />

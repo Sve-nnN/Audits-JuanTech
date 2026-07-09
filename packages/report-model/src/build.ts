@@ -55,7 +55,6 @@ interface ArchPageRow {
   id: string;
   url: string;
   title: string | null;
-  finalUrl: string | null;
   statusCode: number | null;
   error: string | null;
 }
@@ -164,7 +163,7 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     hasGraph
       ? prisma.page.findMany({
           where: { auditId },
-          select: { id: true, url: true, title: true, finalUrl: true, statusCode: true, error: true },
+          select: { id: true, url: true, title: true, statusCode: true, error: true },
         })
       : Promise.resolve([]),
   ]);
@@ -210,7 +209,9 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     const archByUrl = new Map<string, ArchTreeNode>();
     for (const node of graph.nodes) {
       if (brokenPageIds.has(node.pageId)) continue;
-      const depth = graph.depthByUrl[node.url] ?? 0;
+      if (archByUrl.has(node.url)) continue; // WR-02: dedupe repeated URLs
+      const depth = graph.depthByUrl[node.url];
+      if (depth === undefined) continue; // WR-03: only place BFS-reachable nodes
       archByUrl.set(node.url, {
         url: node.url,
         title: pagesById.get(node.pageId)?.title ?? null,
@@ -242,12 +243,12 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
       }
     }
 
-    // Attach children / collect roots in stable graph.nodes order.
+    // Attach children / collect roots. Iterate archByUrl (already deduped by
+    // URL, insertion order = stable graph.nodes order) so a repeated URL can't
+    // push the same node object twice (WR-02).
     const roots: ArchTreeNode[] = [];
-    for (const node of graph.nodes) {
-      const archNode = archByUrl.get(node.url);
-      if (!archNode) continue;
-      const parentUrl = parentUrlByChild.get(node.url);
+    for (const archNode of archByUrl.values()) {
+      const parentUrl = parentUrlByChild.get(archNode.url);
       if (parentUrl != null) {
         archByUrl.get(parentUrl)!.children.push(archNode);
       } else {
