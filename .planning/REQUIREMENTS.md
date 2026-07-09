@@ -15,8 +15,8 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 
 ### Diagnósticos de Lighthouse (PSI)
 
-- [ ] **PERF-05**: El auditor extrae de la respuesta de PageSpeed Insights ya pagada (sin llamadas extra) los diagnósticos: uso de formatos de imagen modernos (WebP/AVIF), CSS sin usar, recursos que bloquean el renderizado, compresión de texto, y CSS/JS sin minificar.
-- [ ] **PERF-06**: Cada diagnóstico se reporta como issue nuevo (`PERF-0x`) con severidad `warning`/`ok` derivada del propio score de Lighthouse para ese audit — nunca `critical`, y sin duplicar señal ya cubierta por PERF-01/02 (LCP/CLS/TTFB/INP).
+- [x] **PERF-05**: El auditor extrae de la respuesta de PageSpeed Insights ya pagada (sin llamadas extra) los diagnósticos: uso de formatos de imagen modernos (WebP/AVIF), CSS sin usar, recursos que bloquean el renderizado, compresión de texto, y CSS/JS sin minificar.
+- [x] **PERF-06**: Cada diagnóstico se reporta como issue nuevo (`PERF-0x`) con severidad `warning`/`ok` derivada del propio score de Lighthouse para ese audit — nunca `critical`, y sin duplicar señal ya cubierta por PERF-01/02 (LCP/CLS/TTFB/INP).
 
 ### Agrupación por plantilla
 
@@ -53,8 +53,8 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 | DEPTH-01 | Phase 16 | Complete |
 | DEPTH-02 | Phase 16 | Complete |
 | DEPTH-03 | Phase 16 | Complete |
-| PERF-05 | Phase 18 | Pending |
-| PERF-06 | Phase 18 | Pending |
+| PERF-05 | Phase 18 | Complete |
+| PERF-06 | Phase 18 | Complete |
 | TEMPLATE-01 | Phase 19 | Pending |
 | TEMPLATE-02 | Phase 19 | Pending |
 | SCHEMA-06 | Phase 17 | Complete |

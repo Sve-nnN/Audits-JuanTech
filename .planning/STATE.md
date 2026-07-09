@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Profundizar checks técnicos + visualización de arquitectura
-status: in_progress
-stopped_at: "Plan 18-01 completado (extractDiagnostics + mapDiagnosticIssues, PERF-05..PERF-09, sin cablear al worker aún). Phase 18 en curso — falta Plan 18-02."
-last_updated: "2026-07-09T15:34:00.000Z"
-last_activity: 2026-07-09 — Phase 18 Plan 01 ejecutado (tipos PsiDiagnostics + extractDiagnostics + mapDiagnosticIssues, lógica pura sin tocar el worker)
+status: completed
+stopped_at: Phase 18 completa (Plan 18-02 ejecutado — runPsi adjunta diagnostics + worker persiste issues PERF-05..PERF-09). Próximo: Phase 19.
+last_updated: "2026-07-09T15:36:54Z"
+last_activity: 2026-07-09 — Phase 18 Plan 02 ejecutado (cableado end-to-end de diagnósticos de Lighthouse: client.ts + worker, cierre de fase)
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 7
+  completed_phases: 3
+  total_plans: 6
   completed_plans: 6
-  percent: 46
+  percent: 60
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 ## Current Position
 
-Phase: 18 (Diagnósticos de Lighthouse desde PSI) — en curso
-Plan: 01 complete (PsiDiagnosticAudit/PsiDiagnostics + extractDiagnostics + mapDiagnosticIssues, lógica pura en @auditor/psi), 02 pendiente (cableado end-to-end worker/persistencia)
-Status: Phase 18 Plan 01 complete — próximo: Plan 18-02
-Last activity: 2026-07-09 — Phase 18 Plan 01 ejecutado (tipos + extracción + mapeo de diagnósticos Lighthouse, PERF-05..PERF-09, cero cambios al worker todavía)
+Phase: 18 (Diagnósticos de Lighthouse desde PSI) — completa (2/2 planes)
+Plan: 01 complete (PsiDiagnosticAudit/PsiDiagnostics + extractDiagnostics + mapDiagnosticIssues, lógica pura en @auditor/psi), 02 complete (cableado end-to-end worker/persistencia)
+Status: Phase 18 complete — próximo: Phase 19 (Agrupación por plantilla)
+Last activity: 2026-07-09 — Phase 18 Plan 02 ejecutado (runPsi adjunta diagnostics + worker persiste issues PERF-05..PERF-09, cierre de fase)
 
 ## Performance Metrics
 
@@ -85,6 +85,7 @@ Last activity: 2026-07-09 — Phase 18 Plan 01 ejecutado (tipos + extracción + 
 | Phase 17 P01 | 20min | 2 tasks | 5 files |
 | Phase 17 P02 | 15min | 2 tasks | 4 files |
 | Phase 18 P01 | 25min | 3 tasks | 8 files |
+| Phase 18 P02 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -127,6 +128,7 @@ Recent decisions affecting current work:
 - [Phase 17-01]: SCHEMA-06/07: schemaContentMismatchCheck (SD-06, site-level) detecta FAQPage/HowTo/Product+AggregateRating/Review sin contenido visible correspondiente, severidad warning siempre (literal hardcodeado, nunca critical), suprimido solo por veredicto explicito renderVerdictByPageId==='csr' (undetermined/ausente sigue evaluando normal). RenderVerdictValue redeclarado localmente en @auditor/checks sin dependencia real de @auditor/render (preserva assert-no-playwright-in-web.mjs).
 - [Phase 17-02, cierre de fase]: SCHEMA-07: RenderIssueDraft gana campo explícito verdict (ssr/csr/undetermined) poblado en las 3 ramas de @auditor/render (detect.ts). El worker mueve el bloque try/catch de runRenderSample para que corra justo después de buildLinkGraph y antes de runAllChecks (antes corría al final, tras el muestreo PSI); construye renderVerdictByPageId (Record<pageId, RenderVerdict>) solo con páginas realmente muestreadas y lo pasa a runAllChecks. RenderVerdict se importa solo en apps/worker (nunca re-exportado a @auditor/checks), preservando la frontera Playwright/apps-web. Best-effort preservado: la auditoría sigue llegando a status done si el render sample falla por completo.
 - [Phase 18-01]: PERF-05..PERF-09: extractDiagnostics(raw) en packages/psi/src/parser.ts lee 6 audit IDs de Lighthouse (modern-image-formats, unused-css-rules, render-blocking-resources, uses-text-compression, unminified-css, unminified-javascript) desde la misma respuesta PSI ya parseada, sin llamadas HTTP extra; parsePsiResponse queda intacto. mapDiagnosticIssues (issues.ts) produce hasta 5 PerfIssueDraft con severidad siempre ok/warning (nunca critical, hardcodeado en gradeDiagnostic), combinando unminified-css + unminified-javascript en un único PERF-09 (peor score de los dos). PsiMetrics.diagnostics es opcional — regresión de caché confirma que entradas Redis pre-v1.3 (sin ese campo) se leen sin excepción. Plan 18-02 pendiente cablea esto en el worker/cliente HTTP.
+- [Phase 18-02, cierre de fase]: runPsi (client.ts) mergea `extractDiagnostics(json)` en `metrics` sobre la misma respuesta `json` ya obtenida por `res.json()`, sin fetch adicional; camino de error (`res.ok=false`/reintentos agotados) intacto. El worker (runOnePage dentro de runPerfSample) llama `mapDiagnosticIssues({url, pageId, mobile, desktop})` inmediatamente después de `mapPerfIssues` con los mismos argumentos ya construidos, sin nuevo try/catch (función pura, mismo contrato). `perfIssues` fluye sin cambios hacia `Issue.createMany` vía `issueRowsWithoutDiff`. Phase 18 completa; PERF-05..PERF-09 cableados end-to-end.
 
 ### Pending Todos
 
@@ -163,6 +165,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T15:34:00.000Z
-Stopped at: Plan 18-01 completado (extractDiagnostics + mapDiagnosticIssues, PERF-05..PERF-09, sin cablear al worker aún). Phase 18 en curso — falta Plan 18-02.
+Last session: 2026-07-09T15:36:54.000Z
+Stopped at: Phase 18 completa (Plan 18-02 ejecutado — runPsi adjunta diagnostics + worker persiste issues PERF-05..PERF-09). Próximo: Phase 19 (Agrupación por plantilla).
 Resume file: None
