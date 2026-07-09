@@ -53,6 +53,20 @@ interface ArchPageRow {
   url: string;
   title: string | null;
   finalUrl: string | null;
+  statusCode: number | null;
+  error: string | null;
+}
+
+/**
+ * A page that failed to download (error set) or returned a 4xx/5xx is not part
+ * of the real site architecture: it must not be drawn as a legitimate node
+ * (WR-02) nor mislabeled as an orphan (WR-01). Pages with no status yet are
+ * treated as broken (they never resolved).
+ */
+function isBrokenPage(page: ArchPageRow): boolean {
+  if (page.error != null) return true;
+  if (page.statusCode == null) return true;
+  return page.statusCode >= 400;
 }
 
 /** Minimal persisted-issue shape buildReportModel reads. */
@@ -147,7 +161,7 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     hasGraph
       ? prisma.page.findMany({
           where: { auditId },
-          select: { id: true, url: true, title: true, finalUrl: true },
+          select: { id: true, url: true, title: true, finalUrl: true, statusCode: true, error: true },
         })
       : Promise.resolve([]),
   ]);
@@ -185,6 +199,7 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     const pages = pagesRaw as unknown as ArchPageRow[];
     const pagesById = new Map(pages.map((p) => [p.id, p]));
     const nodePageIds = new Set(graph.nodes.map((n) => n.pageId));
+    const brokenPageIds = new Set(pages.filter(isBrokenPage).map((p) => p.id));
 
     const nodesByDepth: ReportArchitecture["nodesByDepth"] = {
       "0": [],
@@ -193,6 +208,10 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
       "3+": [],
     };
     for (const node of graph.nodes) {
+      // WR-02: a 4xx/5xx page can carry HTML (an error page) and thus land in
+      // the persisted graph — skip it so broken URLs aren't drawn as real
+      // architecture nodes.
+      if (brokenPageIds.has(node.pageId)) continue;
       const depth = graph.depthByUrl[node.url] ?? 0;
       const bucket = depth >= 3 ? "3+" : (String(depth) as "0" | "1" | "2");
       const archNode: ArchNode = {
@@ -209,6 +228,9 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     const orphans: ArchNode[] = [];
     for (const page of pages) {
       if (nodePageIds.has(page.id)) continue;
+      // WR-01: a page that failed to download or returned 4xx/5xx is broken,
+      // not an orphan — don't mislabel it as unreachable-but-valid structure.
+      if (isBrokenPage(page)) continue;
       orphans.push({
         url: page.url,
         title: page.title ?? null,

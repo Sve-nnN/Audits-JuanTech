@@ -245,10 +245,10 @@ describe("buildReportModel", () => {
       "https://example.com/producto/c": 4,
     };
     const pages = [
-      { id: "p-home", url: "https://example.com/", title: "Inicio", finalUrl: null },
-      { id: "p-a", url: "https://example.com/a", title: null, finalUrl: null },
-      { id: "p-b", url: "https://example.com/b", title: "B", finalUrl: null },
-      { id: "p-c", url: "https://example.com/producto/c", title: "C", finalUrl: null },
+      { id: "p-home", url: "https://example.com/", title: "Inicio", finalUrl: null, statusCode: 200, error: null },
+      { id: "p-a", url: "https://example.com/a", title: null, finalUrl: null, statusCode: 200, error: null },
+      { id: "p-b", url: "https://example.com/b", title: "B", finalUrl: null, statusCode: 200, error: null },
+      { id: "p-c", url: "https://example.com/producto/c", title: "C", finalUrl: null, statusCode: 200, error: null },
     ];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -305,7 +305,7 @@ describe("buildReportModel", () => {
       .mockResolvedValueOnce([] as any);
     pageFindMany.mockResolvedValueOnce([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { id: "p-x", url: "https://example.com/x", title: "X", finalUrl: null },
+      { id: "p-x", url: "https://example.com/x", title: "X", finalUrl: null, statusCode: 200, error: null },
     ] as any);
 
     const model = await buildReportModel("audit-1");
@@ -319,8 +319,8 @@ describe("buildReportModel", () => {
     const nodes = [{ url: "https://example.com/", pageId: "p-home" }];
     const depthByUrl = { "https://example.com/": 0 };
     const pages = [
-      { id: "p-home", url: "https://example.com/", title: "Inicio", finalUrl: null },
-      { id: "p-orphan", url: "https://example.com/orphan", title: "Huérfana", finalUrl: null },
+      { id: "p-home", url: "https://example.com/", title: "Inicio", finalUrl: null, statusCode: 200, error: null },
+      { id: "p-orphan", url: "https://example.com/orphan", title: "Huérfana", finalUrl: null, statusCode: 200, error: null },
     ];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -345,6 +345,43 @@ describe("buildReportModel", () => {
     // Orphan is absent from every depth bucket.
     const inBuckets = Object.values(arch.nodesByDepth).flat();
     expect(inBuckets.some((n) => n.url === "https://example.com/orphan")).toBe(false);
+  });
+
+  it("excludes broken pages (4xx/5xx or error) from nodes and orphans (WR-01/WR-02)", async () => {
+    // p-home reachable & ok; p-404 is a graph node but returned 404; p-broken
+    // is off-graph but failed to download (error set). Neither broken page
+    // should appear as a node or as an orphan.
+    const nodes = [
+      { url: "https://example.com/", pageId: "p-home" },
+      { url: "https://example.com/gone", pageId: "p-404" },
+    ];
+    const depthByUrl = { "https://example.com/": 0, "https://example.com/gone": 1 };
+    const pages = [
+      { id: "p-home", url: "https://example.com/", title: "Inicio", finalUrl: null, statusCode: 200, error: null },
+      { id: "p-404", url: "https://example.com/gone", title: "404 Not Found", finalUrl: null, statusCode: 404, error: null },
+      { id: "p-broken", url: "https://example.com/broken", title: null, finalUrl: null, statusCode: null, error: "timeout" },
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAuditWithGraph(depthByUrl, nodes) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pageFindMany.mockResolvedValueOnce(pages as any);
+
+    const model = await buildReportModel("audit-1");
+    const arch = model!.architecture!;
+
+    // Only the healthy home node is drawn; the 404 node is dropped (WR-02).
+    const allNodes = Object.values(arch.nodesByDepth).flat();
+    expect(allNodes).toHaveLength(1);
+    expect(allNodes[0]!.url).toBe("https://example.com/");
+    expect(allNodes.some((n) => n.url === "https://example.com/gone")).toBe(false);
+    // The failed off-graph page is NOT mislabeled as an orphan (WR-01).
+    expect(arch.orphans).toHaveLength(0);
   });
 
   it("leaves architecture undefined when the audit has no persisted graph", async () => {
