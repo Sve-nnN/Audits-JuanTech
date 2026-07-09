@@ -97,6 +97,7 @@ model Page {
   auditId       String
   audit         Audit     @relation(fields: [auditId], references: [id])
   url           String
+  title         String?
   statusCode    Int?
   html          String?   @db.Text
   finalUrl      String?
