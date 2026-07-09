@@ -30,10 +30,37 @@ function nodeIdFor(node: JsonLdNode, index: number): string {
   return `#${type}-${index}`;
 }
 
+/** A human label for an entity: prefer name/headline/title, else the type. */
+function nameOf(data: Record<string, unknown>): string | null {
+  for (const key of ["name", "headline", "title"]) {
+    const v = data[key];
+    if (typeof v === "string" && v.trim().length > 0) return v.trim();
+  }
+  // ListItem often carries its label under `item` (a string or a nested thing).
+  const item = data["item"];
+  if (typeof item === "string" && item.trim().length > 0) return item.trim();
+  if (item && typeof item === "object" && !Array.isArray(item)) {
+    const itemName = (item as Record<string, unknown>)["name"];
+    if (typeof itemName === "string" && itemName.trim().length > 0) return itemName.trim();
+  }
+  return null;
+}
+
 function labelFor(node: JsonLdNode, id: string): string {
-  const name = node.data["name"];
-  if (typeof name === "string" && name.trim().length > 0) return name;
-  return id;
+  const name = nameOf(node.data);
+  return name ?? id;
+}
+
+/** Label for a nested entity: `Type: Name`, prefixed with `[position]` for list items. */
+function nestedLabel(data: Record<string, unknown>, type: string): string {
+  const name = nameOf(data);
+  const pos = data["position"];
+  const prefix = typeof pos === "number" || typeof pos === "string" ? `[${pos}] ` : "";
+  return name ? `${type}: ${prefix}${name}` : type;
+}
+
+function isEntityLike(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Builds a `{ nodes, edges }` entity graph from a page's flattened JSON-LD nodes. */
@@ -42,7 +69,10 @@ export function buildEntityGraph(nodes: JsonLdNode[]): EntityGraph {
   const nodeIds = new Set<string>();
   const idOf = new Map<JsonLdNode, string>();
   const edges: EntityGraphEdge[] = [];
+  let syntheticSeq = 0;
 
+  // Register the top-level (flattened) entities first, so @id references from
+  // nested properties can resolve to them instead of duplicating a node.
   nodes.forEach((node, index) => {
     const id = nodeIdFor(node, index);
     idOf.set(node, id);
@@ -58,9 +88,28 @@ export function buildEntityGraph(nodes: JsonLdNode[]): EntityGraph {
     graphNodes.push({ id: url, type: "External", label: url });
   }
 
-  function collectEdges(value: unknown, rel: string, fromId: string): void {
+  /** Registers a nested entity object as its own node and returns its id. */
+  function addNestedNode(obj: Record<string, unknown>): string {
+    const type = typesOf(obj)[0] ?? "Thing";
+    const rawId = obj["@id"];
+    const id =
+      typeof rawId === "string" && rawId.length > 0 ? rawId : `#${type}-nested-${syntheticSeq++}`;
+    if (!nodeIds.has(id)) {
+      nodeIds.add(id);
+      graphNodes.push({ id, type, label: nestedLabel(obj, type) });
+    }
+    return id;
+  }
+
+  /**
+   * Walks a property value. Emits edges for `@id` references and `sameAs`
+   * targets (as before), and — the expansion — turns every inline nested
+   * entity (an object carrying an `@type`) into its own child node + a
+   * property-labeled edge, then recurses into that child's own properties.
+   */
+  function walk(value: unknown, rel: string, fromId: string): void {
     if (Array.isArray(value)) {
-      for (const item of value) collectEdges(item, rel, fromId);
+      for (const item of value) walk(item, rel, fromId);
       return;
     }
 
@@ -70,12 +119,23 @@ export function buildEntityGraph(nodes: JsonLdNode[]): EntityGraph {
       return;
     }
 
-    if (typeof value === "object" && value !== null) {
-      const obj = value as Record<string, unknown>;
-      const refId = obj["@id"];
-      if (typeof refId === "string" && nodeIds.has(refId) && refId !== fromId) {
-        edges.push({ from: fromId, to: refId, rel });
-      }
+    if (!isEntityLike(value)) return;
+    const obj = value;
+
+    // Reference to an already-registered top-level entity: just an edge.
+    const refId = obj["@id"];
+    if (typeof refId === "string" && nodeIds.has(refId) && refId !== fromId) {
+      edges.push({ from: fromId, to: refId, rel });
+      return;
+    }
+
+    // Inline nested entity (has a real @type): expand into a child node.
+    if (typesOf(obj).length === 0) return;
+    const childId = addNestedNode(obj);
+    if (childId !== fromId) edges.push({ from: fromId, to: childId, rel });
+    for (const [key, nested] of Object.entries(obj)) {
+      if (key === "@id" || key === "@type" || key === "@context") continue;
+      walk(nested, key, childId);
     }
   }
 
@@ -84,7 +144,7 @@ export function buildEntityGraph(nodes: JsonLdNode[]): EntityGraph {
     if (!fromId) continue;
     for (const [key, value] of Object.entries(node.data)) {
       if (key === "@id" || key === "@type" || key === "@context") continue;
-      collectEdges(value, key, fromId);
+      walk(value, key, fromId);
     }
   }
 

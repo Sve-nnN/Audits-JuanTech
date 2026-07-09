@@ -77,4 +77,50 @@ describe("buildEntityGraph (SD-05)", () => {
     const graph = buildEntityGraph(nodes);
     expect(graph.nodes[0]?.id).toMatch(/^#WebSite-/);
   });
+
+  it("expands inline nested entities into child nodes with property-labeled edges", () => {
+    // aprendoclub-style: BlogPosting with nested author/publisher, no @id.
+    const html = `<html><body><script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Cómo aprender SEO",
+      "author": { "@type": "Person", "name": "Arianna Lupi" },
+      "publisher": { "@type": "Organization", "name": "Aprendo Club" }
+    }
+    </script></body></html>`;
+    const nodes = flattenNodes(extractJsonLdBlocks(cheerio.load(html)));
+    const graph = buildEntityGraph(nodes);
+
+    // Root + Person + Organization = 3 nodes (before: only the root showed).
+    expect(graph.nodes).toHaveLength(3);
+    expect(graph.nodes.some((n) => n.type === "Person" && n.label === "Person: Arianna Lupi")).toBe(true);
+    expect(graph.nodes.some((n) => n.type === "Organization")).toBe(true);
+
+    const root = graph.nodes.find((n) => n.type === "BlogPosting")!;
+    expect(graph.edges.some((e) => e.from === root.id && e.rel === "author")).toBe(true);
+    expect(graph.edges.some((e) => e.from === root.id && e.rel === "publisher")).toBe(true);
+  });
+
+  it("expands a BreadcrumbList's itemListElement array into one child per ListItem", () => {
+    const html = `<html><body><script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Inicio" },
+        { "@type": "ListItem", "position": 2, "name": "Blog" },
+        { "@type": "ListItem", "position": 3, "name": "Empieza en SEO" }
+      ]
+    }
+    </script></body></html>`;
+    const nodes = flattenNodes(extractJsonLdBlocks(cheerio.load(html)));
+    const graph = buildEntityGraph(nodes);
+
+    const listItems = graph.nodes.filter((n) => n.type === "ListItem");
+    expect(listItems).toHaveLength(3);
+    expect(listItems.some((n) => n.label === "ListItem: [1] Inicio")).toBe(true);
+    const root = graph.nodes.find((n) => n.type === "BreadcrumbList")!;
+    expect(graph.edges.filter((e) => e.from === root.id && e.rel === "itemListElement")).toHaveLength(3);
+  });
 });
