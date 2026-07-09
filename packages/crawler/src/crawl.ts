@@ -107,12 +107,16 @@ export async function runCrawl(options: RunCrawlOptions): Promise<CrawlSummary> 
           redirectUrls && redirectUrls.length > 0 ? redirectUrls.map((u) => u.toString()) : undefined;
         const statusCode = response?.statusCode ?? null;
         const html = typeof body === "string" ? body : body?.toString("utf-8");
+        // Extract the HTML <title> once from the already-loaded Cheerio `$`
+        // (no HTML re-parse anywhere else — ARCH-03). Empty/missing => NULL.
+        const title = $("title").first().text().trim() || null;
 
         await prisma.page.upsert({
           where: { auditId_url: { auditId, url } },
           create: {
             auditId,
             url,
+            title,
             statusCode,
             finalUrl,
             redirectChain: redirectChain as never,
@@ -123,6 +127,7 @@ export async function runCrawl(options: RunCrawlOptions): Promise<CrawlSummary> 
             fetchedAt: new Date(),
           },
           update: {
+            title,
             statusCode,
             finalUrl,
             redirectChain: redirectChain as never,
