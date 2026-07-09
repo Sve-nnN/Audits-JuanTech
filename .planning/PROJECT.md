@@ -8,24 +8,23 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
-## Current Milestone: v1.3 Profundizar checks técnicos + visualización de arquitectura
+## Current Milestone: v1.4 Visualización avanzada + resolución de URL
 
-**Goal:** Cerrar gaps encontrados vs. metodología SEO estándar (comparado contra la librería de skills del diplomado "De Cero a SEO" en `/Users/juan/Documents/Codigo/Arianna/SEO-Skills`) y dar visibilidad de la arquitectura del sitio.
+**Goal:** Elevar las visualizaciones a nivel de herramientas de referencia (Octopus.do para arquitectura, Classy Schema para JSON-LD) y quitar la fricción de entrada resolviendo la URL canónica del sitio automáticamente. Origen: feedback directo de Juan durante la validación de v1.3.
 
-**Target features:**
-- Check schema-contenido: FAQPage/HowTo/Product+AggregateRating declarado sin contenido visible correspondiente (riesgo de penalización manual de Google)
-- Check profundidad de clics (regla de 3 clics) — `Page.depth` ya persistido por el crawler, falta el check + superficie en el reporte
-- Diagnósticos de Lighthouse (WebP, render-blocking, CSS/JS sin usar) extraídos de la respuesta PSI ya pagada — cero costo extra de API
-- Agrupación de issues por plantilla de página (home/categoría/producto/artículo) — eje complementario a la agrupación por tipo de issue de v1.2 (Phase 15)
-- Visualizador de arquitectura estilo Octopus.do: árbol jerárquico por profundidad, grafo de enlaces internos computado on-demand (reusa el patrón de `orphanPages.ts`), sin migración de storage
+**Target features (Phases 21-24):**
+- Resolución canónica de URL (Phase 21): ingresar `aprendoclub.com` y que el sistema resuelva http/https + redirect a www, usando la URL real como origin en todo el pipeline (reemplaza la mitigación puntual `resolveHomeKey` de v1.3)
+- Árbol de arquitectura estilo octopus (Phase 22): dendrograma jerárquico real con conexiones padre-hijo visibles, más grande — no filas planas por profundidad
+- Grafo JSON-LD radial (Phase 23): raíz de cada componente conexo al centro con hijos alrededor
+- Código + validación JSON-LD (Phase 24): código formateado por entidad + validación por propiedad/tipo contra schema.org con errores individuales (subconjunto de alto valor)
 
-**Key context:** Los 5 ítems surgieron de comparar los checks ya implementados (20+ en v1.0-v1.2) contra las skills de auditoría técnica/arquitectura/GEO-AEO/schema del repo SEO-Skills — no solapan con lo ya construido.
+**Key context:** Milestone design-heavy (3 de 4 fases con UI). Riesgo ascendente: backend puro (URL) → rework de SVG conocido (árbol) → rework acotado (grafo radial) → pieza más pesada con research (validación schema.org).
 
-## Prior State: v1.2 shipped 2026-07-08
+## Prior State: v1.3 shipped 2026-07-09
 
-Tres milestones entregados antes de v1.3: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca) y v1.2 (detección de renderizado + exportación de reportes). El producto detecta canonicals profundos + jerarquía de encabezados, determina si cada página de una muestra es SSR o CSR, y permite exportar el reporte en PDF con branding, Markdown-para-LLM y PPTX desde un botón accesible.
+Cuatro milestones entregados antes de v1.4: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca), v1.2 (renderizado + exportación) y v1.3 (checks técnicos profundos + visualización de arquitectura). El producto calcula profundidad de clics real (BFS sobre grafo de enlaces), detecta schema-contenido mismatch, extrae diagnósticos de Lighthouse de la respuesta PSI ya pagada, agrupa issues por plantilla de página, y muestra un árbol de arquitectura del sitio en SVG.
 
-**Cierre v1.2:** aditivo sobre v1.0/v1.1 (el pipeline validado no se rompe). Nuevos paquetes `@auditor/render` (detección CSR/SSR worker-only con Playwright pinneado), `@auditor/report-model` (`buildReportModel` como single source of truth) y `@auditor/export` (serializers PDF/Markdown/PPTX con libs JS puras, cero Chromium en Vercel). Exports on-demand desde route Node; agrupación de issues por tipo e indicador JSON-LD por página en el reporte. 19/19 requisitos, audit PASSED. Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.2-ROADMAP.md`.
+**Cierre v1.3:** aditivo. Nuevo paquete `@auditor/graph` (`buildLinkGraph`, profundidad de clics real persistida y reusada). Nuevos checks TECH-14 (profundidad), SD-06 (schema-contenido con supresión CSR), PERF-05..09 (diagnósticos Lighthouse). `ReportModel` gana `issuesByTemplate` (toggle por plantilla) y `architecture` (árbol SVG). Columna `Page.title`. 13/13 requisitos, audit PASSED, integración cross-fase verificada. 5 hotfixes durante validación (grafo www, schema anidado, enlaces externos anti-bot, URLs completas). Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.3-ROADMAP.md`.
 
 **Trabajo previsto posterior:**
 - **Deploy a producción:** web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera. Incluye las 2 verificaciones humanas diferidas de v1.2 (runtime Docker del render + render visual del PDF).
@@ -64,12 +63,22 @@ Tres milestones entregados antes de v1.3: v1.0 (pipeline de auditoría), v1.1 (U
 - ✓ Exportación del reporte en PDF con branding, Markdown-para-LLM y PPTX, con top-N + "N de M", sin PII, acentos/ñ correctos — v1.2 (EXPORT-01..03/05, Phases 13)
 - ✓ Botón Exportar accesible (selector PDF/Markdown/PPTX, teclado, estado de carga, sin doble envío) — v1.2 (EXPORT-04, Phase 14)
 - ✓ UX del reporte: issues agrupados por tipo en dropdowns + URL en issues de CWV + estado JSON-LD por página — v1.2 (REPORT-01..04, Phases 11 y 15)
+- ✓ Profundidad de clics real (BFS sobre grafo de enlaces internos, no `Page.depth`) computada una vez y reusada; issue agregado de % de páginas a >3 clics — v1.3 (DEPTH-01..03, Phase 16)
+- ✓ Check schema-contenido mismatch (FAQPage/HowTo/Product+AggregateRating/Review sin contenido visible), warning con supresión de falsos positivos vía muestra CSR — v1.3 (SCHEMA-06/07, Phase 17)
+- ✓ Diagnósticos de Lighthouse (WebP/AVIF, CSS sin usar, render-blocking, compresión, minificación) extraídos de la respuesta PSI sin llamadas extra, severidad no-crítica — v1.3 (PERF-05/06, Phase 18)
+- ✓ Agrupación de issues por plantilla de página (home/categoría/producto/artículo/otras) vía heurística de URL, con toggle en el reporte — v1.3 (TEMPLATE-01/02, Phase 19)
+- ✓ Visualizador de arquitectura del sitio en SVG puro (árbol por profundidad, huérfanas, >3 clics, plantilla por nodo), reusa el grafo persistido — v1.3 (ARCH-01..04, Phase 20)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-(v1.0 + v1.1 + v1.2 completos — sin milestone abierto. Próximo: deploy a producción + v2 monetización/enriquecimiento, scope por definir vía `/gsd:new-milestone`.)
+v1.4 Visualización avanzada + resolución de URL (Phases 21-24):
+
+- [ ] Resolución canónica de URL de entrada (http/https + www) usada como origin en todo el pipeline — URLRES-01/02 (Phase 21)
+- [ ] Árbol de arquitectura estilo octopus: dendrograma jerárquico con conexiones padre-hijo, más grande — ARCH-05/06 (Phase 22)
+- [ ] Grafo JSON-LD radial: raíz de cada componente conexo al centro — SDVIZ-01 (Phase 23)
+- [ ] Código JSON-LD formateado + validación por propiedad/tipo contra schema.org con errores individuales — SDVIZ-02/03 (Phase 24)
 
 ### Out of Scope
 
@@ -140,4 +149,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-08 — milestone v1.3 started (Profundizar checks técnicos + visualización de arquitectura)*
+*Last updated: 2026-07-09 after v1.3 milestone (v1.4 opened)*

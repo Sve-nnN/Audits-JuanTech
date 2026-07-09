@@ -1,74 +1,65 @@
-# Requirements: Auditor Web (SEO/Técnico) — Milestone v1.3
+# Requirements: Auditor Web (SEO/Técnico) — Milestone v1.4
 
-**Defined:** 2026-07-08
+**Defined:** 2026-07-09
 **Core Value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
 
-Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura**. Origen: comparación de los checks ya implementados (v1.0-v1.2) contra la librería de skills del diplomado "De Cero a SEO" (`/Users/juan/Documents/Codigo/Arianna/SEO-Skills`). REQ-IDs con prefijos nuevos; numeración de fases continúa desde la 16.
+Milestone v1.4 = **Visualización avanzada + resolución de URL**. Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-09), con capturas de referencia de Octopus.do (árbol) y Classy Schema (grafo/validación JSON-LD). Numeración de fases continúa desde la 21.
 
-## v1.3 Requirements
+## v1.4 Requirements
 
-### Grafo de enlaces compartido + profundidad de clics
+### Árbol de arquitectura estilo octopus
 
-- [x] **DEPTH-01**: El auditor calcula la profundidad real de cada página (clics desde home) mediante un BFS propio sobre el grafo de enlaces internos (no lee `Page.depth`, que queda en 0 en crawls sembrados por sitemap).
-- [x] **DEPTH-02**: El reporte marca como advertencia el porcentaje de páginas a más de 3 clics de la home (issue agregado, no uno por página).
-- [x] **DEPTH-03**: El BFS/grafo de enlaces internos se calcula una sola vez y lo reusan tanto el check de profundidad como el visualizador de arquitectura (DEPTH-04..ARCH-04) — nunca se recalcula por separado en cada carga del reporte.
+- [ ] **ARCH-05**: El visualizador de arquitectura renderiza un árbol jerárquico real (dendrograma) con conexiones padre-hijo visibles entre nodos, reconstruyendo la jerarquía desde los edges del grafo de enlaces ya persistido (`Audit.stats.graph`) — no filas planas por profundidad. Cada nodo cuelga de su padre real (el nodo de menor profundidad que lo enlaza en el BFS).
+- [ ] **ARCH-06**: El árbol es más grande y legible (estilo Octopus.do), con layout determinista y ancho dinámico según la cantidad de nodos por nivel. Cada nodo conserva sus señales de v1.3 (profundidad, indicador de huérfana, indicador de >3 clics, plantilla clasificada). Sigue siendo SVG puro sin dependencias nuevas (CSP estricta, patrón `EntityGraphSvg`/`ArchitectureTreeSvg`).
 
-### Diagnósticos de Lighthouse (PSI)
+### Grafo JSON-LD con layout radial
 
-- [x] **PERF-05**: El auditor extrae de la respuesta de PageSpeed Insights ya pagada (sin llamadas extra) los diagnósticos: uso de formatos de imagen modernos (WebP/AVIF), CSS sin usar, recursos que bloquean el renderizado, compresión de texto, y CSS/JS sin minificar.
-- [x] **PERF-06**: Cada diagnóstico se reporta como issue nuevo (`PERF-0x`) con severidad `warning`/`ok` derivada del propio score de Lighthouse para ese audit — nunca `critical`, y sin duplicar señal ya cubierta por PERF-01/02 (LCP/CLS/TTFB/INP).
+- [ ] **SDVIZ-01**: El grafo de entidades (`EntityGraphSvg`) usa layout radial por componente conexo: el nodo raíz de cada grafo (entidad sin edges entrantes) se ubica en el centro de su componente con sus hijos alrededor, en vez del círculo uniforme actual. Una página con múltiples grafos (ej. BlogPosting + BreadcrumbList) muestra cada componente con su propio centro.
 
-### Agrupación por plantilla
+### Código y validación JSON-LD (estilo Classy Schema)
 
-- [x] **TEMPLATE-01**: El auditor clasifica cada página en una plantilla (home / categoría / producto / artículo / otras) mediante heurística de segmentos de URL, sin asumir un CMS específico.
-- [x] **TEMPLATE-02**: El reporte agrupa issues por plantilla como eje complementario a la agrupación por tipo de issue (v1.2, Phase 15) — el usuario puede ver "qué le pasa a la plantilla de producto" además de "qué tipo de error se repite".
+- [ ] **SDVIZ-02**: El detalle de página muestra el código JSON-LD formateado/indentado por entidad, con sus propiedades legibles (árbol de propiedades: `@type`, y cada propiedad con su valor), como el panel de propiedades de Classy Schema.
+- [ ] **SDVIZ-03**: Cada entidad y propiedad se valida contra el vocabulario de schema.org y se muestran errores/warnings/success individuales por nodo: tipo válido/ inválido, propiedad válida/ desconocida, y advertencias de alto valor (ej. "Product declara AggregateRating sin reviewCount", patrón que Google penaliza). Alcance pragmático: cubrir el subconjunto de tipos/propiedades de alto valor SEO/rich-results, no el vocabulario completo (la fuente exacta del vocab y las reglas se deciden en el discuss de la fase). Nunca falla dura del score (informativo/warning, coherente con v1.3 SD-06).
 
-### Schema-contenido mismatch
+### Resolución canónica de la URL de entrada
 
-- [x] **SCHEMA-06**: El auditor detecta cuando una página declara JSON-LD `FAQPage`, `HowTo`, `Product`+`AggregateRating` o `Review` sin contenido visible correspondiente en el HTML (riesgo real de acción manual de Google por "datos estructurados engañosos").
-- [x] **SCHEMA-07**: El hallazgo se reporta con severidad `warning` por defecto (nunca `critical` automático dado el riesgo heurístico de falso positivo) y cruza con la muestra CSR/SSR de v1.2 (`@auditor/render`) para suprimir falsos positivos en páginas confirmadas como renderizadas por JS.
-
-### Visualizador de arquitectura
-
-- [x] **ARCH-01**: El reporte incluye un árbol jerárquico de la arquitectura del sitio, agrupado por nivel de profundidad (0/1/2/3+), renderizado en SVG puro (mismo patrón que `EntityGraphSvg.tsx`, cero dependencias nuevas) — no un grafo interactivo con edges persistidas.
-- [x] **ARCH-02**: Cada nodo del árbol muestra: URL/título, profundidad, indicador de página huérfana, e indicador de página a más de 3 clics.
-- [x] **ARCH-03**: El árbol reusa el BFS/grafo calculado para DEPTH-01 (DEPTH-03) — no vuelve a parsear el HTML de las 500 páginas por separado.
-- [x] **ARCH-04**: El nodo del árbol muestra la plantilla clasificada (TEMPLATE-01) cuando esa feature ya esté disponible en el reporte.
+- [ ] **URLRES-01**: Antes de crawlear, el auditor resuelve la URL canónica real del dominio de entrada: prueba `https://`, cae a `http://` si no responde, y sigue los redirects del home hasta su URL final (con/sin `www`, con/sin barra). El usuario puede ingresar solo `aprendoclub.com` y el sistema resuelve todo.
+- [ ] **URLRES-02**: La URL resuelta se usa como `origin`/`startUrl` en todo el pipeline (crawl, sitemap discovery, grafo de enlaces, checks) y se persiste para mostrarla en el reporte. Reemplaza la mitigación puntual de v1.3 (`resolveHomeKey` en `buildLinkGraph`) por una resolución correcta aguas arriba. Maneja con gracia dominios que no responden en ningún protocolo (error claro, no crawl vacío).
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Grafo interactivo completo (force-directed, edges persistidas, drag/zoom) | Requiere migración de storage y es caro de computar/renderizar a 500 URLs; el árbol por profundidad cubre el mismo insight sin ese costo (decisión LOCKED del milestone). |
-| Los 40+ audits de Lighthouse sin curar | Ahogaría a una audiencia lead-magnet en detalles que no puede accionar; se cura a 5-7 audit IDs de mayor impacto. |
-| Clasificación de plantilla específica de CMS (WordPress post types, Shopify collections) | Este es un auditor genérico sin conocimiento del CMS del sitio auditado; una heurística por patrón de URL con bucket "otras" es suficiente y no genera falsa confianza. |
-| Schema-contenido mismatch como falla dura del score (`critical` automático) | Detección heurística con riesgo real de falso positivo (contenido renderizado por JS, contenido parcial); igual precedente que CSR/SSR en v1.2 (informational, no penaliza el score). |
-| Umbral de profundidad configurable por sitio | Sin demanda de usuario todavía; 3 clics es el estándar de la industria (Semrush, Screaming Frog, Sitebulb). |
-| Backfill de auditorías previas a v1.3 con las nuevas features | Las nuevas features aplican solo a auditorías corridas después del deploy de v1.3; no se recalculan auditorías históricas. |
+| Grafo de arquitectura interactivo (force-directed, drag/zoom, edges persistidas editables) | El dendrograma jerárquico estático cubre el insight sin el costo de un motor de layout en cliente ni migración de storage (decisión LOCKED desde v1.3). |
+| Validación del vocabulario schema.org completo (cientos de tipos/propiedades) | Ahogaría a la audiencia lead-magnet y multiplicaría el mantenimiento; se cubre el subconjunto de alto valor SEO/rich-results (SDVIZ-03). |
+| Editor visual de JSON-LD / generación de schema corregido | Fuera del core value (auditar, no editar); el reporte señala errores, no los corrige por el usuario. |
+| Recrawl automático al resolver una URL distinta a la ingresada | La resolución ocurre una vez antes del crawl; no se reintenta ni se comparan variantes de dominio (una sola URL canónica por auditoría). |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPTH-01 | Phase 16 | Complete |
-| DEPTH-02 | Phase 16 | Complete |
-| DEPTH-03 | Phase 16 | Complete |
-| PERF-05 | Phase 18 | Complete |
-| PERF-06 | Phase 18 | Complete |
-| TEMPLATE-01 | Phase 19 | Complete |
-| TEMPLATE-02 | Phase 19 | Complete |
-| SCHEMA-06 | Phase 17 | Complete |
-| SCHEMA-07 | Phase 17 | Complete |
-| ARCH-01 | Phase 20 | Complete |
-| ARCH-02 | Phase 20 | Complete |
-| ARCH-03 | Phase 20 | Complete |
-| ARCH-04 | Phase 20 | Complete |
+| URLRES-01 | Phase 21 | Pending |
+| URLRES-02 | Phase 21 | Pending |
+| ARCH-05 | Phase 22 | Pending |
+| ARCH-06 | Phase 22 | Pending |
+| SDVIZ-01 | Phase 23 | Pending |
+| SDVIZ-02 | Phase 24 | Pending |
+| SDVIZ-03 | Phase 24 | Pending |
 
 **Coverage:**
 
-- v1.3 requirements: 13 total
-- Mapped to phases: 13/13
+- v1.4 requirements: 7 total
+- Mapped to phases: 7/7 ✓
 - Unmapped: 0
 
+**Mapa de fases:**
+
+- Phase 21 — Resolución canónica de la URL de entrada: URLRES-01, URLRES-02
+- Phase 22 — Árbol de arquitectura estilo octopus: ARCH-05, ARCH-06
+- Phase 23 — Grafo JSON-LD con layout radial: SDVIZ-01
+- Phase 24 — Código + validación JSON-LD estilo Classy Schema: SDVIZ-02, SDVIZ-03
+
 ---
-*Requirements defined: 2026-07-08*
+*Requirements defined: 2026-07-09*
+*Roadmap mapped: 2026-07-09 (phases 21-24) — coverage 7/7*
