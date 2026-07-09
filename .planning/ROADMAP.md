@@ -158,7 +158,10 @@ Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-
   3. Se elimina la mitigación puntual `resolveHomeKey` de `buildLinkGraph` (v1.3), ya innecesaria porque el `origin` llega correcto aguas arriba.
   4. Un dominio que no responde en ningún protocolo produce un error claro al usuario, no un crawl vacío.
 
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 21-01-PLAN.md — resolveCanonicalUrl(domain) en packages/crawler (https→http, redirects del home, finalUrl) [URLRES-01]
+- [ ] 21-02-PLAN.md — eliminar resolveHomeKey de buildLinkGraph + ajustar test (match exacto del origin resuelto) [URLRES-02]
+- [ ] 21-03-PLAN.md — worker cablea resolveCanonicalUrl + Audit.resolvedUrl (db:push) + fallo español + mostrar en reporte [URLRES-02]
 
 ### Phase 22: Árbol de arquitectura estilo octopus
 
