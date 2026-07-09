@@ -1,4 +1,5 @@
 import type { Category, ScoreStatus } from "@auditor/scoring";
+import type { PageTemplate } from "@auditor/report-model";
 
 /**
  * Mapas de etiquetas neutrales en español (sin voceo) compartidos por los
@@ -35,4 +36,12 @@ export const DIFF_LABEL: Record<string, string> = {
 export const STRATEGY_LABEL: Record<string, string> = {
   mobile: "Móvil",
   desktop: "Desktop",
+};
+
+export const TEMPLATE_LABEL: Record<PageTemplate, string> = {
+  home: "Home",
+  category: "Categoría",
+  product: "Producto",
+  article: "Artículo",
+  other: "Otras",
 };
