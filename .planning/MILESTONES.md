@@ -1,5 +1,22 @@
 # Project Milestones: Auditor Web (SEO/Técnico) — Lead Magnet para juan-tech.com
 
+## v1.3 Profundizar checks técnicos + visualización de arquitectura (Shipped: 2026-07-09)
+
+**Phases completed:** 5 phases, 11 plans, 17 tasks
+
+**Key accomplishments:**
+
+- Nuevo paquete `@auditor/graph` con `buildLinkGraph(pages, origin)`: BFS puro desde home sobre enlaces internos parseados vía cheerio, reemplaza `Page.depth` como fuente de verdad de profundidad de clics.
+- Worker calcula `buildLinkGraph` una sola vez post-crawl, pasa `depthByUrl` al nuevo check `TECH-14` (issue agregado de % de páginas a más de 3 clics de home) y persiste `{ nodes, edges, depthByUrl }` en `Audit.stats.graph` del estado terminal `done`.
+- SD-06 site-level check flags JSON-LD FAQPage/HowTo/Product+AggregateRating/Review claims with no matching visible HTML content, always at warning severity, with a local renderVerdictByPageId contract ready for 17-02's CSR suppression wiring
+- Worker now runs the v1.2 Playwright render sample before the check battery and threads its per-page SSR/CSR/undetermined verdict into `runAllChecks` as `renderVerdictByPageId`, closing SD-06's CSR-suppression cross-check
+- Nuevo contrato de datos y mapeo puro para 5 diagnósticos de Lighthouse (imágenes modernas, CSS sin usar, recursos bloqueantes, compresión de texto, CSS/JS sin minificar) extraídos de la respuesta PSI ya existente, sin llamadas HTTP adicionales y con severidad siempre no-crítica.
+- runPsi adjunta diagnostics a cada PsiMetrics desde la misma respuesta PSI (cero llamadas extra) y el worker persiste issues PERF-05..PERF-09 junto al resto de issues perf en la misma pasada.
+- `classifyTemplate(url)` heuristic de segmentos de URL (home/category/product/article/other) más `ReportModel.issuesByTemplate` como segundo eje de agrupación junto a `issuesByCategory`, sin tocar el cálculo existente.
+- Client-side tab toggle (`GroupingToggle`) wiring `ReportModel.issuesByTemplate` into a second "Detalle por plantilla" accordion block, switching against the existing "Detalle por categoría" block with zero additional fetches.
+
+---
+
 Entries in reverse chronological order — newest first.
 
 ---
