@@ -17,6 +17,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Strips `key=...` (the PSI API key) out of any string before it's
+ * persisted (e.g. `PerfMetric.error`) or logged — some `fetch` network
+ * errors embed the full request URL, including the query string, in
+ * `error.message`.
+ */
+function redactApiKey(message: string): string {
+  return message.replace(/([?&]key=)[^&\s]+/gi, "$1***");
+}
+
 function buildUrl(targetUrl: string, strategy: PsiStrategy): string {
   const params = new URLSearchParams({
     url: targetUrl,
@@ -65,7 +75,7 @@ export async function runPsi(url: string, strategy: PsiStrategy): Promise<PsiRun
         error instanceof Error
           ? error.name === "AbortError"
             ? `PSI timed out after ${REQUEST_TIMEOUT_MS}ms`
-            : error.message
+            : redactApiKey(error.message)
           : "unknown error";
       if (attempt < MAX_ATTEMPTS) {
         await sleep(RETRY_BASE_DELAY_MS * attempt);

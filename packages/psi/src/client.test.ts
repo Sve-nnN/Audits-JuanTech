@@ -35,12 +35,21 @@ describe("runPsi diagnostics wiring (PERF-05..09)", () => {
   });
 
   it("does not touch the existing error path (no metrics field, ok: false)", async () => {
-    mockFetchOnce({ ok: false, status: 500, json: async () => ({}) });
+    vi.useFakeTimers();
+    try {
+      mockFetchOnce({ ok: false, status: 500, json: async () => ({}) });
 
-    const result = await runPsi("https://juan-tech.com/", "mobile");
+      const resultPromise = runPsi("https://juan-tech.com/", "mobile");
+      // Retries backoff via real setTimeout (RETRY_BASE_DELAY_MS * attempt,
+      // up to 2 retries) — advance fake timers instead of sleeping for real.
+      await vi.advanceTimersByTimeAsync(20_000);
+      const result = await resultPromise;
 
-    expect(result.ok).toBe(false);
-    expect(result.metrics).toBeUndefined();
-    expect(result.error).toBeTruthy();
-  }, 15_000);
+      expect(result.ok).toBe(false);
+      expect(result.metrics).toBeUndefined();
+      expect(result.error).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
