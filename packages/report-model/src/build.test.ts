@@ -6,6 +6,7 @@ vi.mock("@auditor/db", () => ({
   prisma: {
     audit: { findUnique: vi.fn() },
     issue: { findMany: vi.fn() },
+    page: { findMany: vi.fn() },
   },
 }));
 
@@ -14,6 +15,7 @@ import { buildReportModel, MAX_PRIORITY_ROWS } from "./build";
 
 const auditFindUnique = vi.mocked(prisma.audit.findUnique);
 const issueFindMany = vi.mocked(prisma.issue.findMany);
+const pageFindMany = vi.mocked(prisma.page.findMany);
 
 /** Persisted-issue fixture with every field buildReportModel reads. */
 function makeIssue(
@@ -81,6 +83,10 @@ function makeAudit(overrides: Partial<Record<string, unknown>> = {}) {
 beforeEach(() => {
   auditFindUnique.mockReset();
   issueFindMany.mockReset();
+  pageFindMany.mockReset();
+  // Default: no page rows unless a test opts in (keeps graphless tests simple).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pageFindMany.mockResolvedValue([] as any);
 });
 
 describe("buildReportModel", () => {
@@ -212,5 +218,161 @@ describe("buildReportModel", () => {
     // content — a mailto: link or a URL with userinfo — may contain "@".)
     expect(serialized).not.toContain(CANARY_EMAIL);
     expect(serialized).not.toContain(CANARY_TOKEN);
+  });
+
+  // --- Architecture (Plan 20-02) --------------------------------------------
+
+  /** makeAudit variant that persists a link graph at stats.graph. */
+  function makeAuditWithGraph(depthByUrl: Record<string, number>, nodes: { url: string; pageId: string }[]) {
+    return makeAudit({
+      stats: {
+        graph: { nodes, edges: [], depthByUrl },
+      },
+    });
+  }
+
+  it("groups graph nodes into 0/1/2/3+ depth buckets with title from Page rows", async () => {
+    const nodes = [
+      { url: "https://example.com/", pageId: "p-home" },
+      { url: "https://example.com/a", pageId: "p-a" },
+      { url: "https://example.com/b", pageId: "p-b" },
+      { url: "https://example.com/producto/c", pageId: "p-c" },
+    ];
+    const depthByUrl = {
+      "https://example.com/": 0,
+      "https://example.com/a": 1,
+      "https://example.com/b": 2,
+      "https://example.com/producto/c": 4,
+    };
+    const pages = [
+      { id: "p-home", url: "https://example.com/", title: "Inicio", finalUrl: null },
+      { id: "p-a", url: "https://example.com/a", title: null, finalUrl: null },
+      { id: "p-b", url: "https://example.com/b", title: "B", finalUrl: null },
+      { id: "p-c", url: "https://example.com/producto/c", title: "C", finalUrl: null },
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAuditWithGraph(depthByUrl, nodes) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pageFindMany.mockResolvedValueOnce(pages as any);
+
+    const model = await buildReportModel("audit-1");
+    const arch = model!.architecture!;
+    expect(arch).toBeDefined();
+
+    expect(arch.nodesByDepth["0"]).toHaveLength(1);
+    expect(arch.nodesByDepth["0"][0]!.url).toBe("https://example.com/");
+    expect(arch.nodesByDepth["0"][0]!.title).toBe("Inicio");
+
+    expect(arch.nodesByDepth["1"]).toHaveLength(1);
+    expect(arch.nodesByDepth["1"][0]!.url).toBe("https://example.com/a");
+    // title is null when the Page has no title.
+    expect(arch.nodesByDepth["1"][0]!.title).toBeNull();
+
+    expect(arch.nodesByDepth["2"]).toHaveLength(1);
+    expect(arch.nodesByDepth["2"][0]!.url).toBe("https://example.com/b");
+
+    // depth 4 -> "3+" bucket, isDeep true; others isDeep false.
+    expect(arch.nodesByDepth["3+"]).toHaveLength(1);
+    const deep = arch.nodesByDepth["3+"][0]!;
+    expect(deep.url).toBe("https://example.com/producto/c");
+    expect(deep.isDeep).toBe(true);
+    // template comes from classifyTemplate.
+    expect(deep.template).toBe("product");
+    expect(arch.nodesByDepth["0"][0]!.isDeep).toBe(false);
+    expect(arch.nodesByDepth["1"][0]!.isDeep).toBe(false);
+    expect(arch.nodesByDepth["2"][0]!.isDeep).toBe(false);
+
+    // No orphans here — every page is a graph node.
+    expect(arch.orphans).toHaveLength(0);
+  });
+
+  it("puts depth exactly 3 in the 3+ bucket with isDeep=false", async () => {
+    const nodes = [{ url: "https://example.com/x", pageId: "p-x" }];
+    const depthByUrl = { "https://example.com/x": 3 };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAuditWithGraph(depthByUrl, nodes) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+    pageFindMany.mockResolvedValueOnce([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { id: "p-x", url: "https://example.com/x", title: "X", finalUrl: null },
+    ] as any);
+
+    const model = await buildReportModel("audit-1");
+    const arch = model!.architecture!;
+    expect(arch.nodesByDepth["3+"]).toHaveLength(1);
+    expect(arch.nodesByDepth["3+"][0]!.depth).toBe(3);
+    expect(arch.nodesByDepth["3+"][0]!.isDeep).toBe(false);
+  });
+
+  it("collects crawled pages absent from the graph as orphans", async () => {
+    const nodes = [{ url: "https://example.com/", pageId: "p-home" }];
+    const depthByUrl = { "https://example.com/": 0 };
+    const pages = [
+      { id: "p-home", url: "https://example.com/", title: "Inicio", finalUrl: null },
+      { id: "p-orphan", url: "https://example.com/orphan", title: "Huérfana", finalUrl: null },
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAuditWithGraph(depthByUrl, nodes) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pageFindMany.mockResolvedValueOnce(pages as any);
+
+    const model = await buildReportModel("audit-1");
+    const arch = model!.architecture!;
+
+    expect(arch.orphans).toHaveLength(1);
+    const orphan = arch.orphans[0]!;
+    expect(orphan.url).toBe("https://example.com/orphan");
+    expect(orphan.isOrphan).toBe(true);
+    expect(orphan.depth).toBe(-1);
+    expect(orphan.title).toBe("Huérfana");
+    // Orphan is absent from every depth bucket.
+    const inBuckets = Object.values(arch.nodesByDepth).flat();
+    expect(inBuckets.some((n) => n.url === "https://example.com/orphan")).toBe(false);
+  });
+
+  it("leaves architecture undefined when the audit has no persisted graph", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit() as any); // stats.perf only, no graph
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+
+    const model = await buildReportModel("audit-1");
+    expect(model!.architecture).toBeUndefined();
+    // No page query when there is no graph.
+    expect(pageFindMany).not.toHaveBeenCalled();
+  });
+
+  it("leaves architecture undefined when the graph has an empty nodes array", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAuditWithGraph({}, []) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+
+    const model = await buildReportModel("audit-1");
+    expect(model!.architecture).toBeUndefined();
+    expect(pageFindMany).not.toHaveBeenCalled();
   });
 });
