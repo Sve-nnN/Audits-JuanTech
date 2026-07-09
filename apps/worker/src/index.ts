@@ -360,9 +360,14 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     // after it, so it degrades to an empty graph rather than failing the audit.
     let graph: LinkGraph;
     try {
+      // Pass the full resolved `startUrl` (which may carry a path, e.g. a home
+      // that redirects to `/en/`) as the BFS root — NOT `origin`, which
+      // `new URL().origin` strips to the bare host. buildLinkGraph matches the
+      // home by exact normalized URL, so a path-bearing home would otherwise
+      // never match and the graph would come back empty (WR-01).
       graph = buildLinkGraph(
         pages.map((p) => ({ id: p.id, url: p.url, finalUrl: p.finalUrl, html: p.html })),
-        origin
+        startUrl
       );
     } catch (err) {
       console.error(`[worker] buildLinkGraph failed for audit ${auditId}:`, err);

@@ -11,6 +11,9 @@
  * how to handle a fully unreachable host.
  */
 
+import { DEFAULT_USER_AGENT } from "./robots";
+import { sameRegistrableDomain } from "./normalizeUrl";
+
 /**
  * Per-candidate network timeout. Kept aligned with the worker's
  * `ROBOTS_FETCH_TIMEOUT_MS` (10s): a bounded abort so a hung host can't block the
@@ -55,9 +58,19 @@ export async function resolveCanonicalUrl(domain: string): Promise<string | null
         method: "GET",
         signal: controller.signal,
         redirect: "follow",
+        // WR-02: identify as the auditor bot (same UA the real crawl uses),
+        // so a host that blocks undici's default UA doesn't fail-hard the whole
+        // audit at the resolution gate while the crawler itself would get in.
+        headers: { "user-agent": DEFAULT_USER_AGENT },
       });
       clearTimeout(timeout);
-      // Any non-network-error response gives us a usable canonical URL.
+      // WR-03: drain the body so a long-lived worker doesn't retain sockets.
+      await res.body?.cancel().catch(() => {});
+      // WR-04: a redirect to a different registrable domain (parking pages,
+      // SaaS landing) would silently audit a site the user never asked for.
+      // Treat that as "not resolved" instead of crawling the wrong domain.
+      if (!sameRegistrableDomain(res.url, `${scheme}://${host}`)) return null;
+      // Any non-network-error response on the same site gives a usable URL.
       return res.url;
     } catch {
       clearTimeout(timeout);

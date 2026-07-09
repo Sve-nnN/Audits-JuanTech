@@ -109,6 +109,24 @@ describe("buildLinkGraph", () => {
     expect(graph.nodes.length).toBe(3);
   });
 
+  it("Test 10: resolves home when the resolved origin carries a path (WR-01 regression)", () => {
+    // A home that redirects to a language subpath: the worker passes the full
+    // resolved startUrl (with path) as the root, so the exact match must find
+    // it instead of degrading to an empty graph.
+    const pages: GraphPage[] = [
+      page("https://www.example.com/en/", ["https://www.example.com/en/a"]),
+      page("https://www.example.com/en/a", []),
+    ];
+
+    const graph = buildLinkGraph(pages, "https://www.example.com/en/");
+
+    // normalizeUrl strips the trailing slash on non-root paths, so the home
+    // key is ".../en" (not ".../en/").
+    expect(graph.depthByUrl["https://www.example.com/en"]).toBe(0);
+    expect(graph.depthByUrl["https://www.example.com/en/a"]).toBe(1);
+    expect(graph.nodes.length).toBe(2);
+  });
+
   it("Test 8: BFS discovered via pre-redirect url still yields outbound links (CR-01 regression)", () => {
     const pages: GraphPage[] = [
       // Home links to the pre-redirect url of /a, but /a's own crawled record

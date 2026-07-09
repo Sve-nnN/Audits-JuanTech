@@ -28,6 +28,29 @@ describe("resolveCanonicalUrl", () => {
     );
   });
 
+  it("sends the auditor User-Agent (WR-02)", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(fakeResponse("https://www.example.com/"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await resolveCanonicalUrl("example.com");
+
+    const opts = fetchMock.mock.calls[0]![1] as RequestInit;
+    expect((opts.headers as Record<string, string>)["user-agent"]).toMatch(/AuditorBot/);
+  });
+
+  it("returns null when the home redirects to a different registrable domain (WR-04)", async () => {
+    // A parking page / SaaS landing on another domain must not silently
+    // become the audited site.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(fakeResponse("https://parking-service.com/expired"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await resolveCanonicalUrl("example.com");
+
+    expect(result).toBeNull();
+  });
+
   it("falls back to http when https fails to connect", async () => {
     const fetchMock = vi
       .fn()
