@@ -10,6 +10,8 @@ import styles from "./IssueTypeGroup.module.css";
 interface IssueTypeGroupProps {
   /** Issues a agrupar por tipo (`checkId` + `title`) vía `groupIssuesByType`. */
   issues: ReportIssue[];
+  /** Dominio auditado: enlaces del mismo host muestran solo la ruta; los externos, host+ruta. */
+  siteHost?: string | null;
 }
 
 /** Conteo de páginas afectadas con singular/plural. */
@@ -22,7 +24,7 @@ function pageCount(count: number): string {
  * salvaguarda de esquema que IssuesTable, T-15-02); en otro caso texto plano
  * que React escapa. Se muestra la ruta compacta (`shortUrl`).
  */
-function urlCell(url: string | null): ReactNode {
+function urlCell(url: string | null, siteHost?: string | null): ReactNode {
   if (url && /^https?:\/\//i.test(url)) {
     return (
       <a
@@ -32,11 +34,11 @@ function urlCell(url: string | null): ReactNode {
         title={url}
         className={styles.link}
       >
-        {shortUrl(url)}
+        {shortUrl(url, siteHost)}
       </a>
     );
   }
-  return <span className={styles.plain}>{shortUrl(url)}</span>;
+  return <span className={styles.plain}>{shortUrl(url, siteHost)}</span>;
 }
 
 /**
@@ -49,7 +51,7 @@ function urlCell(url: string | null): ReactNode {
  * El orden (severidad peor-primero → cantidad descendente) es única fuente de
  * verdad de `groupIssuesByType`; la UI solo renderiza, no reordena.
  */
-export function IssueTypeGroup({ issues }: IssueTypeGroupProps) {
+export function IssueTypeGroup({ issues, siteHost }: IssueTypeGroupProps) {
   const groups = groupIssuesByType(issues);
 
   return (
@@ -77,7 +79,7 @@ export function IssueTypeGroup({ issues }: IssueTypeGroupProps) {
               <div className={styles.row} key={issue.id}>
                 <span className={styles.cell}>
                   <span className={styles.cellLabel}>Página / URL</span>
-                  <span className={styles.cellValue}>{urlCell(issue.url)}</span>
+                  <span className={styles.cellValue}>{urlCell(issue.url, siteHost)}</span>
                 </span>
                 <span className={styles.cell}>
                   <span className={styles.cellLabel}>Valor medido</span>

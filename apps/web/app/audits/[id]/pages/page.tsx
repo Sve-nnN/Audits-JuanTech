@@ -16,8 +16,12 @@ interface PageProps {
 export default async function AuditPagesPage({ params }: PageProps) {
   const { id: auditId } = await params;
 
-  const audit = await prisma.audit.findUnique({ where: { id: auditId }, select: { id: true } });
+  const audit = await prisma.audit.findUnique({
+    where: { id: auditId },
+    select: { id: true, site: { select: { domain: true } } },
+  });
   if (!audit) notFound();
+  const siteHost = audit.site.domain;
 
   const pages = await prisma.page.findMany({
     where: { auditId },
@@ -68,7 +72,7 @@ export default async function AuditPagesPage({ params }: PageProps) {
                   className={styles.rowLink}
                   title={fullUrl}
                 >
-                  {shortUrl(fullUrl)}
+                  {shortUrl(fullUrl, siteHost)}
                 </Link>
                 <JsonLdBadge
                   schemaSeverities={schemaSeverityByPage.get(page.id) ?? []}

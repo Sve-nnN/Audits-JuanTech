@@ -228,7 +228,7 @@ export default async function AuditReportPage({ params }: PageProps) {
             // de cada grupo es el total real y coincide con "Detalle por
             // categoría" (WR-01). La agrupación ya condensa la tabla, por lo que
             // el antiguo cap de 60 filas ya no hace falta.
-            <IssueTypeGroup issues={priorityCandidates} />
+            <IssueTypeGroup issues={priorityCandidates} siteHost={model.audit.domain} />
           )}
         </Reveal>
 
@@ -320,10 +320,10 @@ export default async function AuditReportPage({ params }: PageProps) {
                       count={`${problems.length} problema(s) · ${passing.length} correcto(s)`}
                     >
                       <AccordionSubgroup kind="problems" count={problems.length}>
-                        <IssueTypeGroup issues={problems} />
+                        <IssueTypeGroup issues={problems} siteHost={model.audit.domain} />
                       </AccordionSubgroup>
                       <AccordionSubgroup kind="correct" count={passing.length}>
-                        <IssueTypeGroup issues={passing} />
+                        <IssueTypeGroup issues={passing} siteHost={model.audit.domain} />
                       </AccordionSubgroup>
                     </CategoryAccordion>
                   );
@@ -347,10 +347,10 @@ export default async function AuditReportPage({ params }: PageProps) {
                       count={`${problems.length} problema(s) · ${passing.length} correcto(s)`}
                     >
                       <AccordionSubgroup kind="problems" count={problems.length}>
-                        <IssueTypeGroup issues={problems} />
+                        <IssueTypeGroup issues={problems} siteHost={model.audit.domain} />
                       </AccordionSubgroup>
                       <AccordionSubgroup kind="correct" count={passing.length}>
-                        <IssueTypeGroup issues={passing} />
+                        <IssueTypeGroup issues={passing} siteHost={model.audit.domain} />
                       </AccordionSubgroup>
                     </CategoryAccordion>
                   );
