@@ -8,6 +8,8 @@ import type {
   ReportResolvedIssue,
   ReportSeverity,
   ReportDiffStatus,
+  ArchNode,
+  ReportArchitecture,
 } from "./model";
 import { classifyTemplate, TEMPLATE_ORDER } from "./template";
 import type { PageTemplate } from "./template";
@@ -34,6 +36,23 @@ interface AuditScores {
 /** Shape persisted at `Audit.stats` by the worker. */
 interface AuditStats {
   perf?: ReportPerf;
+  /**
+   * Link graph persisted once per audit by the worker (Phase 16, mirrors the
+   * `LinkGraph` shape from `@auditor/graph`). `edges` is unused here.
+   */
+  graph?: {
+    nodes: { url: string; pageId: string }[];
+    edges: unknown[];
+    depthByUrl: Record<string, number>;
+  };
+}
+
+/** Minimal Page row buildReportModel loads to build the architecture model. */
+interface ArchPageRow {
+  id: string;
+  url: string;
+  title: string | null;
+  finalUrl: string | null;
 }
 
 /** Minimal persisted-issue shape buildReportModel reads. */
@@ -99,8 +118,10 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
   const scores = audit.scores as unknown as AuditScores | null;
   const stats = audit.stats as unknown as AuditStats | null;
   const perf = stats?.perf;
+  const graph = stats?.graph;
+  const hasGraph = !!graph && graph.nodes.length > 0;
 
-  const [priorityCandidatesRaw, issuesForDetail, resolvedRaw] = await Promise.all([
+  const [priorityCandidatesRaw, issuesForDetail, resolvedRaw, pagesRaw] = await Promise.all([
     // ALL critical+warning issues, no take — single source for both the full
     // candidate set (M) and the screen-capped slice (N).
     prisma.issue.findMany({
@@ -119,6 +140,14 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
             fingerprint: { in: scores.diff.resolvedFingerprints },
           },
           select: { checkId: true, title: true, category: true },
+        })
+      : Promise.resolve([]),
+    // SINGLE additional query, only when a graph exists — same round-trip as the
+    // issue reads. `title` is a real column (Plan 20-01), so this select typechecks.
+    hasGraph
+      ? prisma.page.findMany({
+          where: { auditId },
+          select: { id: true, url: true, title: true, finalUrl: true },
         })
       : Promise.resolve([]),
   ]);
@@ -149,6 +178,50 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     resolvedRaw as unknown as ReportResolvedIssue[]
   ).map((r) => ({ checkId: r.checkId, title: r.title, category: r.category }));
 
+  // Site architecture from the persisted link graph + the single Page-rows load.
+  // Undefined for graphless (pre-Phase-16) audits — the UI hides the section.
+  let architecture: ReportArchitecture | undefined;
+  if (hasGraph && graph) {
+    const pages = pagesRaw as unknown as ArchPageRow[];
+    const pagesById = new Map(pages.map((p) => [p.id, p]));
+    const nodePageIds = new Set(graph.nodes.map((n) => n.pageId));
+
+    const nodesByDepth: ReportArchitecture["nodesByDepth"] = {
+      "0": [],
+      "1": [],
+      "2": [],
+      "3+": [],
+    };
+    for (const node of graph.nodes) {
+      const depth = graph.depthByUrl[node.url] ?? 0;
+      const bucket = depth >= 3 ? "3+" : (String(depth) as "0" | "1" | "2");
+      const archNode: ArchNode = {
+        url: node.url,
+        title: pagesById.get(node.pageId)?.title ?? null,
+        depth,
+        template: classifyTemplate(node.url),
+        isDeep: depth > 3,
+        isOrphan: false,
+      };
+      nodesByDepth[bucket].push(archNode);
+    }
+
+    const orphans: ArchNode[] = [];
+    for (const page of pages) {
+      if (nodePageIds.has(page.id)) continue;
+      orphans.push({
+        url: page.url,
+        title: page.title ?? null,
+        depth: -1,
+        template: classifyTemplate(page.url),
+        isDeep: false,
+        isOrphan: true,
+      });
+    }
+
+    architecture = { nodesByDepth, orphans };
+  }
+
   const diff: ReportDiff = {
     previousAuditId: scores?.diff.previousAuditId ?? null,
     newCount: scores?.diff.newCount ?? 0,
@@ -176,5 +249,6 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     issuesByCategory,
     issuesByTemplate,
     perf,
+    architecture,
   };
 }
