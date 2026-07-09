@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { prisma } from "@auditor/db";
 import { buildReportModel } from "@auditor/report-model";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { ArchitectureMap } from "../../../components/ArchitectureMap";
@@ -17,6 +18,30 @@ interface PageProps {
  */
 export default async function AuditArchitecturePage({ params }: PageProps) {
   const { id: auditId } = await params;
+
+  // WR-02: distinguish "audit doesn't exist" (404) from "audit not done yet"
+  // (buildReportModel returns null for both) — an in-progress audit should link
+  // back to the report (which shows live progress), not a hard 404.
+  const audit = await prisma.audit.findUnique({
+    where: { id: auditId },
+    select: { status: true },
+  });
+  if (!audit) notFound();
+
+  if (audit.status !== "done") {
+    return (
+      <div className={styles.main}>
+        <p className={styles.breadcrumb}>
+          <Link href={`/audits/${auditId}`}>&larr; Volver al reporte</Link>
+        </p>
+        <h1 className={styles.title}>Mapa de arquitectura del sitio</h1>
+        <EmptyState
+          title="La auditoría todavía está en proceso"
+          description="El mapa de arquitectura estará disponible cuando la auditoría termine. Volvé al reporte para ver el progreso."
+        />
+      </div>
+    );
+  }
 
   const model = await buildReportModel(auditId);
   if (!model) notFound();

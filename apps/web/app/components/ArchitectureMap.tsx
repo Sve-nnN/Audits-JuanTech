@@ -123,6 +123,9 @@ export function ArchitectureMap({ architecture }: ArchitectureMapProps) {
     if (!viewport) return;
     function onWheel(e: WheelEvent) {
       e.preventDefault();
+      // WR-01: ignore pure horizontal trackpad scroll (deltaY === 0) — only a
+      // real vertical wheel delta should zoom, otherwise it zooms out on pan.
+      if (e.deltaY === 0) return;
       const rect = viewport!.getBoundingClientRect();
       const px = e.clientX - rect.left;
       const py = e.clientY - rect.top;
