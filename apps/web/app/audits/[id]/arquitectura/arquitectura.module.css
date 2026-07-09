@@ -1,0 +1,50 @@
+/*
+ * arquitectura.module.css — layout de la página del mapa de arquitectura (DS-01).
+ * Solo tokens semánticos, CSP-safe, sin hex crudo. A diferencia del reporte, NO
+ * cap con --container-narrow: el mapa aprovecha un ancho amplio para navegarse.
+ */
+
+.main {
+  max-width: var(--container-wide, 80rem);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5) var(--space-16);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+}
+
+.breadcrumb {
+  font-size: var(--font-size-sm);
+  margin: 0 0 var(--space-4);
+}
+
+.breadcrumb a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.title {
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--lh-heading);
+  color: var(--text);
+  margin: 0 0 var(--space-3);
+}
+
+.note {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: var(--lh-body);
+  max-width: var(--container-narrow);
+  margin: 0 0 var(--space-5);
+}

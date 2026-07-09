@@ -289,6 +289,53 @@
   margin: var(--space-3) 0 0;
 }
 
+/* --- Tarjeta-link al mapa de arquitectura --- */
+.archCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.archCard:hover {
+  background: var(--surface-hover);
+}
+
+.archCard:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.archCardBody {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.archCardText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.archCardTitle {
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+
+.archCardSubtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
 /* --- Footer --- */
 .footerLinks {
   margin-top: var(--space-6);

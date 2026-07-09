@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Network } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@auditor/db";
 import type { Category, ScoreStatus } from "@auditor/scoring";
@@ -15,7 +15,6 @@ import { Badge, DiffBadge } from "../../components/ui/Badge";
 import { EmptyState, ErrorState } from "../../components/ui/EmptyState";
 import { ExportMenu } from "../../components/ui/ExportMenu";
 import { Reveal } from "../../components/motion/useReveal";
-import { ArchitectureTreeSvg } from "../../components/ArchitectureTreeSvg";
 import {
   CATEGORY_LABEL,
   STATUS_LABEL,
@@ -385,16 +384,22 @@ export default async function AuditReportPage({ params }: PageProps) {
           />
         </Reveal>
 
-        {/* Arquitectura del sitio */}
+        {/* Arquitectura del sitio: link a la página-mapa a pantalla completa */}
         {model.architecture && (
           <Reveal as="section" className={styles.section} delay={120}>
             <h3 className={styles.sectionTitle}>Arquitectura del sitio</h3>
-            <ArchitectureTreeSvg architecture={model.architecture} />
-            <p className={styles.tableNote}>
-              Jerarquía de páginas del sitio: cada página cuelga de la de menor profundidad que la
-              enlaza desde la portada, con los conectores padre-hijo. Las huérfanas no tienen ruta de
-              enlaces desde la home.
-            </p>
+            <Link href={`/audits/${auditId}/arquitectura`} className={styles.archCard}>
+              <span className={styles.archCardBody}>
+                <Network size={20} aria-hidden />
+                <span className={styles.archCardText}>
+                  <span className={styles.archCardTitle}>Ver mapa de arquitectura del sitio</span>
+                  <span className={styles.archCardSubtitle}>
+                    Ábrelo a pantalla completa para acercar, alejar y arrastrar.
+                  </span>
+                </span>
+              </span>
+              <ArrowRight size={18} aria-hidden />
+            </Link>
           </Reveal>
         )}
 
