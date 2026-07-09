@@ -1,0 +1,87 @@
+/*
+ * ArchitectureMap.module.css — viewport navegable (zoom/pan/reset) del árbol de
+ * arquitectura (DS-01). Solo tokens semánticos, CSP-safe, sin hex crudo. El
+ * layout del árbol vive en ArchitectureTreeSvg; aquí solo el marco del mapa, los
+ * controles y la transición del transform (anulada bajo prefers-reduced-motion).
+ */
+
+.viewport {
+  position: relative;
+  min-height: 70vh;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  cursor: grab;
+  /* Evita que el gesto de scroll/zoom del navegador robe el pointer en touch. */
+  touch-action: none;
+}
+
+.viewport:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.grabbing {
+  cursor: grabbing;
+}
+
+.stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+/*
+ * Neutraliza el cap `--container-narrow` del `.canvas` de ArchitectureTreeSvg:
+ * dentro del mapa el svg se dibuja a su ancho natural y el pan/zoom lo navega.
+ */
+.stage :global(svg) {
+  max-width: none;
+  width: max-content;
+  margin-inline: 0;
+}
+
+.controls {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 1;
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.controlBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.controlBtn:hover {
+  background: var(--surface-hover);
+}
+
+.controlBtn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage {
+    transition: none;
+  }
+}
