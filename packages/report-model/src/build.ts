@@ -47,6 +47,8 @@ interface AuditStats {
     nodes: { url: string; pageId: string }[];
     edges: { from: string; to: string }[];
     depthByUrl: Record<string, number>;
+    /** URLs with ≥1 internal inbound link from any page (Phase 22-04, orphan basis). Optional for pre-22-04 audits. */
+    linkedUrls?: string[];
   };
 }
 
@@ -54,6 +56,7 @@ interface AuditStats {
 interface ArchPageRow {
   id: string;
   url: string;
+  finalUrl: string | null;
   title: string | null;
   statusCode: number | null;
   error: string | null;
@@ -163,7 +166,7 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     hasGraph
       ? prisma.page.findMany({
           where: { auditId },
-          select: { id: true, url: true, title: true, statusCode: true, error: true },
+          select: { id: true, url: true, finalUrl: true, title: true, statusCode: true, error: true },
         })
       : Promise.resolve([]),
   ]);
@@ -257,12 +260,23 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     }
     const tree = roots;
 
+    // A true orphan (SEO sense) = a crawled page with ZERO internal inbound
+    // links from ANY page, not merely one unreachable from home. `linkedUrls`
+    // (Phase 22-04) holds every URL that receives an inlink anywhere on the
+    // site; a page present there has inlinks and is NOT an orphan even if it's
+    // off the home-reachable tree. Falls back to the old "not in graph" notion
+    // for pre-22-04 audits that never persisted linkedUrls.
+    const linkedSet = new Set(graph.linkedUrls ?? []);
     const orphans: ArchNode[] = [];
     for (const page of pages) {
       if (nodePageIds.has(page.id)) continue;
-      // WR-01: a page that failed to download or returned 4xx/5xx is broken,
-      // not an orphan — don't mislabel it as unreachable-but-valid structure.
+      // A page that failed to download or returned 4xx/5xx is broken, not an
+      // orphan — don't mislabel it as unreachable-but-valid structure.
       if (isBrokenPage(page)) continue;
+      // Has an internal inlink from somewhere → not an orphan (Juan's fix).
+      const hasInlink =
+        linkedSet.has(page.url) || (page.finalUrl != null && linkedSet.has(page.finalUrl));
+      if (hasInlink) continue;
       orphans.push({
         url: page.url,
         title: page.title ?? null,

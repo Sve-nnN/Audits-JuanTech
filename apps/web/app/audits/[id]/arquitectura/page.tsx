@@ -57,8 +57,7 @@ export default async function AuditArchitecturePage({ params }: PageProps) {
         <>
           <p className={styles.note}>
             Jerarquía de páginas del sitio: cada página cuelga de la de menor profundidad que la
-            enlaza desde la portada, con los conectores padre-hijo. Las huérfanas no tienen ruta de
-            enlaces desde la home. Usa la rueda o los botones para acercar y alejar, y arrastra para
+            enlaza desde la portada, con los conectores padre-hijo. Las huérfanas no reciben enlaces internos desde ninguna página del sitio. Usa la rueda o los botones para acercar y alejar, y arrastra para
             desplazarte.
           </p>
           <ArchitectureMap architecture={model.architecture} />

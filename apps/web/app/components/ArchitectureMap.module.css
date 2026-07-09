@@ -16,6 +16,9 @@
   cursor: grab;
   /* Evita que el gesto de scroll/zoom del navegador robe el pointer en touch. */
   touch-action: none;
+  /* Al arrastrar para hacer pan no se debe seleccionar el texto del árbol. */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Native fullscreen: fill the whole screen, drop the rounded frame. */

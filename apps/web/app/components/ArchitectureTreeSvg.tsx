@@ -14,12 +14,15 @@ interface ArchitectureTreeSvgProps {
 /**
  * Cap por rama: si un nodo tiene más de este número de hijos, se dibujan los
  * primeros N y un nodo-resumen "+K más" como hijo adicional VISIBLE (nunca un
- * truncado silencioso, T-22-04). Cap por rama para no saturar sitios grandes.
+ * truncado silencioso, T-22-04). El mapa de arquitectura es navegable
+ * (zoom/pan), así que se muestran TODAS las páginas sin colapsar — el cap queda
+ * en Infinity. Se conserva la maquinaria del "+K más" por si un consumidor
+ * futuro necesita un cap finito.
  */
-const MAX_CHILDREN_PER_NODE = 12;
+const MAX_CHILDREN_PER_NODE = Infinity;
 
-/** Cap de la banda de huérfanas (se muestran en grilla, con "+N más"). */
-const MAX_ORPHANS = 24;
+/** Cap de la banda de huérfanas — todas se muestran (mapa navegable). */
+const MAX_ORPHANS = Infinity;
 
 /* Geometría estática (sin motor de layout en cliente — CSP estricta). */
 const PAD = 20;
@@ -230,7 +233,7 @@ export function ArchitectureTreeSvg({ architecture }: ArchitectureTreeSvgProps) 
             y={orphanBandTop + 16}
             fontSize={14}
           >
-            Huérfanas (sin ruta desde la home) · {orphans.length}
+            Huérfanas (sin enlaces internos) · {orphans.length}
           </text>
           {visibleOrphans.map((node, i) => {
             const col = i % orphanCols;
@@ -293,7 +296,7 @@ function nodeCard(key: string, left: number, top: number, node: ArchNode) {
         textAnchor="middle"
         fontSize={10}
       >
-        {node.isOrphan ? "sin ruta" : `${node.depth} clic(s)`}
+        {node.isOrphan ? "sin enlaces" : `${node.depth} clic(s)`}
       </text>
 
       {/* Indicador huérfana */}

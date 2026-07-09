@@ -30,4 +30,11 @@ export interface LinkGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
   depthByUrl: Record<string, number>;
+  /**
+   * Every crawled URL that receives at least one internal inbound link from
+   * ANY page (not just pages reachable from home). Used to identify true orphan
+   * pages: a crawled page whose normalized URL is absent here has zero internal
+   * inlinks anywhere on the site. Keyed by the same normalized URL as `nodes`.
+   */
+  linkedUrls: string[];
 }

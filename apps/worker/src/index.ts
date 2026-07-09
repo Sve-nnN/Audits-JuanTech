@@ -371,7 +371,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       );
     } catch (err) {
       console.error(`[worker] buildLinkGraph failed for audit ${auditId}:`, err);
-      graph = { nodes: [], edges: [], depthByUrl: {} };
+      graph = { nodes: [], edges: [], depthByUrl: {}, linkedUrls: [] };
     }
 
     // Phase 12 (RENDER-01/03): selective Playwright render pass over a small

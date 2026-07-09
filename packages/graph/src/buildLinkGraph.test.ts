@@ -85,7 +85,7 @@ describe("buildLinkGraph", () => {
 
     const graph = buildLinkGraph(pages, ORIGIN);
 
-    expect(graph).toEqual({ nodes: [], edges: [], depthByUrl: {} });
+    expect(graph).toEqual({ nodes: [], edges: [], depthByUrl: {}, linkedUrls: [] });
   });
 
   it("Test 9: resolves home by exact match when origin is the resolved www variant", () => {
