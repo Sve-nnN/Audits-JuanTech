@@ -15,4 +15,6 @@ export type {
   ReportAuditMeta,
   ReportSeverity,
   ReportDiffStatus,
+  ArchNode,
+  ReportArchitecture,
 } from "./model";
