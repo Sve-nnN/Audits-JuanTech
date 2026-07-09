@@ -30,10 +30,10 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 
 ### Visualizador de arquitectura
 
-- [ ] **ARCH-01**: El reporte incluye un árbol jerárquico de la arquitectura del sitio, agrupado por nivel de profundidad (0/1/2/3+), renderizado en SVG puro (mismo patrón que `EntityGraphSvg.tsx`, cero dependencias nuevas) — no un grafo interactivo con edges persistidas.
-- [ ] **ARCH-02**: Cada nodo del árbol muestra: URL/título, profundidad, indicador de página huérfana, e indicador de página a más de 3 clics.
+- [x] **ARCH-01**: El reporte incluye un árbol jerárquico de la arquitectura del sitio, agrupado por nivel de profundidad (0/1/2/3+), renderizado en SVG puro (mismo patrón que `EntityGraphSvg.tsx`, cero dependencias nuevas) — no un grafo interactivo con edges persistidas.
+- [x] **ARCH-02**: Cada nodo del árbol muestra: URL/título, profundidad, indicador de página huérfana, e indicador de página a más de 3 clics.
 - [ ] **ARCH-03**: El árbol reusa el BFS/grafo calculado para DEPTH-01 (DEPTH-03) — no vuelve a parsear el HTML de las 500 páginas por separado.
-- [ ] **ARCH-04**: El nodo del árbol muestra la plantilla clasificada (TEMPLATE-01) cuando esa feature ya esté disponible en el reporte.
+- [x] **ARCH-04**: El nodo del árbol muestra la plantilla clasificada (TEMPLATE-01) cuando esa feature ya esté disponible en el reporte.
 
 ## Out of Scope
 
@@ -59,10 +59,10 @@ Milestone v1.3 = **Profundizar checks técnicos + visualización de arquitectura
 | TEMPLATE-02 | Phase 19 | Complete |
 | SCHEMA-06 | Phase 17 | Complete |
 | SCHEMA-07 | Phase 17 | Complete |
-| ARCH-01 | Phase 20 | Pending |
-| ARCH-02 | Phase 20 | Pending |
+| ARCH-01 | Phase 20 | Complete |
+| ARCH-02 | Phase 20 | Complete |
 | ARCH-03 | Phase 20 | Pending |
-| ARCH-04 | Phase 20 | Pending |
+| ARCH-04 | Phase 20 | Complete |
 
 **Coverage:**
 

@@ -62,7 +62,7 @@ Aditivo sobre v1.0-v1.2 — cierra gaps encontrados vs. metodología SEO estánd
 - [x] **Phase 17: Check schema-contenido mismatch** - JSON-LD sin contenido visible correspondiente, cruzado con muestra CSR/SSR (completed 2026-07-09)
 - [x] **Phase 18: Diagnósticos de Lighthouse desde PSI** - diagnósticos curados extraídos de la respuesta PSI ya pagada (completed 2026-07-09)
 - [x] **Phase 19: Agrupación por plantilla** - segundo eje de agrupación de issues (home/categoría/producto/artículo) (completed 2026-07-09)
-- [ ] **Phase 20: Visualizador de arquitectura** - árbol jerárquico SVG por profundidad, reusa el grafo de Phase 16
+- [x] **Phase 20: Visualizador de arquitectura** - árbol jerárquico SVG por profundidad, reusa el grafo de Phase 16 (completed 2026-07-09)
 
 ## Phase Details
 
@@ -129,9 +129,10 @@ Plans:
 **Plans**: 3 plans
 Plans:
 
-- [ ] 20-01-PLAN.md — Añadir Page.title + persistir el <title> en el crawl (prerequisito ARCH-02)
-- [ ] 20-02-PLAN.md — Modelo de arquitectura en @auditor/report-model (ArchNode/ReportArchitecture desde Audit.stats.graph, título real desde Page.title)
-- [ ] 20-03-PLAN.md — Componente SVG puro ArchitectureTreeSvg + cableado condicional en el reporte
+- [x] 20-01-PLAN.md — Añadir Page.title + persistir el <title> en el crawl (prerequisito ARCH-02)
+- [x] 20-02-PLAN.md — Modelo de arquitectura en @auditor/report-model (ArchNode/ReportArchitecture desde Audit.stats.graph, título real desde Page.title)
+- [x] 20-03-PLAN.md — Componente SVG puro ArchitectureTreeSvg + cableado condicional en el reporte
+
 **UI hint**: yes
 
 ### Phase 20: Visualizador de arquitectura
@@ -152,6 +153,7 @@ Plans:
 - [ ] 20-01-PLAN.md — Añadir Page.title + persistir el <title> en el crawl (prerequisito ARCH-02)
 - [ ] 20-02-PLAN.md — Modelo de arquitectura en @auditor/report-model (ArchNode/ReportArchitecture desde Audit.stats.graph, título real desde Page.title)
 - [ ] 20-03-PLAN.md — Componente SVG puro ArchitectureTreeSvg + cableado condicional en el reporte
+
 **UI hint**: yes
 
 ### 📋 Next (Planned)
@@ -185,7 +187,7 @@ Próximo trabajo previsto tras v1.3 (scope por definir vía `/gsd:new-milestone`
 | 17. Check schema-contenido mismatch | v1.3 | 2/2 | Complete   | 2026-07-09 |
 | 18. Diagnósticos de Lighthouse desde PSI | v1.3 | 2/2 | Complete   | 2026-07-09 |
 | 19. Agrupación por plantilla | v1.3 | 2/2 | Complete   | 2026-07-09 |
-| 20. Visualizador de arquitectura | v1.3 | 0/2 | Planned | - |
+| 20. Visualizador de arquitectura | v1.3 | 3/3 | Complete   | 2026-07-09 |
 
 ---
 *Roadmap created: 2026-07-05*

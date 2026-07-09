@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-08 after v1.2)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** v1.3 (Profundizar checks técnicos + visualización de arquitectura) — roadmap creado (Phases 16-20), 13/13 requisitos mapeados. Próximo: `/gsd:plan-phase 16`.
+**Current focus:** v1.3 (Profundizar checks técnicos + visualización de arquitectura) — COMPLETO. Phases 16-20 ejecutadas; visualizador de arquitectura entregado (árbol SVG por profundidad en el reporte).
 
 ## Current Position
 
-Phase: 20 (Visualizador de arquitectura) — en progreso
-Plan: 02 complete (ReportModel.architecture desde Audit.stats.graph + carga única de Page rows; ARCH-03/04 data ready)
-Status: Phase 20 Plan 02 complete — próximo: Phase 20 Plan 03 (SVG tree)
-Last activity: 2026-07-09 — Phase 20 Plan 02 ejecutado (ArchNode/ReportArchitecture optional en ReportModel; buildReportModel agrupa nodos por profundidad 0/1/2/3+, isDeep=depth>3, orphans depth -1, un solo page.findMany leyendo Page.title real; undefined para audits sin grafo; 33 tests + typecheck verdes)
+Phase: 20 (Visualizador de arquitectura) — complete
+Plan: 03 complete (ArchitectureTreeSvg puro + cableado condicional en el reporte; ARCH-01/02/04)
+Status: Phase 20 complete — milestone v1.3 completo (Phases 16-20)
+Last activity: 2026-07-09 — Phase 20 Plan 03 ejecutado (ArchitectureTreeSvg.tsx SVG puro tokens-only, filas por profundidad 0/1/2/3+ + huérfanas, señales url/título/profundidad/huérfana/+3 clics/plantilla, +N más por nivel, cero deps nuevas; sección "Arquitectura del sitio" en page.tsx guardada por model.architecture; typecheck + build + 29 tests verdes)
 
 ## Performance Metrics
 
