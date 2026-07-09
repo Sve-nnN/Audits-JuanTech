@@ -61,7 +61,7 @@ Aditivo sobre v1.0-v1.2 — cierra gaps encontrados vs. metodología SEO estánd
 - [x] **Phase 16: Grafo de enlaces compartido + profundidad de clics real** (2 plans) - BFS único persistido en Audit.stats + check de profundidad de clics (completed 2026-07-08)
 - [x] **Phase 17: Check schema-contenido mismatch** - JSON-LD sin contenido visible correspondiente, cruzado con muestra CSR/SSR (completed 2026-07-09)
 - [x] **Phase 18: Diagnósticos de Lighthouse desde PSI** - diagnósticos curados extraídos de la respuesta PSI ya pagada (completed 2026-07-09)
-- [ ] **Phase 19: Agrupación por plantilla** - segundo eje de agrupación de issues (home/categoría/producto/artículo)
+- [x] **Phase 19: Agrupación por plantilla** - segundo eje de agrupación de issues (home/categoría/producto/artículo) (completed 2026-07-09)
 - [ ] **Phase 20: Visualizador de arquitectura** - árbol jerárquico SVG por profundidad, reusa el grafo de Phase 16
 
 ## Phase Details
@@ -174,7 +174,7 @@ Próximo trabajo previsto tras v1.3 (scope por definir vía `/gsd:new-milestone`
 | 16. Grafo de enlaces compartido + profundidad de clics real | v1.3 | 2/2 | Complete   | 2026-07-08 |
 | 17. Check schema-contenido mismatch | v1.3 | 2/2 | Complete   | 2026-07-09 |
 | 18. Diagnósticos de Lighthouse desde PSI | v1.3 | 2/2 | Complete   | 2026-07-09 |
-| 19. Agrupación por plantilla | v1.3 | 0/? | Not started | - |
+| 19. Agrupación por plantilla | v1.3 | 2/2 | Complete   | 2026-07-09 |
 | 20. Visualizador de arquitectura | v1.3 | 0/? | Not started | - |
 
 ---
