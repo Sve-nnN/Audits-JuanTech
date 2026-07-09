@@ -3,7 +3,7 @@
 import type { ReportArchitecture } from "@auditor/report-model";
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Minus, Plus, Maximize2 } from "lucide-react";
+import { Minus, Plus, Frame, Maximize, Minimize, Download } from "lucide-react";
 import { ArchitectureTreeSvg } from "./ArchitectureTreeSvg";
 import styles from "./ArchitectureMap.module.css";
 
@@ -47,6 +47,45 @@ export function ArchitectureMap({ architecture }: ArchitectureMapProps) {
 
   const [view, setView] = useState<ViewState>({ x: 0, y: 0, k: 1 });
   const [grabbing, setGrabbing] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Track native fullscreen so the button icon/label reflect the real state
+  // (Esc / F11 exit fullscreen without going through our button).
+  useEffect(() => {
+    function onFsChange(): void {
+      setIsFullscreen(document.fullscreenElement === viewportRef.current);
+    }
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  function toggleFullscreen(): void {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      void viewport.requestFullscreen?.().catch(() => {});
+    }
+  }
+
+  /** Serializes the tree SVG and triggers a download as a standalone .svg file. */
+  function exportSvg(): void {
+    const svg = stageRef.current?.querySelector("svg");
+    if (!svg) return;
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const source = new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n${source}`], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "arquitectura.svg";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // Estado de "fit" para el botón Reajustar; se recalcula al medir (ver abajo).
   const fitRef = useRef<ViewState>({ x: 0, y: 0, k: 1 });
@@ -245,7 +284,24 @@ export function ArchitectureMap({ architecture }: ArchitectureMapProps) {
           aria-label="Reajustar vista"
           onClick={applyFit}
         >
-          <Maximize2 size={18} aria-hidden />
+          <Frame size={18} aria-hidden />
+        </button>
+        <button
+          type="button"
+          className={styles.controlBtn}
+          aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+          aria-pressed={isFullscreen}
+          onClick={toggleFullscreen}
+        >
+          {isFullscreen ? <Minimize size={18} aria-hidden /> : <Maximize size={18} aria-hidden />}
+        </button>
+        <button
+          type="button"
+          className={styles.controlBtn}
+          aria-label="Exportar arquitectura (SVG)"
+          onClick={exportSvg}
+        >
+          <Download size={18} aria-hidden />
         </button>
       </div>
 

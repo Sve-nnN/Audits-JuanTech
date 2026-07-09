@@ -7,7 +7,8 @@
 
 .viewport {
   position: relative;
-  min-height: 70vh;
+  /* Tall canvas: use most of the viewport height so the map isn't cramped. */
+  height: min(82vh, 60rem);
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -15,6 +16,14 @@
   cursor: grab;
   /* Evita que el gesto de scroll/zoom del navegador robe el pointer en touch. */
   touch-action: none;
+}
+
+/* Native fullscreen: fill the whole screen, drop the rounded frame. */
+.viewport:fullscreen {
+  height: 100vh;
+  width: 100vw;
+  border: none;
+  border-radius: 0;
 }
 
 .viewport:focus-visible {

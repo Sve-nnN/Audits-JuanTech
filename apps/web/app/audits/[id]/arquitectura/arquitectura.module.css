@@ -5,9 +5,11 @@
  */
 
 .main {
-  max-width: var(--container-wide, 80rem);
-  margin: 0 auto;
-  padding: var(--space-8) var(--space-5) var(--space-16);
+  /* Full width: the architecture map is a navigable canvas, not prose — it
+     should use the whole viewport width instead of the reading-width cap. */
+  width: 100%;
+  margin: 0;
+  padding: var(--space-6) var(--space-5) var(--space-8);
   font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI",
     Roboto, sans-serif;
 }
