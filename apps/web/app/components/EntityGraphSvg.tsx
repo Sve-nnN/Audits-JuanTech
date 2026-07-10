@@ -80,8 +80,13 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
         const to = positions.get(edge.to);
         // Salta self-loops igual que el módulo (los filtra de la adyacencia).
         if (!from || !to || edge.from === edge.to) return null;
-        const midX = (from.x + to.x) / 2;
-        const midY = (from.y + to.y) / 2;
+        // La etiqueta de relación se ubica sesgada hacia el destino (no en el punto
+        // medio): cuando varias aristas salen del mismo root (ej. un BreadcrumbList
+        // con muchos itemListElement) los midpoints caerían todos encima del centro;
+        // sesgar hacia el hijo las reparte por sus radios y despeja el centro.
+        const t = 0.64;
+        const midX = from.x + (to.x - from.x) * t;
+        const midY = from.y + (to.y - from.y) * t;
         return (
           <g key={`edge-${i}`}>
             <line
@@ -129,15 +134,23 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
           capY = ly + vdir * 13;
         }
 
+        // El caption (2ª línea) sólo aporta si tiene un nombre real. Si el label es
+        // sintético (igual al id, ej. "#BreadcrumbList-1", o igual al @type, ej.
+        // "WebPage") es puro ruido que ensucia el centro del grafo → se omite.
+        const caption = truncate(node.label);
+        const showCaption = node.label !== node.id && node.label !== node.type;
+
         return (
           <g key={node.id} className={classForType(node.type)}>
             <circle className={styles.nodeCircle} cx={pos.x} cy={pos.y} r={r} opacity={pos.isRoot ? 1 : 0.9} />
             <text className={styles.nodeType} x={lx} y={typeY} textAnchor={anchor} fontSize={11}>
               {node.type}
             </text>
-            <text className={styles.nodeCaption} x={lx} y={capY} textAnchor={anchor} fontSize={10}>
-              {truncate(node.label)}
-            </text>
+            {showCaption && (
+              <text className={styles.nodeCaption} x={lx} y={capY} textAnchor={anchor} fontSize={10}>
+                {caption}
+              </text>
+            )}
           </g>
         );
       })}
