@@ -141,6 +141,34 @@ describe("layoutEntityGraph", () => {
     expect(dist(R, C)).toBeGreaterThan(dist(R, A));
   });
 
+  it("cadena profunda (depth 4): radios estrictamente crecientes, sin coincidencias", () => {
+    // Regresión del bug real: una cadena de hijo único (R→A→B→C→D) NO debe apilar
+    // nodos en el mismo radio/coordenada (antes los niveles se topaban al radio
+    // máximo y caían en el mismo punto). Cada profundidad queda a un radio mayor.
+    const graph: EntityGraph = {
+      nodes: [node("R"), node("A"), node("B"), node("C"), node("D")],
+      edges: [
+        { from: "R", to: "A", rel: "r" },
+        { from: "A", to: "B", rel: "r" },
+        { from: "B", to: "C", rel: "r" },
+        { from: "C", to: "D", rel: "r" },
+      ],
+    };
+    const { positions } = layoutEntityGraph(graph);
+    const R = positions.get("R")!;
+    const radii = ["A", "B", "C", "D"].map((id) => dist(R, positions.get(id)!));
+    for (let i = 1; i < radii.length; i++) {
+      expect(radii[i]!).toBeGreaterThan(radii[i - 1]!); // estrictamente creciente por profundidad
+    }
+    // Ningún par de nodos comparte (casi) la misma coordenada.
+    const pts = [...positions.values()];
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        expect(dist(pts[i]!, pts[j]!)).toBeGreaterThan(NODE_RADIUS);
+      }
+    }
+  });
+
   it("determinismo: dos llamadas producen posiciones identicas", () => {
     const graph: EntityGraph = {
       nodes: [node("R"), node("A"), node("B"), node("C")],
