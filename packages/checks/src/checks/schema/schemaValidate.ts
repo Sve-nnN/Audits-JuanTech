@@ -15,20 +15,41 @@ interface SchemaRule {
  * (missing -> warning). Not an exhaustive vocabulary validator — extensible.
  */
 export const SCHEMA_RULES: Record<string, SchemaRule> = {
+  // Identidad del sitio/negocio
   Organization: { required: ["name"], recommended: ["url", "logo", "sameAs"] },
   WebSite: { required: ["name", "url"], recommended: ["potentialAction"] },
   WebPage: { required: ["name"], recommended: ["description", "url"] },
-  FAQPage: { required: ["mainEntity"], recommended: [] },
   Person: { required: ["name"], recommended: ["url", "sameAs", "jobTitle"] },
+  // Negocio local: nombre + dirección son la base para el panel local de Google
+  LocalBusiness: {
+    required: ["name", "address"],
+    recommended: ["telephone", "openingHours", "geo", "priceRange"],
+  },
+  ProfessionalService: { required: ["name"], recommended: ["address", "telephone", "sameAs"] },
+  // Contenido editorial: headline + author requeridos; fecha/imagen/publisher recomendados
   Article: { required: ["headline", "author"], recommended: ["datePublished", "image", "publisher"] },
   BlogPosting: {
     required: ["headline", "author"],
     recommended: ["datePublished", "image", "publisher"],
   },
-  ProfessionalService: { required: ["name"], recommended: ["address", "telephone", "sameAs"] },
-  BreadcrumbList: { required: ["itemListElement"], recommended: [] },
-  Product: { required: ["name"], recommended: ["image", "description", "offers"] },
+  // Ficha de producto (rich result de Product)
+  Product: { required: ["name"], recommended: ["image", "description", "offers", "brand"] },
   Offer: { required: ["price", "priceCurrency"], recommended: ["availability"] },
+  // Reseña: reviewRating recomendado (su ausencia degrada, no invalida)
+  Review: { required: [], recommended: ["reviewRating", "author", "itemReviewed"] },
+  // Evento: nombre + fecha de inicio son la base del rich result de Event
+  Event: {
+    required: ["name", "startDate"],
+    recommended: ["location", "endDate", "offers", "description"],
+  },
+  // Receta
+  Recipe: {
+    required: ["name"],
+    recommended: ["image", "recipeIngredient", "recipeInstructions", "author"],
+  },
+  // Estructuras de página
+  FAQPage: { required: ["mainEntity"], recommended: [] },
+  BreadcrumbList: { required: ["itemListElement"], recommended: [] },
 };
 
 /** SD-04 (Classy Schema style): validates required/recommended properties per type. Dangling `@id` refs are checked site-wide by danglingIdRefsCheck. */
