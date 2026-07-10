@@ -4,7 +4,14 @@ import type { IssueDraft, PageCheck, SiteCheck, NetworkCheck, RenderVerdictValue
 import { onPageChecks } from "./checks/onpage";
 import { techPageChecks, techSiteChecks } from "./checks/tech";
 import { networkChecks as baseNetworkChecks } from "./checks/network";
-import { schemaPageChecks, schemaSiteChecks, computeSchemaGraph, type EntityGraph } from "./checks/schema";
+import {
+  schemaPageChecks,
+  schemaSiteChecks,
+  computeSchemaGraph,
+  extractJsonLdBlocks,
+  flattenNodes,
+  type EntityGraph,
+} from "./checks/schema";
 import { aeoPageChecks, aeoSiteChecks, aeoNetworkChecks } from "./checks/aeo";
 
 export const pageChecks: PageCheck[] = [
@@ -33,6 +40,8 @@ export interface RunAllChecksResult {
   issues: IssueDraft[];
   /** Per-page entity graph (schema.org JSON-LD nodes/edges), keyed by `Page.id` — only pages with JSON-LD present. */
   pageSchemaGraphs: Map<string, EntityGraph>;
+  /** Per-page flat JSON-LD entities (JsonLdNode.data), keyed by `Page.id` — only pages with JSON-LD present. Source for the entity property tree — Phase 24 (SDVIZ-02). */
+  pageSchemaEntities: Map<string, Record<string, unknown>[]>;
 }
 
 /**
@@ -45,6 +54,7 @@ export async function runAllChecks(options: RunAllChecksOptions): Promise<RunAll
     options;
   const issues: IssueDraft[] = [];
   const pageSchemaGraphs = new Map<string, EntityGraph>();
+  const pageSchemaEntities = new Map<string, Record<string, unknown>[]>();
 
   for (const page of pages) {
     if (!page.html) continue;
@@ -54,6 +64,8 @@ export async function runAllChecks(options: RunAllChecksOptions): Promise<RunAll
     }
     const graph = computeSchemaGraph($);
     if (graph) pageSchemaGraphs.set(page.id, graph);
+    const entities = flattenNodes(extractJsonLdBlocks($)).map((n) => n.data);
+    if (entities.length > 0) pageSchemaEntities.set(page.id, entities);
   }
 
   const siteCtx = { pages, origin, robotsTxt, sitemapUrls, depthByUrl, renderVerdictByPageId };
@@ -67,5 +79,5 @@ export async function runAllChecks(options: RunAllChecksOptions): Promise<RunAll
     }
   }
 
-  return { issues, pageSchemaGraphs };
+  return { issues, pageSchemaGraphs, pageSchemaEntities };
 }
