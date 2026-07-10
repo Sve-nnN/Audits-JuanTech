@@ -1,4 +1,5 @@
 import type { EntityGraph } from "@auditor/checks";
+import { layoutEntityGraph } from "./entityGraphLayout";
 import styles from "./EntityGraphSvg.module.css";
 
 interface EntityGraphSvgProps {
@@ -6,8 +7,6 @@ interface EntityGraphSvgProps {
 }
 
 const WIDTH = 720;
-const HEIGHT = 480;
-const RADIUS = 170;
 const NODE_RADIUS = 34;
 
 /**
@@ -38,22 +37,13 @@ function truncate(label: string, max = 22): string {
 
 /**
  * Self-contained SVG entity-graph renderer (no external libs / CDN — the
- * deploy has a strict CSP). Places nodes on a circle (deterministic, no
- * client-side layout engine needed) and draws labeled edges between them.
+ * deploy has a strict CSP). El layout es un **radial por componente conexo**
+ * (root de cada componente al centro, hijos en anillos por BFS, componentes
+ * empacados sin solaparse), calculado en el módulo puro determinista
+ * `layoutEntityGraph`; este componente sólo renderiza sus posiciones.
  */
 export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
   const { nodes, edges } = graph;
-  const cx = WIDTH / 2;
-  const cy = HEIGHT / 2;
-
-  const positions = new Map<string, { x: number; y: number }>();
-  nodes.forEach((node, i) => {
-    const angle = (2 * Math.PI * i) / Math.max(nodes.length, 1) - Math.PI / 2;
-    positions.set(node.id, {
-      x: cx + RADIUS * Math.cos(angle),
-      y: cy + RADIUS * Math.sin(angle),
-    });
-  });
 
   if (nodes.length === 0) {
     return (
@@ -65,8 +55,10 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
     );
   }
 
+  const { width, height, positions } = layoutEntityGraph(graph);
+
   return (
-    <svg className={styles.canvas} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Grafo de entidades">
+    <svg className={styles.canvas} width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Grafo de entidades">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path className={styles.arrow} d="M 0 0 L 10 5 L 0 10 z" />
