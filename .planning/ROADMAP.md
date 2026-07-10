@@ -213,7 +213,10 @@ Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-
   3. La validación nunca produce falla dura del score (informativo/warning, coherente con v1.3 SD-06).
   4. La lógica de validación vive en `packages/checks` (reutilizable y testeable), consumida por la UI del detalle de página.
 
-**Plans**: TBD
+**Plans**: 3 plans (2 waves)
+- [ ] 24-01-PLAN.md — Motor puro validateEntities (13 tipos + anti-patrones) + check de scoring SD-07 (ok/warning, nunca critical) [wave 1]
+- [ ] 24-02-PLAN.md — Persistir Page.schemaJson (worker + prisma db:push) como fuente Playwright-free del JSON-LD por entidad [wave 1]
+- [ ] 24-03-PLAN.md — UI Classy Schema: árbol de propiedades por entidad + badges + toggle a código crudo (checkpoint:human-verify) [wave 2]
 **UI hint**: yes
 
 ### 📋 Next (Planned)
