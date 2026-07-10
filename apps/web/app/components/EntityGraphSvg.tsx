@@ -35,9 +35,10 @@ function truncate(label: string, max = 22): string {
 /**
  * Self-contained SVG entity-graph renderer (no external libs / CDN — the
  * deploy has a strict CSP). El layout es un **radial por componente conexo**
- * (root de cada componente al centro, hijos en anillos por BFS, componentes
- * empacados sin solaparse), calculado en el módulo puro determinista
- * `layoutEntityGraph`; este componente sólo renderiza sus posiciones.
+ * (root de cada componente al centro, hijos en anillos por BFS + relajación por
+ * fuerzas determinista que separa nodos solapados, componentes empacados sin
+ * pisarse), calculado en el módulo puro determinista `layoutEntityGraph`; este
+ * componente sólo renderiza sus posiciones.
  */
 export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
   const { nodes, edges } = graph;
@@ -108,7 +109,7 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
             >
               {node.type}
             </text>
-            <text className={styles.nodeCaption} x={pos.x} y={pos.y + 44} textAnchor="middle" fontSize={10}>
+            <text className={styles.nodeCaption} x={pos.x} y={pos.y + NODE_RADIUS + 14} textAnchor="middle" fontSize={10}>
               {truncate(node.label)}
             </text>
           </g>

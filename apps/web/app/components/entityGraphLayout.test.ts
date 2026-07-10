@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EntityGraph, EntityGraphNode } from "@auditor/checks";
-import { layoutEntityGraph } from "./entityGraphLayout";
+import { NODE_RADIUS, layoutEntityGraph } from "./entityGraphLayout";
 
 function node(id: string, type = "Thing", label = id): EntityGraphNode {
   return { id, type, label };
@@ -170,6 +170,23 @@ describe("layoutEntityGraph", () => {
     for (let i = 0; i < pts.length; i++) {
       for (let j = i + 1; j < pts.length; j++) {
         expect(dist(pts[i]!, pts[j]!)).toBeGreaterThan(1e-6);
+      }
+    }
+  });
+
+  it("relajacion por fuerzas: hub denso sin nodos encimados", () => {
+    // Un root con muchos hijos: la relajación debe dejarlos separados (centros a
+    // más de un radio de nodo entre sí), sin colapsos.
+    const kids = ["A", "B", "C", "D", "E", "F"];
+    const graph: EntityGraph = {
+      nodes: [node("R"), ...kids.map((k) => node(k))],
+      edges: kids.map((k) => ({ from: "R", to: k, rel: "has" })),
+    };
+    const { positions } = layoutEntityGraph(graph);
+    const pts = [...positions.values()];
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        expect(dist(pts[i]!, pts[j]!)).toBeGreaterThan(NODE_RADIUS);
       }
     }
   });
