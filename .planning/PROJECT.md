@@ -8,28 +8,22 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
-## Current Milestone: v1.4 Visualización avanzada + resolución de URL
+## Current Milestone: Planning next (post-v1.4)
 
-**Goal:** Elevar las visualizaciones a nivel de herramientas de referencia (Octopus.do para arquitectura, Classy Schema para JSON-LD) y quitar la fricción de entrada resolviendo la URL canónica del sitio automáticamente. Origen: feedback directo de Juan durante la validación de v1.3.
+v1.4 shipped 2026-07-10. Próximo milestone por definir vía `/gsd:new-milestone` — ver "Prior State" abajo para candidatos (deploy a producción, v2 monetización, v2 enriquecimiento).
 
-**Target features (Phases 21-24):**
-- Resolución canónica de URL (Phase 21): ingresar `aprendoclub.com` y que el sistema resuelva http/https + redirect a www, usando la URL real como origin en todo el pipeline (reemplaza la mitigación puntual `resolveHomeKey` de v1.3)
-- Árbol de arquitectura estilo octopus (Phase 22): dendrograma jerárquico real con conexiones padre-hijo visibles, más grande — no filas planas por profundidad
-- Grafo JSON-LD radial (Phase 23): raíz de cada componente conexo al centro con hijos alrededor
-- Código + validación JSON-LD (Phase 24): código formateado por entidad + validación por propiedad/tipo contra schema.org con errores individuales (subconjunto de alto valor)
+## Prior State: v1.4 shipped 2026-07-10
 
-**Key context:** Milestone design-heavy (3 de 4 fases con UI). Riesgo ascendente: backend puro (URL) → rework de SVG conocido (árbol) → rework acotado (grafo radial) → pieza más pesada con research (validación schema.org).
+Cinco milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca), v1.2 (renderizado + exportación), v1.3 (checks técnicos profundos + visualización de arquitectura) y v1.4 (visualizaciones estilo Octopus.do/Classy Schema + resolución canónica de URL). El producto resuelve la URL canónica real del dominio (https/http + redirects) antes de crawlear, muestra un dendrograma de arquitectura navegable con zoom/pan, un grafo de entidades JSON-LD con layout radial por componente, y el código JSON-LD formateado por entidad con validación por propiedad/tipo contra schema.org.
 
-## Prior State: v1.3 shipped 2026-07-09
-
-Cuatro milestones entregados antes de v1.4: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca), v1.2 (renderizado + exportación) y v1.3 (checks técnicos profundos + visualización de arquitectura). El producto calcula profundidad de clics real (BFS sobre grafo de enlaces), detecta schema-contenido mismatch, extrae diagnósticos de Lighthouse de la respuesta PSI ya pagada, agrupa issues por plantilla de página, y muestra un árbol de arquitectura del sitio en SVG.
-
-**Cierre v1.3:** aditivo. Nuevo paquete `@auditor/graph` (`buildLinkGraph`, profundidad de clics real persistida y reusada). Nuevos checks TECH-14 (profundidad), SD-06 (schema-contenido con supresión CSR), PERF-05..09 (diagnósticos Lighthouse). `ReportModel` gana `issuesByTemplate` (toggle por plantilla) y `architecture` (árbol SVG). Columna `Page.title`. 13/13 requisitos, audit PASSED, integración cross-fase verificada. 5 hotfixes durante validación (grafo www, schema anidado, enlaces externos anti-bot, URLs completas). Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.3-ROADMAP.md`.
+**Cierre v1.4:** aditivo, sin tocar el pipeline de v1.0-v1.3. `resolveCanonicalUrl` (packages/crawler) reemplaza la mitigación puntual `resolveHomeKey` de v1.3; `Audit.resolvedUrl` persistido. `ReportArchitecture.tree` (árbol anidado real desde `graph.edges`) reemplaza `nodesByDepth`; `ArchitectureTreeSvg` es ahora un dendrograma con conectores + `ArchitectureMap` (zoom/pan) en ruta propia. `EntityGraphSvg` usa layout radial por componente conexo. `Page.schemaJson` persistido (fuente Playwright-free) + `validateEntities` (packages/checks) + `SchemaEntities.tsx` (panel Classy Schema) + check de scoring SD-07 (nunca crítico). 7/7 requisitos satisfechos, audit inicialmente `gaps_found` por un gap de proceso (2 checkpoints humanos sin cerrar por escrito pese a estar ya validados por Juan en sesión previa), resuelto el 2026-07-10 con confirmación retroactiva de Juan — status final `passed`. Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.4-ROADMAP.md`.
 
 **Trabajo previsto posterior:**
 - **Deploy a producción:** web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera. Incluye las 2 verificaciones humanas diferidas de v1.2 (runtime Docker del render + render visual del PDF).
 - **v2 monetización:** planes de pago, auditorías/URLs ilimitadas, Stripe.
 - **v2 enriquecimiento:** RENDER-04/05, EXPORT-06 (DOCX/CSV), REPORT-05 (`Page.renderVerdict` persistido), Domain Rating como contexto.
+- **Tech debt no bloqueante de v1.4:** SD-07 sin dedupe/cap de mensajes; `SchemaEntities.tsx` usa índice de array como key de React (bajo riesgo, ver `24-REVIEW.md`).
+- **Debug abierto (no relacionado a v1.4):** `pdf-export-crash-reading-s` — crash de export PDF en runtime Next server (`TypeError: Cannot read properties of undefined (reading 'S')`); hipótesis confirmada apunta a exportar `@react-pdf/renderer` vía `serverExternalPackages`; próxima acción pendiente de ejecutar (ver `.planning/debug/pdf-export-crash-reading-s.md` y `STATE.md` → Deferred Items).
 
 ## Requirements
 
@@ -68,17 +62,16 @@ Cuatro milestones entregados antes de v1.4: v1.0 (pipeline de auditoría), v1.1 
 - ✓ Diagnósticos de Lighthouse (WebP/AVIF, CSS sin usar, render-blocking, compresión, minificación) extraídos de la respuesta PSI sin llamadas extra, severidad no-crítica — v1.3 (PERF-05/06, Phase 18)
 - ✓ Agrupación de issues por plantilla de página (home/categoría/producto/artículo/otras) vía heurística de URL, con toggle en el reporte — v1.3 (TEMPLATE-01/02, Phase 19)
 - ✓ Visualizador de arquitectura del sitio en SVG puro (árbol por profundidad, huérfanas, >3 clics, plantilla por nodo), reusa el grafo persistido — v1.3 (ARCH-01..04, Phase 20)
+- ✓ Resolución canónica de URL de entrada (http/https + www, redirects del home) usada como origin único en todo el pipeline, reemplaza `resolveHomeKey` — v1.4 (URLRES-01/02, Phase 21)
+- ✓ Árbol de arquitectura estilo octopus: dendrograma jerárquico con conexiones padre-hijo + mapa navegable con zoom/pan — v1.4 (ARCH-05/06, Phase 22)
+- ✓ Grafo JSON-LD radial: raíz de cada componente conexo al centro con hijos alrededor — v1.4 (SDVIZ-01, Phase 23)
+- ✓ Código JSON-LD formateado por entidad + validación por propiedad/tipo contra schema.org (Classy Schema, subconjunto de alto valor, nunca falla dura del score) — v1.4 (SDVIZ-02/03, Phase 24)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-v1.4 Visualización avanzada + resolución de URL (Phases 21-24):
-
-- [ ] Resolución canónica de URL de entrada (http/https + www) usada como origin en todo el pipeline — URLRES-01/02 (Phase 21)
-- [ ] Árbol de arquitectura estilo octopus: dendrograma jerárquico con conexiones padre-hijo, más grande — ARCH-05/06 (Phase 22)
-- [ ] Grafo JSON-LD radial: raíz de cada componente conexo al centro — SDVIZ-01 (Phase 23)
-- [ ] Código JSON-LD formateado + validación por propiedad/tipo contra schema.org con errores individuales — SDVIZ-02/03 (Phase 24)
+Sin milestone activo — v1.4 shipped 2026-07-10. Próximas requirements se definen vía `/gsd:new-milestone`.
 
 ### Out of Scope
 
@@ -97,7 +90,7 @@ v1.4 Visualización avanzada + resolución de URL (Phases 21-24):
 - **Rendimiento:** Se usa Lighthouse (unlighthouse para crawl multi-página) + Google PageSpeed Insights API (Lighthouse + CrUX) para datos de campo.
 - **Extracción HTML:** el reporte de referencia usa Cheerio para parsear HTML crudo; JS rendering (Playwright) es deseable para comparar HTML crudo vs renderizado.
 - **Ecosistema:** entorno con Vercel disponible; Next.js App Router como default de frontend.
-- **Estado actual (post-v1.2):** monorepo pnpm+Turborepo con `apps/web` (Next.js, Vercel) y `apps/worker` (Crawlee, contenedor propio); paquetes db, queue, crawler, checks, psi, scoring, email, quota + los nuevos de v1.2: `@auditor/render` (CSR/SSR worker-only, Playwright pinneado), `@auditor/report-model` (buildReportModel) y `@auditor/export` (serializers PDF/Markdown/PPTX). Postgres (Neon) + Redis/BullMQ (Upstash). UI con design system tokenizado, 4 fuentes de marca y tema claro/oscuro; reporte con agrupación de issues, indicador JSON-LD por página y botón Exportar. Primer `apps/worker/Dockerfile` pinneado a `mcr.microsoft.com/playwright:v1.61.1-noble`. Pendiente: deploy a producción (env/keys/Resend/GDPR) + 2 verificaciones humanas de runtime diferidas (Docker render, PDF visual).
+- **Estado actual (post-v1.4):** monorepo pnpm+Turborepo con `apps/web` (Next.js, Vercel) y `apps/worker` (Crawlee, contenedor propio); paquetes db, queue, crawler, checks, psi, scoring, email, quota, graph, report-model, render, export. `packages/crawler` gana `resolveCanonicalUrl` (https→http, redirects, timeout); `apps/worker` la usa antes de `runCrawl` y persiste `Audit.resolvedUrl`. `apps/web` gana `ArchitectureMap` (viewport zoom/pan sobre el dendrograma) en ruta propia `/audits/[id]/arquitectura`, `EntityGraphSvg` con layout radial por componente conexo, y `SchemaEntities.tsx` (panel Classy Schema) alimentado por `Page.schemaJson` + `validateEntities` de `packages/checks`. Postgres (Neon) + Redis/BullMQ (Upstash). UI con design system tokenizado, 4 fuentes de marca y tema claro/oscuro; reporte con agrupación de issues, indicador JSON-LD por página y botón Exportar. `apps/worker/Dockerfile` pinneado a `mcr.microsoft.com/playwright:v1.61.1-noble`. Pendiente: deploy a producción (env/keys/Resend/GDPR) + 2 verificaciones humanas de runtime diferidas de v1.2 (Docker render, PDF visual) + debug abierto de crash en export PDF (ver `STATE.md` → Deferred Items).
 
 ## Constraints
 
@@ -130,6 +123,10 @@ v1.4 Visualización avanzada + resolución de URL (Phases 21-24):
 | Chromium fuera del bundle de Vercel: exports con libs JS puras (@react-pdf/renderer, pptxgenjs) | Serverless no debe cargar navegador headless; guardarrail automatizado | ✓ Good — v1.2 (assert:web-boundary Checks C/D) |
 | buildReportModel como single source of truth (report UI + exports + grouping) | Evitar ensamblado divergente de datos entre reporte y serializers | ✓ Good — v1.2 Phase 13 (una fragilidad latente: query JSON-LD paralela en pages/page.tsx) |
 | Exports on-demand en route Node (sin cola/async) | Son lecturas rápidas de datos ya persistidos | ✓ Good — v1.2 Phase 13 |
+| `resolveCanonicalUrl` con fallback https→http + timeout acotado (AbortController) | Sitios con redirect a www dejaban un grafo vacío (bug v1.3); resolver antes de crawlear evita mitigaciones puntuales aguas abajo | ✓ Good — v1.4 Phase 21, confirmado en vivo por Juan retroactivamente el 2026-07-10 |
+| Dendrograma determinista sin motor de layout en cliente (dos pasadas: leafCursor + promedio de hijos) | CSP estricta del proyecto no permite librerías de layout en el navegador | ✓ Good — v1.4 Phase 22 |
+| Mapa de arquitectura en ruta propia (`/audits/[id]/arquitectura`) en vez de embebido en el reporte | Zoom/pan necesita su propio viewport a pantalla completa sin competir con el resto del reporte | ✓ Good — v1.4 Phase 22 |
+| Checkpoints humanos de v1.4 cerrados por confirmación retroactiva (no re-verificación en vivo) | Juan ya había validado el look/comportamiento en una sesión previa; el gap era de proceso (falta de registro escrito), no funcional | ✓ Good — v1.4, cierre 2026-07-10 vía /gsd-autonomous; lección: dejar el VERIFICATION.md/checkpoint cerrado en el momento evita este trabajo de reconciliación después |
 
 ## Evolution
 
@@ -149,4 +146,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 after v1.3 milestone (v1.4 opened)*
+*Last updated: 2026-07-10 after v1.4 milestone (shipped, archived)*

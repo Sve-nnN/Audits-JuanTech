@@ -1,5 +1,18 @@
 # Project Milestones: Auditor Web (SEO/Técnico) — Lead Magnet para juan-tech.com
 
+## v1.4 Visualización avanzada + resolución de URL (Shipped: 2026-07-10)
+
+**Phases completed:** 4 phases, 10 plans, 9 tasks
+
+**Key accomplishments:**
+
+- resolveCanonicalUrl(domain) prueba https→http con fallback, sigue redirects del home vía GET y devuelve la finalUrl real (res.url) o null en fallo total, con timeout de 10s acotado por AbortController.
+- El worker resuelve la URL canónica con `resolveCanonicalUrl(domain)` antes de `runCrawl`, la usa como `startUrl`/`origin` único de todo el pipeline, la persiste en `Audit.resolvedUrl`, falla la auditoría con un mensaje español neutro si el dominio no responde, y el reporte la muestra cuando difiere del dominio ingresado.
+- Task 3 — checkpoint:human-verify (bloqueante).
+- 1. [T-24-06 — DoS mitigation] Cap de profundidad antes de recursar en arrays
+
+---
+
 ## v1.3 Profundizar checks técnicos + visualización de arquitectura (Shipped: 2026-07-09)
 
 **Phases completed:** 5 phases, 11 plans, 17 tasks

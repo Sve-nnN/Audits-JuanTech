@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Visualización avanzada + resolución de URL
-status: verifying
-last_updated: "2026-07-10T06:42:35.472Z"
-last_activity: 2026-07-10
+status: Awaiting next milestone
+last_updated: "2026-07-10T07:01:29.351Z"
+last_activity: 2026-07-10 — Milestone v1.4 completed and archived
 progress:
   total_phases: 4
   completed_phases: 4
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-09 after v1.3, v1.4 opened)
 
 ## Current Position
 
-Phase: 24
-Plan: Not started
-Status: Phases 21 (resolución URL), 22 (árbol octopus + mapa), 23 (grafo JSON-LD árbol radial) y 24 (código + validación JSON-LD, Classy Schema) COMPLETAS y aprobadas por Juan. 24-03-SUMMARY.md creado. Milestone v1.4 (4/4 fases) lista para verificación/cierre.
-Last activity: 2026-07-10
+Phase: Milestone v1.4 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-10 — Milestone v1.4 completed and archived
 
 ## Phase 23 — arranque (contexto para el discuss)
 
@@ -58,6 +58,14 @@ SDVIZ-02 (código JSON-LD formateado por entidad) + SDVIZ-03 (validación por pr
 | 23 | Grafo JSON-LD con layout radial | SDVIZ-01 | sí |
 | 24 | Código + validación JSON-LD estilo Classy Schema | SDVIZ-02/03 | sí |
 
+## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-07-10:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | pdf-export-crash-reading-s | fixing (unrelated to v1.4 scope; not resolved, next_action pending: add @react-pdf/renderer to serverExternalPackages) |
+
 ## Notas de arranque
 
 - Origen: feedback de Juan durante validación visual de v1.3 (capturas Octopus.do + Classy Schema).
@@ -65,3 +73,7 @@ SDVIZ-02 (código JSON-LD formateado por entidad) + SDVIZ-03 (validación por pr
 - Phase 24 (validación schema.org) es la más pesada y candidata a research de la fuente del vocabulario.
 - Phase 21 reemplaza la mitigación puntual `resolveHomeKey` (v1.3) por resolución correcta aguas arriba.
 - Backlog completo en `.planning/BACKLOG.md`.
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd:new-milestone
