@@ -55,6 +55,13 @@ function PropertyValue({ value, depth }: { value: unknown; depth: number }) {
     return <span className={styles.propValue}>{String(value)}</span>;
   }
 
+  // Tope de profundidad ANTES de recursar en cualquier estructura (array u objeto):
+  // corta arrays y objetos anidados arbitrariamente profundos (T-24-06), incluidas
+  // cadenas de arrays de arrays y refs @id circulares, degradando a código crudo.
+  if (depth >= MAX_DEPTH) {
+    return <pre className={styles.rawCode}>{JSON.stringify(value, null, 2)}</pre>;
+  }
+
   if (Array.isArray(value)) {
     const allPrimitive = value.every(
       (v) => v === null || ["string", "number", "boolean"].includes(typeof v),
@@ -65,7 +72,7 @@ function PropertyValue({ value, depth }: { value: unknown; depth: number }) {
     return (
       <div className={styles.nested}>
         {value.map((item, i) => (
-          <PropertyValue key={i} value={item} depth={depth} />
+          <PropertyValue key={i} value={item} depth={depth + 1} />
         ))}
       </div>
     );
@@ -79,11 +86,6 @@ function PropertyValue({ value, depth }: { value: unknown; depth: number }) {
     const ownKeys = Object.keys(value).filter((k) => !HEADER_KEYS.has(k));
     if (id && ownKeys.length === 0) {
       return <span className={styles.chip}>{id}</span>;
-    }
-
-    // Tope de profundidad: degradar a código crudo para no recursar sin límite.
-    if (depth >= MAX_DEPTH) {
-      return <pre className={styles.rawCode}>{JSON.stringify(value, null, 2)}</pre>;
     }
 
     return (
