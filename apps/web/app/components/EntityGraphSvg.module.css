@@ -49,7 +49,7 @@
 }
 
 .nodeType {
-  fill: var(--accent-foreground);
+  fill: var(--text);
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-weight: 600;
 }

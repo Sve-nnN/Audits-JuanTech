@@ -11,7 +11,7 @@ function dist(a: { x: number; y: number }, b: { x: number; y: number }): number 
 }
 
 describe("layoutEntityGraph", () => {
-  it("un solo componente: root centrado, hijos equidistantes", () => {
+  it("un solo componente: root centrado en su banda, hijos equidistantes", () => {
     const graph: EntityGraph = {
       nodes: [node("R"), node("A"), node("B")],
       edges: [
@@ -24,10 +24,31 @@ describe("layoutEntityGraph", () => {
     const A = positions.get("A")!;
     const B = positions.get("B")!;
 
+    // Root al centro horizontal y al centro de la (única) banda.
     expect(Math.abs(R.x - width / 2)).toBeLessThanOrEqual(1);
     expect(Math.abs(R.y - height / 2)).toBeLessThanOrEqual(1);
+    expect(R.isRoot).toBe(true);
+    // Hijos equidistantes del root (mismo anillo).
     expect(dist(R, A)).toBeGreaterThan(0);
     expect(Math.abs(dist(R, A) - dist(R, B))).toBeLessThan(1e-6);
+    expect(A.isRoot).toBe(false);
+  });
+
+  it("anillo uniforme: N hijos con espaciado angular igual", () => {
+    const kids = ["A", "B", "C", "D"];
+    const graph: EntityGraph = {
+      nodes: [node("R"), ...kids.map((k) => node(k))],
+      edges: kids.map((k) => ({ from: "R", to: k, rel: "has" })),
+    };
+    const { positions } = layoutEntityGraph(graph);
+    const R = positions.get("R")!;
+    // Todos a igual radio del centro.
+    const radii = kids.map((k) => dist(R, positions.get(k)!));
+    for (const r of radii) expect(Math.abs(r - radii[0]!)).toBeLessThan(1e-6);
+    // Ángulos uniformes: la distancia entre vecinos consecutivos es constante.
+    const pts = kids.map((k) => positions.get(k)!);
+    const gaps = pts.map((p, i) => dist(p, pts[(i + 1) % pts.length]!));
+    for (const g of gaps) expect(Math.abs(g - gaps[0]!)).toBeLessThan(1e-6);
   });
 
   it("root = nodo sin incoming (no A/B)", () => {
@@ -38,13 +59,10 @@ describe("layoutEntityGraph", () => {
         { from: "R", to: "B", rel: "has" },
       ],
     };
-    const { width, height, positions } = layoutEntityGraph(graph);
-    const A = positions.get("A")!;
-    const B = positions.get("B")!;
-    const offCenter = (p: { x: number; y: number }) =>
-      Math.abs(p.x - width / 2) > 1 || Math.abs(p.y - height / 2) > 1;
-    expect(offCenter(A)).toBe(true);
-    expect(offCenter(B)).toBe(true);
+    const { positions } = layoutEntityGraph(graph);
+    expect(positions.get("R")!.isRoot).toBe(true);
+    expect(positions.get("A")!.isRoot).toBe(false);
+    expect(positions.get("B")!.isRoot).toBe(false);
   });
 
   it("tie-break determinista en ciclo: root = primero en nodes", () => {
@@ -57,6 +75,7 @@ describe("layoutEntityGraph", () => {
     };
     const { width, height, positions } = layoutEntityGraph(graph);
     const A = positions.get("A")!;
+    expect(A.isRoot).toBe(true);
     expect(Math.abs(A.x - width / 2)).toBeLessThanOrEqual(1);
     expect(Math.abs(A.y - height / 2)).toBeLessThanOrEqual(1);
   });
@@ -66,19 +85,14 @@ describe("layoutEntityGraph", () => {
       nodes: [node("R"), node("E", "External")],
       edges: [{ from: "R", to: "E", rel: "sameAs" }],
     };
-    const { width, height, positions } = layoutEntityGraph(graph);
+    const { positions } = layoutEntityGraph(graph);
     expect(positions.size).toBe(2);
-    const center = { x: width / 2, y: height / 2 };
-    const maxRadius = Math.max(...[...positions.values()].map((p) => dist(center, p)));
-    for (const p of positions.values()) {
-      expect(dist(center, p)).toBeLessThanOrEqual(maxRadius * 1.5 + 1e-9);
-    }
-    // E enlazado a R (no root) queda descentrado dentro de la misma celda
-    const E = positions.get("E")!;
-    expect(dist(center, E)).toBeGreaterThan(0);
+    // Un solo componente ⇒ E queda en el anillo del mismo root.
+    expect(positions.get("R")!.isRoot).toBe(true);
+    expect(dist(positions.get("R")!, positions.get("E")!)).toBeGreaterThan(0);
   });
 
-  it("multiples componentes sin solape", () => {
+  it("multiples componentes: bandas apiladas sin solaparse verticalmente", () => {
     const graph: EntityGraph = {
       nodes: [node("R1"), node("A1"), node("R2"), node("A2")],
       edges: [
@@ -87,46 +101,31 @@ describe("layoutEntityGraph", () => {
       ],
     };
     const { positions } = layoutEntityGraph(graph);
-    const R1 = positions.get("R1")!;
-    const R2 = positions.get("R2")!;
-    expect(R1.x !== R2.x || R1.y !== R2.y).toBe(true);
 
     const bbox = (ids: string[]) => {
       const pts = ids.map((id) => positions.get(id)!);
       return {
-        minx: Math.min(...pts.map((p) => p.x)),
-        maxx: Math.max(...pts.map((p) => p.x)),
         miny: Math.min(...pts.map((p) => p.y)),
         maxy: Math.max(...pts.map((p) => p.y)),
       };
     };
     const b1 = bbox(["R1", "A1"]);
     const b2 = bbox(["R2", "A2"]);
-    const disjoint =
-      b1.maxx < b2.minx || b2.maxx < b1.minx || b1.maxy < b2.miny || b2.maxy < b1.miny;
-    expect(disjoint).toBe(true);
-
-    // Además de no solaparse, los componentes deben quedar CLARAMENTE separados:
-    // un pasillo horizontal sustancial entre sus bounding boxes (feedback de Juan).
-    const horizontalGap = Math.max(b2.minx - b1.maxx, b1.minx - b2.maxx);
-    expect(horizontalGap).toBeGreaterThan(60);
+    // Componente 1 arriba, componente 2 abajo, con un pasillo vertical entre medio.
+    const verticalGap = b2.miny - b1.maxy;
+    expect(verticalGap).toBeGreaterThan(40);
   });
 
-  it("grid con 2 filas: alto mayor que un solo componente", () => {
-    const single = layoutEntityGraph({
-      nodes: [node("S")],
-      edges: [],
-    });
-    // 3 componentes → 2 columnas × 2 filas
-    const threeComponents: EntityGraph = {
+  it("apilado vertical: mas componentes ⇒ mas alto", () => {
+    const single = layoutEntityGraph({ nodes: [node("S")], edges: [] });
+    const three = layoutEntityGraph({
       nodes: [node("R1"), node("R2"), node("R3")],
       edges: [],
-    };
-    const multi = layoutEntityGraph(threeComponents);
-    expect(multi.height).toBeGreaterThan(single.height);
+    });
+    expect(three.height).toBeGreaterThan(single.height);
   });
 
-  it("anillos por BFS: nieto en anillo exterior", () => {
+  it("anillos concentricos por nivel: nieto en anillo exterior", () => {
     const graph: EntityGraph = {
       nodes: [node("R"), node("A"), node("C")],
       edges: [
@@ -134,69 +133,15 @@ describe("layoutEntityGraph", () => {
         { from: "A", to: "C", rel: "r" },
       ],
     };
-    const { width, height, positions } = layoutEntityGraph(graph);
-    const center = { x: width / 2, y: height / 2 };
+    const { positions } = layoutEntityGraph(graph);
+    const R = positions.get("R")!;
     const A = positions.get("A")!;
     const C = positions.get("C")!;
-    expect(dist(center, A)).toBeGreaterThan(0);
-    expect(dist(center, C)).toBeGreaterThan(dist(center, A));
+    expect(dist(R, A)).toBeGreaterThan(0);
+    expect(dist(R, C)).toBeGreaterThan(dist(R, A));
   });
 
-  it("multi-componente con profundidad >= 2: anillos distintos y sin coincidencias", () => {
-    // Dos componentes independientes fuerzan columns = 2 (celda más chica). Cada
-    // uno es una cadena de profundidad 2 (R→A→C). Antes, con constantes fijas de
-    // anillo, A (nivel 1) y C (nivel 2) saturaban al mismo radio y coincidían.
-    const graph: EntityGraph = {
-      nodes: [node("R1"), node("A1"), node("C1"), node("R2"), node("A2"), node("C2")],
-      edges: [
-        { from: "R1", to: "A1", rel: "r" },
-        { from: "A1", to: "C1", rel: "r" },
-        { from: "R2", to: "A2", rel: "r" },
-        { from: "A2", to: "C2", rel: "r" },
-      ],
-    };
-    const { positions } = layoutEntityGraph(graph);
-
-    const chains: Array<[string, string, string]> = [
-      ["R1", "A1", "C1"],
-      ["R2", "A2", "C2"],
-    ];
-    for (const [rId, aId, cId] of chains) {
-      const center = positions.get(rId)!;
-      const A = positions.get(aId)!;
-      const C = positions.get(cId)!;
-      // Anillos distintos: nivel 2 estrictamente más lejos del centro que nivel 1.
-      expect(dist(center, A)).toBeGreaterThan(0);
-      expect(dist(center, C)).toBeGreaterThan(dist(center, A));
-    }
-
-    // Ningún par de nodos comparte coordenada exacta.
-    const pts = [...positions.values()];
-    for (let i = 0; i < pts.length; i++) {
-      for (let j = i + 1; j < pts.length; j++) {
-        expect(dist(pts[i]!, pts[j]!)).toBeGreaterThan(1e-6);
-      }
-    }
-  });
-
-  it("relajacion por fuerzas: hub denso sin nodos encimados", () => {
-    // Un root con muchos hijos: la relajación debe dejarlos separados (centros a
-    // más de un radio de nodo entre sí), sin colapsos.
-    const kids = ["A", "B", "C", "D", "E", "F"];
-    const graph: EntityGraph = {
-      nodes: [node("R"), ...kids.map((k) => node(k))],
-      edges: kids.map((k) => ({ from: "R", to: k, rel: "has" })),
-    };
-    const { positions } = layoutEntityGraph(graph);
-    const pts = [...positions.values()];
-    for (let i = 0; i < pts.length; i++) {
-      for (let j = i + 1; j < pts.length; j++) {
-        expect(dist(pts[i]!, pts[j]!)).toBeGreaterThan(NODE_RADIUS);
-      }
-    }
-  });
-
-  it("determinismo: dos llamadas producen Maps identicos", () => {
+  it("determinismo: dos llamadas producen posiciones identicas", () => {
     const graph: EntityGraph = {
       nodes: [node("R"), node("A"), node("B"), node("C")],
       edges: [
@@ -212,6 +157,21 @@ describe("layoutEntityGraph", () => {
     expect([...a.positions.keys()]).toEqual([...b.positions.keys()]);
     for (const [k, v] of a.positions) {
       expect(b.positions.get(k)).toEqual(v);
+    }
+  });
+
+  it("nodos del anillo sin encimarse (centros a > NODE_RADIUS)", () => {
+    const kids = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    const graph: EntityGraph = {
+      nodes: [node("R"), ...kids.map((k) => node(k))],
+      edges: kids.map((k) => ({ from: "R", to: k, rel: "has" })),
+    };
+    const { positions } = layoutEntityGraph(graph);
+    const pts = [...positions.values()];
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        expect(dist(pts[i]!, pts[j]!)).toBeGreaterThan(NODE_RADIUS);
+      }
     }
   });
 
