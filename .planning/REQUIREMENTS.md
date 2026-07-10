@@ -14,7 +14,7 @@ Milestone v1.4 = **Visualización avanzada + resolución de URL**. Origen: feedb
 
 ### Grafo JSON-LD con layout radial
 
-- [ ] **SDVIZ-01**: El grafo de entidades (`EntityGraphSvg`) usa layout radial por componente conexo: el nodo raíz de cada grafo (entidad sin edges entrantes) se ubica en el centro de su componente con sus hijos alrededor, en vez del círculo uniforme actual. Una página con múltiples grafos (ej. BlogPosting + BreadcrumbList) muestra cada componente con su propio centro.
+- [x] **SDVIZ-01**: El grafo de entidades (`EntityGraphSvg`) usa layout radial por componente conexo: el nodo raíz de cada grafo (entidad sin edges entrantes) se ubica en el centro de su componente con sus hijos alrededor, en vez del círculo uniforme actual. Una página con múltiples grafos (ej. BlogPosting + BreadcrumbList) muestra cada componente con su propio centro.
 
 ### Código y validación JSON-LD (estilo Classy Schema)
 
@@ -43,7 +43,7 @@ Milestone v1.4 = **Visualización avanzada + resolución de URL**. Origen: feedb
 | URLRES-02 | Phase 21 | Complete |
 | ARCH-05 | Phase 22 | Complete |
 | ARCH-06 | Phase 22 | Complete |
-| SDVIZ-01 | Phase 23 | Pending |
+| SDVIZ-01 | Phase 23 | Complete |
 | SDVIZ-02 | Phase 24 | Pending |
 | SDVIZ-03 | Phase 24 | Pending |
 

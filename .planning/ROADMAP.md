@@ -141,7 +141,7 @@ Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-
 
 - [x] **Phase 21: Resolución canónica de la URL de entrada** — resuelve https/http + redirects del home antes de crawlear, origin único en todo el pipeline (backend, sin UI) (completed 2026-07-09)
 - [x] **Phase 22: Árbol de arquitectura estilo octopus** — dendrograma jerárquico + mapa navegable (zoom/pan/fullscreen/export), aprobado por Juan (completed 2026-07-09)
-- [ ] **Phase 23: Grafo JSON-LD con layout radial** — cada componente conexo con su raíz al centro, en vez del círculo uniforme
+- [x] **Phase 23: Grafo JSON-LD con layout radial** — árbol radial estilo Classy Schema (root al centro, anillos por profundidad, color por @type), aprobado por Juan (completed 2026-07-09)
 - [ ] **Phase 24: Código + validación JSON-LD estilo Classy Schema** — JSON-LD formateado por entidad + validación por propiedad/tipo contra schema.org
 
 ## Phase Details
@@ -250,7 +250,7 @@ Próximo trabajo previsto tras v1.4 (scope por definir vía `/gsd:new-milestone`
 | 20. Visualizador de arquitectura | v1.3 | 3/3 | Complete ✅ | 2026-07-09 |
 | 21. Resolución canónica de la URL de entrada | v1.4 | 3/3 | Complete   | 2026-07-09 |
 | 22. Árbol de arquitectura estilo octopus | v1.4 | 3/3 | Complete   | 2026-07-09 |
-| 23. Grafo JSON-LD con layout radial | v1.4 | 0/? | Not started | - |
+| 23. Grafo JSON-LD con layout radial | v1.4 | 1/1 | Complete   | 2026-07-09 |
 | 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 0/? | Not started | - |
 
 ---

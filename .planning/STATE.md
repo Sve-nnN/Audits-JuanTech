@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Visualización avanzada + resolución de URL
-status: Phases 21-22 completas y aprobadas. Próximo: Phase 23 (grafo JSON-LD radial). Retomar con /gsd-autonomous tras /clear.
-last_updated: "2026-07-10T00:20:00.000Z"
-last_activity: 2026-07-09 — Phase 22 APROBADA por Juan (dendrograma + mapa navegable /arquitectura; ARCH-05/06 Complete)
+status: Phases 21-23 completas y aprobadas. Próximo: Phase 24 (código + validación JSON-LD estilo Classy Schema).
+last_updated: "2026-07-09T21:40:00.000Z"
+last_activity: 2026-07-09 — Phase 23 APROBADA por Juan (grafo JSON-LD árbol radial estilo Classy Schema; SDVIZ-01 Complete)
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
-  percent: 50
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09 after v1.3, v1.4 opened)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** v1.4 (Visualización avanzada + resolución de URL). Phases 21-22 completas y aprobadas. Próximo: `/gsd:plan-phase 23` (grafo JSON-LD radial). Retomar con `/gsd-autonomous`.
+**Current focus:** v1.4 (Visualización avanzada + resolución de URL). Phases 21-23 completas y aprobadas. Próximo: Phase 24 (código + validación JSON-LD estilo Classy Schema).
 
 ## Current Position
 
-Phase: 23 (Grafo JSON-LD con layout radial) — not started
+Phase: 24 (Código + validación JSON-LD estilo Classy Schema) — not started
 Plan: —
-Status: Phases 21 (resolución URL) y 22 (árbol octopus + mapa navegable) COMPLETAS y aprobadas por Juan. Listo para arrancar Phase 23.
-Last activity: 2026-07-09 — Phase 22 aprobada (ARCH-05/06 Complete)
+Status: Phases 21 (resolución URL), 22 (árbol octopus + mapa) y 23 (grafo JSON-LD árbol radial) COMPLETAS y aprobadas por Juan. Listo para arrancar Phase 24 (la más pesada).
+Last activity: 2026-07-09 — Phase 23 aprobada (SDVIZ-01 Complete; árbol radial estilo Classy Schema, bug de solape de cadenas profundas resuelto y validado en 1469 grafos reales)
 
 ## Phase 23 — arranque (contexto para el discuss)
 

@@ -1,11 +1,11 @@
 ---
 phase: 23-grafo-json-ld-con-layout-radial
-verified: 2026-07-09T20:31:00Z
-status: human_needed
-score: 4/4 auto-verifiable truths verified (1 visual checkpoint pending)
+verified: 2026-07-09T21:40:00Z
+status: passed
+score: 4/4 auto-verifiable truths verified + checkpoint visual APROBADO por Juan
 re_verification:
-  previous_status: null
-  note: "Initial verification. 23-REVIEW.md (WR-01/WR-02/IN-01) fixes confirmed present in code."
+  previous_status: human_needed
+  note: "Checkpoint visual aprobado por Juan tras iterar el look (Classy Schema). Rediseño a árbol radial resolvió un bug de solape (colapso de cadenas profundas) reproducido y validado contra las 1469 páginas reales con JSON-LD: 0 pares de nodos a menos de 2*NODE_RADIUS. Commits finales: afd5164, a2ba138, f16c6c7."
 human_verification:
   - test: "Levantar la web (cd apps/web && pnpm dev) y abrir el detalle de una página con un solo grafo JSON-LD en /audits/[id]/pages/[pageId]"
     expected: "La entidad raíz (sin edges entrantes) aparece CENTRADA con sus hijos alrededor en anillo — ya no el círculo uniforme. Los nietos (nivel BFS 2+) se ven en anillos exteriores."
