@@ -137,6 +137,43 @@ describe("layoutEntityGraph", () => {
     expect(dist(center, C)).toBeGreaterThan(dist(center, A));
   });
 
+  it("multi-componente con profundidad >= 2: anillos distintos y sin coincidencias", () => {
+    // Dos componentes independientes fuerzan columns = 2 (celda más chica). Cada
+    // uno es una cadena de profundidad 2 (R→A→C). Antes, con constantes fijas de
+    // anillo, A (nivel 1) y C (nivel 2) saturaban al mismo radio y coincidían.
+    const graph: EntityGraph = {
+      nodes: [node("R1"), node("A1"), node("C1"), node("R2"), node("A2"), node("C2")],
+      edges: [
+        { from: "R1", to: "A1", rel: "r" },
+        { from: "A1", to: "C1", rel: "r" },
+        { from: "R2", to: "A2", rel: "r" },
+        { from: "A2", to: "C2", rel: "r" },
+      ],
+    };
+    const { positions } = layoutEntityGraph(graph);
+
+    const chains: Array<[string, string, string]> = [
+      ["R1", "A1", "C1"],
+      ["R2", "A2", "C2"],
+    ];
+    for (const [rId, aId, cId] of chains) {
+      const center = positions.get(rId)!;
+      const A = positions.get(aId)!;
+      const C = positions.get(cId)!;
+      // Anillos distintos: nivel 2 estrictamente más lejos del centro que nivel 1.
+      expect(dist(center, A)).toBeGreaterThan(0);
+      expect(dist(center, C)).toBeGreaterThan(dist(center, A));
+    }
+
+    // Ningún par de nodos comparte coordenada exacta.
+    const pts = [...positions.values()];
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        expect(dist(pts[i]!, pts[j]!)).toBeGreaterThan(1e-6);
+      }
+    }
+  });
+
   it("determinismo: dos llamadas producen Maps identicos", () => {
     const graph: EntityGraph = {
       nodes: [node("R"), node("A"), node("B"), node("C")],

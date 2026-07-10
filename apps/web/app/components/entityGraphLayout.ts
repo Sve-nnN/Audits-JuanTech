@@ -92,18 +92,28 @@ export function layoutEntityGraph(graph: EntityGraph): EntityGraphLayout {
   const cellW = WIDTH / columns;
   const maxCellRadius = Math.max(NODE_RADIUS, cellW / 2 - NODE_RADIUS - CELL_PAD);
 
-  // Radio de anillo: crece con el nivel y con la cantidad de nodos del nivel
-  // (para que no se solapen sobre la circunferencia), acotado al radio de la celda.
-  const ringRadius = (level: number, count: number): number => {
-    const base = RING_BASE + (level - 1) * RING_STEP;
-    const minForCount = count > 1 ? (count * (2 * NODE_RADIUS + RING_GAP)) / (2 * Math.PI) : 0;
-    return Math.min(Math.max(base, minForCount), maxCellRadius);
+  // Radio de anillo escalado por componente: el paso y la base se ajustan al
+  // `maxCellRadius` real de la celda y a la profundidad del componente, de modo
+  // que los niveles de BFS queden distintos y dentro de la celda en cualquier
+  // número de columnas. Con constantes fijas (RING_BASE/RING_STEP), en layouts de
+  // 2+ componentes (maxCellRadius ≈ 106 < RING_BASE) todos los anillos saturaban
+  // al mismo radio y los nodos de distinto nivel se encimaban (mismas coordenadas).
+  const makeRingRadius = (maxLvl: number) => {
+    const ringStep =
+      maxLvl > 0 ? Math.min(RING_STEP, (maxCellRadius - NODE_RADIUS) / maxLvl) : RING_STEP;
+    const ringBase = Math.min(RING_BASE, ringStep);
+    return (level: number, count: number): number => {
+      const base = ringBase + (level - 1) * ringStep;
+      const minForCount = count > 1 ? (count * (2 * NODE_RADIUS + RING_GAP)) / (2 * Math.PI) : 0;
+      return Math.min(Math.max(base, minForCount), maxCellRadius);
+    };
   };
 
   interface Placed {
     root: string;
     byLevel: Map<number, string[]>;
     cellHeight: number;
+    radiusOf: Map<number, number>;
   }
 
   // (4)+(5) Root por componente + niveles de anillo por BFS no dirigido.
@@ -135,14 +145,23 @@ export function layoutEntityGraph(graph: EntityGraph): EntityGraphLayout {
     }
     for (const arr of byLevel.values()) arr.sort(cmp);
 
+    let compMaxLvl = 0;
+    for (const l of byLevel.keys()) compMaxLvl = Math.max(compMaxLvl, l);
+    const ringRadius = makeRingRadius(compMaxLvl);
+
+    // Radio precalculado por nivel: única fuente de verdad para el alto de la
+    // celda y para escribir las posiciones (evita recalcular con otra escala).
+    const radiusOf = new Map<number, number>();
     let maxRadius = 0;
     for (const [lvl, ids] of byLevel) {
       if (lvl === 0) continue;
-      maxRadius = Math.max(maxRadius, ringRadius(lvl, ids.length));
+      const r = ringRadius(lvl, ids.length);
+      radiusOf.set(lvl, r);
+      maxRadius = Math.max(maxRadius, r);
     }
     const contentR = maxRadius + NODE_RADIUS + CELL_PAD;
     const cellHeight = Math.max(MIN_CELL_HEIGHT, 2 * contentR);
-    return { root, byLevel, cellHeight };
+    return { root, byLevel, cellHeight, radiusOf };
   });
 
   // Alto dinámico: cada fila toma el alto del componente más alto de esa fila.
@@ -177,7 +196,7 @@ export function layoutEntityGraph(graph: EntityGraph): EntityGraphLayout {
         positions.set(p.root, { x: cx, y: cy });
         continue;
       }
-      const radius = ringRadius(lvl, ids.length);
+      const radius = p.radiusOf.get(lvl) ?? maxCellRadius;
       ids.forEach((id, i) => {
         const angle = START_ANGLE + (2 * Math.PI * i) / ids.length;
         positions.set(id, { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) });
