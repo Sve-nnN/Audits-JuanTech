@@ -19,6 +19,7 @@ export const GRAPH_WIDTH = 720; // ancho del viewBox; conserva la escala respons
 export const NODE_RADIUS = 22; // radio del círculo de nodo (compartido con el renderer)
 export const MIN_CELL_HEIGHT = 160; // piso de alto por celda / canvas vacío (compartido)
 const CELL_PAD = 40; // margen entre el contenido del componente y el borde de la celda
+const CELL_GAP = 88; // gutter ENTRE celdas de componentes distintos (para que cada grafo se lea como una unidad separada)
 const RING_BASE = 120; // radio del primer anillo (nivel 1) — semilla del BFS radial
 const RING_STEP = 100; // incremento de radio por cada nivel de anillo más profundo
 const RING_GAP = 16; // separación mínima entre nodos contiguos de un mismo anillo
@@ -209,7 +210,9 @@ export function layoutEntityGraph(graph: EntityGraph): EntityGraphLayout {
   // (6) Grid de componentes: 1 componente ocupa todo el ancho; en adelante 2 columnas.
   const columns = components.length <= 1 ? 1 : 2;
   const cellW = GRAPH_WIDTH / columns;
-  const maxCellRadius = Math.max(NODE_RADIUS, cellW / 2 - NODE_RADIUS - CELL_PAD);
+  // El radio útil descuenta medio gutter por lado, dejando un pasillo de CELL_GAP
+  // entre columnas contiguas (los componentes no se pegan al borde compartido).
+  const maxCellRadius = Math.max(NODE_RADIUS, cellW / 2 - NODE_RADIUS - CELL_PAD - CELL_GAP / 2);
 
   // Radio de anillo escalado por componente: el paso y la base se ajustan al
   // `maxCellRadius` real de la celda y a la profundidad del componente, de modo
@@ -294,13 +297,14 @@ export function layoutEntityGraph(graph: EntityGraph): EntityGraphLayout {
     }
     rowHeights.push(h);
   }
-  const height = rowHeights.reduce((a, b) => a + b, 0);
+  // Filas separadas por un gutter CELL_GAP (sin gutter sobrante al final).
   const rowTops: number[] = [];
   let acc = 0;
   for (const h of rowHeights) {
     rowTops.push(acc);
-    acc += h;
+    acc += h + CELL_GAP;
   }
+  const height = rowHeights.length > 0 ? acc - CELL_GAP : MIN_CELL_HEIGHT;
 
   // (7) Posición INICIAL radial (root al centro de su celda, cada anillo repartido
   //     uniforme desde -π/2) + (8) relajación por fuerzas acotada a la celda, con el
@@ -334,9 +338,11 @@ export function layoutEntityGraph(graph: EntityGraph): EntityGraphLayout {
     }
 
     // Celda: acota los nodos (menos el root) para que los componentes no se pisen.
+    // Se insetea medio gutter por lado ⇒ pasillo de CELL_GAP entre celdas vecinas.
+    const inset = NODE_RADIUS + CELL_GAP / 2;
     const bounds: CellBounds = {
-      minX: col * cellW + NODE_RADIUS,
-      maxX: (col + 1) * cellW - NODE_RADIUS,
+      minX: col * cellW + inset,
+      maxX: (col + 1) * cellW - inset,
       minY: rowTops[row]! + NODE_RADIUS,
       maxY: rowTops[row]! + rowHeights[row]! - NODE_RADIUS,
     };

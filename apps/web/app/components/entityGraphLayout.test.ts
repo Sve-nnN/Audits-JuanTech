@@ -105,6 +105,11 @@ describe("layoutEntityGraph", () => {
     const disjoint =
       b1.maxx < b2.minx || b2.maxx < b1.minx || b1.maxy < b2.miny || b2.maxy < b1.miny;
     expect(disjoint).toBe(true);
+
+    // Además de no solaparse, los componentes deben quedar CLARAMENTE separados:
+    // un pasillo horizontal sustancial entre sus bounding boxes (feedback de Juan).
+    const horizontalGap = Math.max(b2.minx - b1.maxx, b1.minx - b2.maxx);
+    expect(horizontalGap).toBeGreaterThan(60);
   });
 
   it("grid con 2 filas: alto mayor que un solo componente", () => {
