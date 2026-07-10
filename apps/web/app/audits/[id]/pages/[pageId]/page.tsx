@@ -53,7 +53,6 @@ export default async function PageDetailPage({ params }: PageProps) {
       statusCode: true,
       schemaGraph: true,
       schemaJson: true,
-      html: true,
     },
   });
 
@@ -63,7 +62,16 @@ export default async function PageDetailPage({ params }: PageProps) {
 
   // Entidades JSON-LD: preferir el snapshot persistido (Plan 24-02); para audits
   // viejos sin `schemaJson`, re-extraer del HTML con cheerio (Playwright-free).
-  const entities = buildEntities(page.schemaJson, page.html);
+  // `html` (columna @db.Text, potencialmente pesada) sólo se pide cuando
+  // realmente hace falta como fallback, no en cada render.
+  let entities = buildEntities(page.schemaJson, null);
+  if (entities.length === 0 && page.schemaJson === null) {
+    const withHtml = await prisma.page.findFirst({
+      where: { id: pageId, auditId },
+      select: { html: true },
+    });
+    entities = buildEntities(null, withHtml?.html ?? null);
+  }
   const validations = validateEntities(entities);
 
   const issues = await prisma.issue.findMany({
