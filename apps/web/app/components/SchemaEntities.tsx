@@ -15,6 +15,9 @@ interface SchemaEntitiesProps {
 /** Profundidad máxima del árbol antes de degradar a `@id`/valor crudo (T-24-06). */
 const MAX_DEPTH = 4;
 
+/** Máximo de items (propiedades o elementos de array) renderizados por nivel (T-24-06, ancho). */
+const MAX_ITEMS_PER_LEVEL = 50;
+
 /** Claves de metadatos JSON-LD que se muestran en el header, no como filas. */
 const HEADER_KEYS = new Set(["@context", "@type", "@id"]);
 
@@ -66,14 +69,22 @@ function PropertyValue({ value, depth }: { value: unknown; depth: number }) {
     const allPrimitive = value.every(
       (v) => v === null || ["string", "number", "boolean"].includes(typeof v),
     );
+    const visible = value.slice(0, MAX_ITEMS_PER_LEVEL);
+    const overflow = value.length - visible.length;
     if (allPrimitive) {
-      return <span className={styles.propValue}>{value.map((v) => String(v)).join("; ")}</span>;
+      return (
+        <span className={styles.propValue}>
+          {visible.map((v) => String(v)).join("; ")}
+          {overflow > 0 ? ` (+${overflow} más)` : ""}
+        </span>
+      );
     }
     return (
       <div className={styles.nested}>
-        {value.map((item, i) => (
+        {visible.map((item, i) => (
           <PropertyValue key={i} value={item} depth={depth + 1} />
         ))}
+        {overflow > 0 ? <p className={styles.emptyProps}>+{overflow} más</p> : null}
       </div>
     );
   }
@@ -120,9 +131,12 @@ function PropertyRows({
     return <p className={styles.emptyProps}>Sin propiedades.</p>;
   }
 
+  const visibleKeys = keys.slice(0, MAX_ITEMS_PER_LEVEL);
+  const overflow = keys.length - visibleKeys.length;
+
   return (
     <div className={styles.propRows}>
-      {keys.map((key) => {
+      {visibleKeys.map((key) => {
         const status = statusByProp.get(key);
         return (
           <div key={key} className={styles.propRow}>
@@ -134,6 +148,7 @@ function PropertyRows({
           </div>
         );
       })}
+      {overflow > 0 ? <p className={styles.emptyProps}>+{overflow} propiedades más</p> : null}
     </div>
   );
 }
