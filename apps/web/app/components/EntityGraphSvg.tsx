@@ -1,13 +1,10 @@
 import type { EntityGraph } from "@auditor/checks";
-import { layoutEntityGraph } from "./entityGraphLayout";
+import { GRAPH_WIDTH, MIN_CELL_HEIGHT, NODE_RADIUS, layoutEntityGraph } from "./entityGraphLayout";
 import styles from "./EntityGraphSvg.module.css";
 
 interface EntityGraphSvgProps {
   graph: EntityGraph;
 }
-
-const WIDTH = 720;
-const NODE_RADIUS = 34;
 
 /**
  * @type → clase de color token-backed. La clase setea `color` a un token
@@ -46,9 +43,12 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
   const { nodes, edges } = graph;
 
   if (nodes.length === 0) {
+    // Canvas vacío: reusa las dimensiones del módulo puro (que devuelve
+    // GRAPH_WIDTH × MIN_CELL_HEIGHT para nodes.length === 0) en vez de valores
+    // hardcodeados, para no divergir de la única fuente de verdad.
     return (
-      <svg className={styles.canvas} width={WIDTH} height={120} viewBox={`0 0 ${WIDTH} 120`} role="img" aria-label="Sin grafo de entidades">
-        <text className={styles.emptyText} x={WIDTH / 2} y={60} textAnchor="middle" fontSize={14}>
+      <svg className={styles.canvas} width={GRAPH_WIDTH} height={MIN_CELL_HEIGHT} viewBox={`0 0 ${GRAPH_WIDTH} ${MIN_CELL_HEIGHT}`} role="img" aria-label="Sin grafo de entidades">
+        <text className={styles.emptyText} x={GRAPH_WIDTH / 2} y={MIN_CELL_HEIGHT / 2} textAnchor="middle" fontSize={14}>
           Sin datos estructurados en esta página.
         </text>
       </svg>

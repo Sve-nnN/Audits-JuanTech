@@ -12,14 +12,17 @@ export interface EntityGraphLayout {
 }
 
 // --- Geometría (Claude's Discretion, ver 23-CONTEXT <decisions>) ---
-const WIDTH = 720; // ancho del viewBox; conserva la escala responsive de .canvas
-const NODE_RADIUS = 34; // radio del círculo de nodo (coincide con el renderer)
+// Constantes compartidas con el renderer: se exportan desde este módulo puro para
+// que exista una única fuente de verdad (el renderer las importa en vez de
+// redeclararlas, evitando drift entre el radio reservado y el radio dibujado).
+export const GRAPH_WIDTH = 720; // ancho del viewBox; conserva la escala responsive de .canvas
+export const NODE_RADIUS = 34; // radio del círculo de nodo (compartido con el renderer)
+export const MIN_CELL_HEIGHT = 160; // piso de alto por celda / canvas vacío (compartido)
 const CELL_PAD = 40; // margen entre el contenido del componente y el borde de la celda
 const RING_BASE = 120; // radio del primer anillo (nivel 1)
 const RING_STEP = 100; // incremento de radio por cada nivel de anillo más profundo
 const RING_GAP = 16; // separación mínima entre nodos contiguos de un mismo anillo
 const START_ANGLE = -Math.PI / 2; // primer hijo arriba (-90°), reparto uniforme 2π/n
-const MIN_CELL_HEIGHT = 160; // piso de alto por celda / canvas vacío
 
 function byIndex(indexOf: Map<string, number>) {
   return (a: string, b: string) => (indexOf.get(a) ?? 0) - (indexOf.get(b) ?? 0);
@@ -37,7 +40,7 @@ export function layoutEntityGraph(graph: EntityGraph): EntityGraphLayout {
   const nodes = graph.nodes;
 
   if (nodes.length === 0) {
-    return { width: WIDTH, height: MIN_CELL_HEIGHT, positions };
+    return { width: GRAPH_WIDTH, height: MIN_CELL_HEIGHT, positions };
   }
 
   // (1) Índice estable id → orden de aparición; edges válidos (sin self-loop,
@@ -89,7 +92,7 @@ export function layoutEntityGraph(graph: EntityGraph): EntityGraphLayout {
 
   // (6) Grid de componentes: 1 componente ocupa todo el ancho; en adelante 2 columnas.
   const columns = components.length <= 1 ? 1 : 2;
-  const cellW = WIDTH / columns;
+  const cellW = GRAPH_WIDTH / columns;
   const maxCellRadius = Math.max(NODE_RADIUS, cellW / 2 - NODE_RADIUS - CELL_PAD);
 
   // Radio de anillo escalado por componente: el paso y la base se ajustan al
@@ -204,5 +207,5 @@ export function layoutEntityGraph(graph: EntityGraph): EntityGraphLayout {
     }
   });
 
-  return { width: WIDTH, height, positions };
+  return { width: GRAPH_WIDTH, height, positions };
 }
