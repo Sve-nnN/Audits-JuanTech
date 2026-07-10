@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
   // These are workspace TS packages (no build step) — tell Next to run its
   // own SWC transform over them so TS/ESM-with-.js-specifier resolves
   // correctly, the same as first-party app code.
-  transpilePackages: ["@auditor/db", "@auditor/queue", "@auditor/email", "@auditor/quota"],
+  transpilePackages: ["@auditor/db", "@auditor/queue", "@auditor/email", "@auditor/quota", "@auditor/checks"],
 };
 
 export default nextConfig;
