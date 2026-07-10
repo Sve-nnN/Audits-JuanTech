@@ -68,7 +68,10 @@ export function EntityGraphSvg({ graph }: EntityGraphSvgProps) {
       {edges.map((edge, i) => {
         const from = positions.get(edge.from);
         const to = positions.get(edge.to);
-        if (!from || !to) return null;
+        // Salta self-loops igual que el modulo (los filtra de la adyacencia): sin
+        // este guard el renderer dibuja una linea de longitud cero mas un chip y
+        // label encimados sobre el nodo, con un marker de flecha degenerado.
+        if (!from || !to || edge.from === edge.to) return null;
         const midX = (from.x + to.x) / 2;
         const midY = (from.y + to.y) / 2;
         return (
