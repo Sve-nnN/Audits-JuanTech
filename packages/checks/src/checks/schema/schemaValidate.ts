@@ -2,7 +2,10 @@ import type { IssueDraft, PageCheck } from "../../types";
 import { pageFingerprint } from "../../util";
 import { extractJsonLdBlocks, flattenNodes, hasProp, typesOf } from "./extract";
 
-const CHECK_ID = "SD-04";
+// Retirado de schemaPageChecks (ver index.ts); se mantiene exportado sólo para
+// consumidores/tests externos. El sufijo -legacy evita colisionar con el
+// checkId "SD-04" de danglingIdRefsCheck (danglingIds.ts), que sigue activo.
+const CHECK_ID = "SD-04-legacy";
 
 interface SchemaRule {
   required: string[];
