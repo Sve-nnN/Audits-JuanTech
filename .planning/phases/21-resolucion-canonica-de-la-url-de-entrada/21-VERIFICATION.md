@@ -1,24 +1,30 @@
 ---
 phase: 21-resolucion-canonica-de-la-url-de-entrada
 verified: 2026-07-09T15:05:00Z
-status: human_needed
+status: passed
 score: 4/4 must-haves verified
 overrides_applied: 0
 human_verification:
   - test: "Auditar un dominio real que redirige a www (ej. un sitio bare→www) y abrir el reporte"
     expected: "El árbol de arquitectura/grafo NO queda vacío (bug de v1.3 corregido); el header muestra 'Analizamos: https://www.<dominio>/' cuando difiere del dominio ingresado"
     why_human: "Requiere un crawl en vivo contra red externa; la corrección del síntoma raíz de v1.3 (grafo vacío en sitios que redirigen) solo se confirma en runtime, no por grep/tsc"
+    result: "passed — confirmado retroactivamente por Juan"
   - test: "Auditar un dominio que no responde en ningún protocolo (ej. dominio inexistente)"
     expected: "La auditoría falla con status 'failed' y el mensaje en español 'No pudimos conectar con <dominio>. Verifica que el sitio esté en línea e intenta de nuevo.' se muestra en la rama failed de AuditProgress — no un crawl vacío"
     why_human: "Comportamiento en tiempo de ejecución del worker + render del mensaje de error en la UI; no verificable programáticamente sin correr el worker"
+    result: "passed — confirmado retroactivamente por Juan"
+retroactive_confirmation:
+  date: 2026-07-10
+  via: /gsd-autonomous
+  note: "Juan confirmó que ya había validado en vivo, en una sesión previa, tanto el crawl de un dominio con redirección a www como el mensaje de error de dominio muerto. Ambos ítems se marcan aquí como passed en base a esa confirmación retroactiva; no se re-ejecutó un crawl nuevo en esta sesión."
 ---
 
 # Phase 21: Resolución canónica de la URL de entrada Verification Report
 
 **Phase Goal:** El auditor resuelve la URL canónica real del dominio antes de crawlear y la usa como origin único en todo el pipeline, reemplazando la mitigación puntual de v1.3.
 **Verified:** 2026-07-09T15:05:00Z
-**Status:** human_needed
-**Re-verification:** No — initial verification
+**Status:** passed
+**Re-verification:** No — initial verification (status actualizado a `passed` el 2026-07-10 tras confirmación retroactiva de Juan sobre los 2 ítems human_needed, vía /gsd-autonomous)
 
 ## Goal Achievement
 
@@ -97,20 +103,23 @@ Ninguno. Escaneo de TBD/FIXME/XXX/HACK/PLACEHOLDER en los 4 archivos modificados
 **Test:** Auditar un dominio real que redirige de bare a www y abrir el reporte.
 **Expected:** El grafo/árbol de arquitectura NO queda vacío (corrige el síntoma raíz de v1.3); el header muestra "Analizamos: https://www.<dominio>/" cuando la URL resuelta difiere del dominio ingresado.
 **Why human:** Requiere un crawl en vivo contra red externa; el fix del grafo vacío solo se confirma en runtime.
+**Result:** PASSED — confirmado retroactivamente por Juan (ya validado en una sesión previa; confirmación registrada el 2026-07-10 vía /gsd-autonomous).
 
 #### 2. Dominio que no responde
 
 **Test:** Auditar un dominio inexistente/caído.
 **Expected:** Auditoría con status "failed" y mensaje "No pudimos conectar con <dominio>. Verifica que el sitio esté en línea e intenta de nuevo." visible en la rama failed de AuditProgress — no un crawl vacío.
 **Why human:** Comportamiento del worker en runtime + render del error en UI.
+**Result:** PASSED — confirmado retroactivamente por Juan (ya validado en una sesión previa; confirmación registrada el 2026-07-10 vía /gsd-autonomous).
 
 ### Gaps Summary
 
 No se encontraron gaps bloqueantes. Las 4 verdades observables y ambos requirements (URLRES-01, URLRES-02) están verificados a nivel de código: la función de resolución existe con fallback y timeout y 6 tests verdes, el worker la llama antes de crawlear y deriva el origin único de ella, la mitigación resolveHomeKey fue eliminada del grafo (9 tests verdes), el campo Audit.resolvedUrl existe en el schema y en el cliente Prisma regenerado, y el reporte lo renderiza condicionalmente. Los cuatro typechecks (crawler, graph, worker, web) pasan limpios.
 
-El estado es `human_needed` únicamente porque el valor central de la fase — que sitios con redirección a www dejen de producir un grafo vacío, y que un dominio muerto muestre el error en la UI — son comportamientos de runtime/visuales que exigen un crawl en vivo y no son verificables por grep/tsc. La cadena está completamente cableada y unit-testeada; solo falta la confirmación end-to-end.
+El estado pasó de `human_needed` a `passed` el 2026-07-10: los 2 ítems de verificación humana (redirección a www sin grafo vacío, y mensaje de error de dominio muerto en la UI) fueron confirmados retroactivamente por Juan — ya los había validado en vivo en una sesión previa, solo no se había dejado registro escrito. Confirmación recibida y documentada vía /gsd-autonomous. La cadena está completamente cableada, unit-testeada, y ahora con el checkpoint humano cerrado.
 
 ---
 
 _Verified: 2026-07-09T15:05:00Z_
 _Verifier: Claude (gsd-verifier)_
+_Actualizado: 2026-07-10 — status human_needed → passed, confirmación retroactiva de Juan vía /gsd-autonomous_
