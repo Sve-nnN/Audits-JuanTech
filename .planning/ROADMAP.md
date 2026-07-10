@@ -256,7 +256,7 @@ Próximo trabajo previsto tras v1.4 (scope por definir vía `/gsd:new-milestone`
 | 21. Resolución canónica de la URL de entrada | v1.4 | 3/3 | Complete   | 2026-07-09 |
 | 22. Árbol de arquitectura estilo octopus | v1.4 | 3/3 | Complete   | 2026-07-09 |
 | 23. Grafo JSON-LD con layout radial | v1.4 | 1/1 | Complete   | 2026-07-09 |
-| 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 3/3 | Complete   | 2026-07-10 |
+| 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 3/3 | Complete    | 2026-07-10 |
 
 ---
 *Roadmap created: 2026-07-05*

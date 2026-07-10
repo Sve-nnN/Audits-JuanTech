@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Visualización avanzada + resolución de URL
-status: Phases 21-24 completas y aprobadas. Milestone v1.4 lista para verificación/cierre.
-last_updated: "2026-07-10T00:10:00.000Z"
-last_activity: 2026-07-10 — Plan 24-03 Task 3 (checkpoint:human-verify) aprobado por Juan; 24-03-SUMMARY.md creado; fase 24 completa
+status: verifying
+last_updated: "2026-07-10T06:42:35.472Z"
+last_activity: 2026-07-10
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 10
+  completed_plans: 10
   percent: 100
 ---
 
@@ -24,14 +24,15 @@ See: .planning/PROJECT.md (updated 2026-07-09 after v1.3, v1.4 opened)
 
 ## Current Position
 
-Phase: 24 (Código + validación JSON-LD estilo Classy Schema) — COMPLETA
-Plan: 24-03 completo (Task 3 checkpoint:human-verify aprobado por Juan)
+Phase: 24
+Plan: Not started
 Status: Phases 21 (resolución URL), 22 (árbol octopus + mapa), 23 (grafo JSON-LD árbol radial) y 24 (código + validación JSON-LD, Classy Schema) COMPLETAS y aprobadas por Juan. 24-03-SUMMARY.md creado. Milestone v1.4 (4/4 fases) lista para verificación/cierre.
-Last activity: 2026-07-10 — Plan 24-03 Task 3 aprobado por Juan; fase 24 cerrada; 24-03-SUMMARY.md creado
+Last activity: 2026-07-10
 
 ## Phase 23 — arranque (contexto para el discuss)
 
 Objetivo (SDVIZ-01): el grafo de entidades JSON-LD (`EntityGraphSvg`) usa layout RADIAL por componente conexo: el nodo raíz de cada grafo (entidad sin edges entrantes) al centro con sus hijos alrededor, en vez del círculo uniforme actual. Una página con varios grafos (ej. BlogPosting + BreadcrumbList) muestra cada componente con su propio centro.
+
 - Componente a reworkear: `apps/web/app/components/EntityGraphSvg.tsx` (hoy pone TODOS los nodos en un círculo uniforme — ver `angle = 2π·i/n`).
 - El grafo de entidades ya expande entidades anidadas (fix de v1.3: `buildEntityGraph` en `packages/checks/src/checks/schema/entityGraph.ts` — nodes/edges con rel por propiedad). Se persiste en `Page.schemaGraph`.
 - Se muestra en `/audits/[id]/pages/[pageId]` (detalle de página). SVG puro, cero deps, tokens-only sin hex.

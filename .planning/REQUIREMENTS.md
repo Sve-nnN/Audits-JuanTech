@@ -18,8 +18,8 @@ Milestone v1.4 = **Visualización avanzada + resolución de URL**. Origen: feedb
 
 ### Código y validación JSON-LD (estilo Classy Schema)
 
-- [ ] **SDVIZ-02**: El detalle de página muestra el código JSON-LD formateado/indentado por entidad, con sus propiedades legibles (árbol de propiedades: `@type`, y cada propiedad con su valor), como el panel de propiedades de Classy Schema.
-- [ ] **SDVIZ-03**: Cada entidad y propiedad se valida contra el vocabulario de schema.org y se muestran errores/warnings/success individuales por nodo: tipo válido/ inválido, propiedad válida/ desconocida, y advertencias de alto valor (ej. "Product declara AggregateRating sin reviewCount", patrón que Google penaliza). Alcance pragmático: cubrir el subconjunto de tipos/propiedades de alto valor SEO/rich-results, no el vocabulario completo (la fuente exacta del vocab y las reglas se deciden en el discuss de la fase). Nunca falla dura del score (informativo/warning, coherente con v1.3 SD-06).
+- [x] **SDVIZ-02**: El detalle de página muestra el código JSON-LD formateado/indentado por entidad, con sus propiedades legibles (árbol de propiedades: `@type`, y cada propiedad con su valor), como el panel de propiedades de Classy Schema.
+- [x] **SDVIZ-03**: Cada entidad y propiedad se valida contra el vocabulario de schema.org y se muestran errores/warnings/success individuales por nodo: tipo válido/ inválido, propiedad válida/ desconocida, y advertencias de alto valor (ej. "Product declara AggregateRating sin reviewCount", patrón que Google penaliza). Alcance pragmático: cubrir el subconjunto de tipos/propiedades de alto valor SEO/rich-results, no el vocabulario completo (la fuente exacta del vocab y las reglas se deciden en el discuss de la fase). Nunca falla dura del score (informativo/warning, coherente con v1.3 SD-06).
 
 ### Resolución canónica de la URL de entrada
 
@@ -44,8 +44,8 @@ Milestone v1.4 = **Visualización avanzada + resolución de URL**. Origen: feedb
 | ARCH-05 | Phase 22 | Complete |
 | ARCH-06 | Phase 22 | Complete |
 | SDVIZ-01 | Phase 23 | Complete |
-| SDVIZ-02 | Phase 24 | Pending |
-| SDVIZ-03 | Phase 24 | Pending |
+| SDVIZ-02 | Phase 24 | Complete |
+| SDVIZ-03 | Phase 24 | Complete |
 
 **Coverage:**
 
