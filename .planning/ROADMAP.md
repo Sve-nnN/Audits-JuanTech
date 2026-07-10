@@ -142,7 +142,7 @@ Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-
 - [x] **Phase 21: Resolución canónica de la URL de entrada** — resuelve https/http + redirects del home antes de crawlear, origin único en todo el pipeline (backend, sin UI) (completed 2026-07-09)
 - [x] **Phase 22: Árbol de arquitectura estilo octopus** — dendrograma jerárquico + mapa navegable (zoom/pan/fullscreen/export), aprobado por Juan (completed 2026-07-09)
 - [x] **Phase 23: Grafo JSON-LD con layout radial** — árbol radial estilo Classy Schema (root al centro, anillos por profundidad, color por @type), aprobado por Juan (completed 2026-07-09)
-- [ ] **Phase 24: Código + validación JSON-LD estilo Classy Schema** — JSON-LD formateado por entidad + validación por propiedad/tipo contra schema.org
+- [x] **Phase 24: Código + validación JSON-LD estilo Classy Schema** — JSON-LD formateado por entidad + validación por propiedad/tipo contra schema.org (completed 2026-07-10)
 
 ## Phase Details
 
@@ -214,9 +214,11 @@ Origen: feedback directo de Juan durante la validación visual de v1.3 (2026-07-
   4. La lógica de validación vive en `packages/checks` (reutilizable y testeable), consumida por la UI del detalle de página.
 
 **Plans**: 3 plans (2 waves)
-- [ ] 24-01-PLAN.md — Motor puro validateEntities (13 tipos + anti-patrones) + check de scoring SD-07 (ok/warning, nunca critical) [wave 1]
-- [ ] 24-02-PLAN.md — Persistir Page.schemaJson (worker + prisma db:push) como fuente Playwright-free del JSON-LD por entidad [wave 1]
-- [ ] 24-03-PLAN.md — UI Classy Schema: árbol de propiedades por entidad + badges + toggle a código crudo (checkpoint:human-verify) [wave 2]
+
+- [x] 24-01-PLAN.md — Motor puro validateEntities (13 tipos + anti-patrones) + check de scoring SD-07 (ok/warning, nunca critical) [wave 1]
+- [x] 24-02-PLAN.md — Persistir Page.schemaJson (worker + prisma db:push) como fuente Playwright-free del JSON-LD por entidad [wave 1]
+- [x] 24-03-PLAN.md — UI Classy Schema: árbol de propiedades por entidad + badges + toggle a código crudo (checkpoint:human-verify) [wave 2]
+
 **UI hint**: yes
 
 ### 📋 Next (Planned)
@@ -254,7 +256,7 @@ Próximo trabajo previsto tras v1.4 (scope por definir vía `/gsd:new-milestone`
 | 21. Resolución canónica de la URL de entrada | v1.4 | 3/3 | Complete   | 2026-07-09 |
 | 22. Árbol de arquitectura estilo octopus | v1.4 | 3/3 | Complete   | 2026-07-09 |
 | 23. Grafo JSON-LD con layout radial | v1.4 | 1/1 | Complete   | 2026-07-09 |
-| 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 0/? | Not started | - |
+| 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 3/3 | Complete   | 2026-07-10 |
 
 ---
 *Roadmap created: 2026-07-05*

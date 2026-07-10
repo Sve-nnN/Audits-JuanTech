@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Visualización avanzada + resolución de URL
-status: Phases 21-23 completas y aprobadas. Phase 24 en curso (plans 24-01/24-02 completos; 24-03 en checkpoint de verificación visual, esperando a Juan).
-last_updated: "2026-07-10T00:00:00.000Z"
-last_activity: 2026-07-10 — Plan 24-03 (Tasks 1-2) implementado y verificado (typecheck+build OK); pausado en Task 3 checkpoint:human-verify (blocking, no auto-aprobable)
+status: Phases 21-24 completas y aprobadas. Milestone v1.4 lista para verificación/cierre.
+last_updated: "2026-07-10T00:10:00.000Z"
+last_activity: 2026-07-10 — Plan 24-03 Task 3 (checkpoint:human-verify) aprobado por Juan; 24-03-SUMMARY.md creado; fase 24 completa
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 7
-  completed_plans: 6
-  percent: 86
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09 after v1.3, v1.4 opened)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** v1.4 (Visualización avanzada + resolución de URL). Phases 21-23 completas y aprobadas. Phase 24 en curso: 24-01/24-02 completos, 24-03 pausado en checkpoint visual.
+**Current focus:** v1.4 (Visualización avanzada + resolución de URL). Phases 21-24 completas y aprobadas (24-03 checkpoint visual aprobado por Juan el 2026-07-10). Milestone lista para verificación/cierre.
 
 ## Current Position
 
-Phase: 24 (Código + validación JSON-LD estilo Classy Schema) — en curso
-Plan: 24-03 (Task 1-2 completos y verificados; Task 3 = checkpoint:human-verify blocking, esperando aprobación de Juan)
-Status: Phases 21 (resolución URL), 22 (árbol octopus + mapa) y 23 (grafo JSON-LD árbol radial) COMPLETAS y aprobadas por Juan. Plan 24-01 (motor validateEntities) y 24-02 (persistencia Page.schemaJson) COMPLETOS. Plan 24-03: componente SchemaEntities + wiring en page.tsx implementados y verificados (grep checks, typecheck, build todos OK); falta la aprobación visual de Juan (Task 3, gate blocking, no se auto-aprueba) para cerrar la fase y escribir 24-03-SUMMARY.md / VERIFICATION.md.
-Last activity: 2026-07-10 — Plan 24-03 Tasks 1-2 verificados (incl. fix T-24-06 de tope de profundidad antes de recursar en arrays); pausado en checkpoint de Task 3
+Phase: 24 (Código + validación JSON-LD estilo Classy Schema) — COMPLETA
+Plan: 24-03 completo (Task 3 checkpoint:human-verify aprobado por Juan)
+Status: Phases 21 (resolución URL), 22 (árbol octopus + mapa), 23 (grafo JSON-LD árbol radial) y 24 (código + validación JSON-LD, Classy Schema) COMPLETAS y aprobadas por Juan. 24-03-SUMMARY.md creado. Milestone v1.4 (4/4 fases) lista para verificación/cierre.
+Last activity: 2026-07-10 — Plan 24-03 Task 3 aprobado por Juan; fase 24 cerrada; 24-03-SUMMARY.md creado
 
 ## Phase 23 — arranque (contexto para el discuss)
 
