@@ -420,7 +420,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     }
 
     await writePhase("analyzing");
-    const { issues: issueDrafts, pageSchemaGraphs } = await runAllChecks({
+    const { issues: issueDrafts, pageSchemaGraphs, pageSchemaEntities } = await runAllChecks({
       pages,
       origin,
       robotsTxt,
@@ -534,16 +534,21 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       await prisma.issue.createMany({ data: issueRows });
     }
 
-    // Persist each page's entity graph (SD-05) for the graph-visualization
-    // route in apps/web. Only pages with JSON-LD produce a graph.
-    if (pageSchemaGraphs.size > 0) {
+    // Persist each page's entity graph (SD-05) and flat JSON-LD entities
+    // (Phase 24, SDVIZ-02) for the graph-visualization and property-tree
+    // routes in apps/web. Only pages with JSON-LD produce either. Written in
+    // a single update per page so pages carrying both aren't updated twice.
+    const schemaPageIds = new Set([...pageSchemaGraphs.keys(), ...pageSchemaEntities.keys()]);
+    if (schemaPageIds.size > 0) {
       await Promise.all(
-        Array.from(pageSchemaGraphs.entries()).map(([pageId, graph]) =>
-          prisma.page.update({
-            where: { id: pageId },
-            data: { schemaGraph: graph as unknown as Prisma.InputJsonValue },
-          })
-        )
+        Array.from(schemaPageIds).map((pageId) => {
+          const graph = pageSchemaGraphs.get(pageId);
+          const entities = pageSchemaEntities.get(pageId);
+          const data: Prisma.PageUpdateInput = {};
+          if (graph) data.schemaGraph = graph as unknown as Prisma.InputJsonValue;
+          if (entities) data.schemaJson = entities as unknown as Prisma.InputJsonValue;
+          return prisma.page.update({ where: { id: pageId }, data });
+        })
       );
     }
 
