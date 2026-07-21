@@ -21,6 +21,7 @@ import {
   emptyPage,
   multiAxisPage,
 } from "./__fixtures__/synthetic";
+import { realBuilderFixtures } from "./__fixtures__/realSites";
 
 const run = (page: PageFingerprintInput) => detectStack({ pages: [page] });
 
@@ -177,4 +178,15 @@ describe("detectStack — aggregate (home->fallback, unión de headers/cookies)"
     };
     expect(detectStack({ pages: [homeHtml, sub] }).cdn.value).toBe("Cloudflare");
   });
+});
+
+describe("detectStack — builder (sitios reales, calibración)", () => {
+  it.each(realBuilderFixtures)(
+    "$page.url -> cms WordPress + builder $expectedBuilder",
+    ({ page, expectedBuilder }) => {
+      const stack = detectStack({ pages: [page] });
+      expect(stack.cms.value).toBe("WordPress");
+      expect(stack.builder.value).toBe(expectedBuilder);
+    }
+  );
 });
