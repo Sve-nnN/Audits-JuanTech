@@ -3,6 +3,7 @@ import { prisma } from "@auditor/db";
 import { normalizeUrl, sameRegistrableDomain } from "./normalizeUrl";
 import { isAllowed, DEFAULT_USER_AGENT } from "./robots";
 import { discoverSitemapUrls } from "./sitemap";
+import { curateHeaders, parseCookieNames } from "./captureHeaders";
 
 const HARD_URL_CAP = 500;
 const DEFAULT_MAX_CONCURRENCY = 5;
@@ -106,6 +107,10 @@ export async function runCrawl(options: RunCrawlOptions): Promise<CrawlSummary> 
         const redirectChain =
           redirectUrls && redirectUrls.length > 0 ? redirectUrls.map((u) => u.toString()) : undefined;
         const statusCode = response?.statusCode ?? null;
+        // Fingerprinting raw material from headers already loaded here — no extra
+        // request (FPRINT-01). Only curated headers + cookie NAMES are persisted.
+        const responseHeaders = curateHeaders(response?.headers ?? {});
+        const cookieNames = parseCookieNames(response?.headers?.["set-cookie"]);
         const html = typeof body === "string" ? body : body?.toString("utf-8");
         // Extract the HTML <title> once from the already-loaded Cheerio `$`
         // (no HTML re-parse anywhere else — ARCH-03). Empty/missing => NULL.
@@ -124,6 +129,8 @@ export async function runCrawl(options: RunCrawlOptions): Promise<CrawlSummary> 
             depth: userData?.depth ?? 0,
             fromSitemap: userData?.fromSitemap ?? false,
             html,
+            responseHeaders: responseHeaders as never,
+            cookieNames,
             fetchedAt: new Date(),
           },
           update: {
@@ -133,6 +140,8 @@ export async function runCrawl(options: RunCrawlOptions): Promise<CrawlSummary> 
             redirectChain: redirectChain as never,
             contentType: contentType?.type ?? null,
             html,
+            responseHeaders: responseHeaders as never,
+            cookieNames,
             fetchedAt: new Date(),
             error: null,
           },
