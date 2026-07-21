@@ -119,6 +119,10 @@ model Page {
   schemaGraph   Json?
   /** JSON-LD plano por entidad (array de entidades flatten) de esta página, para el árbol de propiedades del detalle — Phase 24 (SDVIZ-02). */
   schemaJson    Json?
+  /** Headers HTTP curados relevantes a fingerprinting — Phase 25 (FPRINT-01). */
+  responseHeaders Json?
+  /** Nombres de cookie (no valores) parseados de Set-Cookie — Phase 25 (FPRINT-01). */
+  cookieNames String[]
 
   issues      Issue[]
   perfMetrics PerfMetric[]
