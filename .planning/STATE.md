@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Fingerprinting técnico + fixes personalizados por CMS
-current_phase: 25
-current_phase_name: Fingerprint de stack técnico — contrato de datos y motor de detección
-status: executing
+current_phase: 26
+current_phase_name: Wiring en el worker + tabla de stack en el reporte
+status: planning
 stopped_at: Completed 25-04-PLAN.md
-last_updated: "2026-07-21T21:15:11.614Z"
+last_updated: "2026-07-21T21:27:20.134Z"
 last_activity: 2026-07-21
-last_activity_desc: "Plan 25-01 ejecutado: paquete @auditor/fingerprint creado, contrato de datos (DetectedStack/AxisResult/Signature/PageFingerprintInput) fijado y en verde"
+last_activity_desc: Phase 25 complete, transitioned to Phase 26
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-21 after v1.5 milestone opened)
 
 ## Current Position
 
-Phase: 25 of 27 (Fingerprint de stack técnico — contrato de datos y motor de detección)
-Plan: 3 of 4 complete (25-01 — scaffold @auditor/fingerprint + contrato de datos)
-Status: Ready to execute
-Last activity: 2026-07-21 — Plan 25-01 ejecutado: paquete @auditor/fingerprint creado, contrato de datos (DetectedStack/AxisResult/Signature/PageFingerprintInput) fijado y en verde
+Phase: 26 of 27 (Wiring en el worker + tabla de stack en el reporte)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-21 — Phase 25 complete, transitioned to Phase 26
 
 Progress: [██████████] 100%
 
@@ -47,7 +47,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 4
 - Average duration: —
 - Total execution time: —
 
@@ -55,7 +55,7 @@ Progress: [██████████] 100%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 25 | 4 | - | - |
 
 **Recent Trend:**
 
@@ -80,6 +80,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Research v1.5: motor de fingerprint propio (~150-300 líneas, patrón registry) en vez de `wappalyzer-core` (deprecado, GPL-3.0) o APIs pagas — requisito explícito de Juan.
 - Research v1.5: contrato de datos con `confidence` tipado (alto/medio/bajo/no-detectado) fijado antes de escribir reglas de detección o copy de fix (evita retrabajo en cascada sobre cada adapter/UI).
 - Research v1.5: detección independiente por eje (CMS, CDN, hosting, framework, analytics), nunca winner-take-all; recomendación de CMS resuelta en `buildReportModel` (tiempo de lectura), nunca persistida pre-calculada.
+- Phase 25: `@auditor/fingerprint` paquete puro (única dep runtime `cheerio`), `DetectedStack` con 6 ejes tipados por `Confidence` (alto/medio/bajo/no-detectado), `analytics` como array (coexistencia GA4+GTM+Meta Pixel), motor `detectStack` con resolución independiente por eje.
+- Phase 25 code-review: firma de GTM en `analytics.ts` corregida (matcheaba `dataLayer` genérico compartido con el snippet estándar de GA4 → falso positivo sistemático); needles de Meta Pixel/GA4 endurecidos.
 
 ### Pending Todos
 
@@ -87,9 +89,9 @@ None yet.
 
 ### Blockers/Concerns
 
-- Firmas de builders WP (Elementor/WPBakery/Divi) y de CDN son de fuentes MEDIUM confidence (agregado de blogs/comunidad, no verificadas contra sitios reales) — planear QA manual contra 2-3 instalaciones reales por builder durante Phase 25, no solo fixtures sintéticos.
 - Copy de fix por plataforma×builder para checks fuera de los ejemplos ya calibrados (title/meta, H1, OG, sitemap/robots.txt) necesita cruzarse contra documentación oficial de cada plataforma durante Phase 27.
 - Decisión de granularidad Wix vs Squarespace (un solo adapter técnico, detección separada a nivel de label) — validar si el fallback compartido produce copy suficientemente específico en la primera vuelta de Phase 27.
+- [Phase 25, no bloqueante] `resolveConfidence` topa CDNs multi-header (ej. Fastly) en confianza `medio` aunque haya 3+ headers del mismo vendor — el conteo (`Signature.test`) no se usa para subir confianza, solo para desempate de builder. Documentado como limitación conocida en `cdn.ts`; revisar si Phase 26 necesita que suba a `alto`.
 
 ## Deferred Items
 

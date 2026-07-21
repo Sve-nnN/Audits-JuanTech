@@ -72,12 +72,17 @@ Cinco milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca)
 - ✓ Árbol de arquitectura estilo octopus: dendrograma jerárquico con conexiones padre-hijo + mapa navegable con zoom/pan — v1.4 (ARCH-05/06, Phase 22)
 - ✓ Grafo JSON-LD radial: raíz de cada componente conexo al centro con hijos alrededor — v1.4 (SDVIZ-01, Phase 23)
 - ✓ Código JSON-LD formateado por entidad + validación por propiedad/tipo contra schema.org (Classy Schema, subconjunto de alto valor, nunca falla dura del score) — v1.4 (SDVIZ-02/03, Phase 24)
+- ✓ Fingerprint de stack técnico: captura de headers curados + nombres de cookie sin requests adicionales, motor `detectStack` propio (registry de signatures por eje, sin dependencias externas pagas/GPL) con detección independiente por eje (CMS, builder WordPress, CDN/proxy, hosting, framework JS, analytics) tipada por confianza (alto/medio/bajo/no-detectado), nunca forzando una respuesta sin señal — v1.5 (FPRINT-01..08, Phase 25)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-Sin milestone activo — v1.4 shipped 2026-07-10. Próximas requirements se definen vía `/gsd:new-milestone`.
+v1.5 en curso (Phase 25 shipped 2026-07-21, Phases 26-27 pendientes):
+
+- [ ] FPRINT-09: persistencia del stack detectado asociado a la auditoría (Phase 26)
+- [ ] STACKUI-01..03: tabla de stack técnico en el reporte (Phase 26)
+- [ ] CMSFIX-01..05: motor de recomendaciones por CMS (Phase 27)
 
 ### Out of Scope
 
@@ -133,6 +138,9 @@ Sin milestone activo — v1.4 shipped 2026-07-10. Próximas requirements se defi
 | Dendrograma determinista sin motor de layout en cliente (dos pasadas: leafCursor + promedio de hijos) | CSP estricta del proyecto no permite librerías de layout en el navegador | ✓ Good — v1.4 Phase 22 |
 | Mapa de arquitectura en ruta propia (`/audits/[id]/arquitectura`) en vez de embebido en el reporte | Zoom/pan necesita su propio viewport a pantalla completa sin competir con el resto del reporte | ✓ Good — v1.4 Phase 22 |
 | Checkpoints humanos de v1.4 cerrados por confirmación retroactiva (no re-verificación en vivo) | Juan ya había validado el look/comportamiento en una sesión previa; el gap era de proceso (falta de registro escrito), no funcional | ✓ Good — v1.4, cierre 2026-07-10 vía /gsd-autonomous; lección: dejar el VERIFICATION.md/checkpoint cerrado en el momento evita este trabajo de reconciliación después |
+| Motor de fingerprint propio (registry de signatures) en vez de `wappalyzer-core` o APIs pagas | Librería deprecada/GPL-3.0 incompatible; requisito explícito de Juan de no depender de servicios de terceros pagos en el core | ✓ Good — v1.5 Phase 25, 34 tests, validado contra 6 sitios reales |
+| `packages/fingerprint` desacoplado de `@auditor/db`/`@auditor/crawler`/`@auditor/checks` en runtime | Mismo patrón que `packages/graph`/`packages/scoring`; motor de detección debe ser reusable/testeable sin infra | ✓ Good — v1.5 Phase 25, única dep runtime es `cheerio` |
+| Confianza de detección por reglas explícitas de conteo de señales (no puntaje numérico 0-100) | Más fácil de calibrar sin datos reales previos; auditable por regla en vez de umbral arbitrario | ✓ Good — v1.5 Phase 25 |
 
 ## Evolution
 
@@ -152,4 +160,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-10 after v1.4 milestone (shipped, archived)*
+*Last updated: 2026-07-21 after Phase 25*
