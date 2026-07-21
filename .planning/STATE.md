@@ -1,16 +1,20 @@
 ---
-gsd_state_version: '1.0'
+gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Fingerprinting técnico + fixes personalizados por CMS
+current_phase: 25
+current_phase_name: Fingerprint de stack técnico — contrato de datos y motor de detección
 status: planning
-last_updated: "2026-07-21T00:00:00.000Z"
+stopped_at: Completed 25-01-PLAN.md
+last_updated: "2026-07-21T20:42:59.949Z"
 last_activity: 2026-07-21
+last_activity_desc: ROADMAP.md, STATE.md y REQUIREMENTS.md (traceability) creados/actualizados para v1.5
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -25,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-21 after v1.5 milestone opened)
 ## Current Position
 
 Phase: 25 of 27 (Fingerprint de stack técnico — contrato de datos y motor de detección)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-07-21 — ROADMAP.md, STATE.md y REQUIREMENTS.md (traceability) creados/actualizados para v1.5
+Plan: 1 of 4 complete (25-01 — scaffold @auditor/fingerprint + contrato de datos)
+Status: In Progress
+Last activity: 2026-07-21 — Plan 25-01 ejecutado: paquete @auditor/fingerprint creado, contrato de datos (DetectedStack/AxisResult/Signature/PageFingerprintInput) fijado y en verde
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 25%
 
 ## Milestone v1.5 — Phases
 
@@ -42,6 +46,7 @@ Progress: [░░░░░░░░░░] 0%
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 0
 - Average duration: —
 - Total execution time: —
@@ -53,10 +58,16 @@ Progress: [░░░░░░░░░░] 0%
 | - | - | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: —
 - Trend: —
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 25 P01 | 6 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -97,6 +108,6 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-07-21
-Stopped at: Roadmap v1.5 creado (Phases 25-27), REQUIREMENTS.md traceability actualizada (17/17 mapeados). Listo para `/gsd-plan-phase 25`.
+Last session: 2026-07-21T20:42:59.943Z
+Stopped at: Completed 25-01-PLAN.md
 Resume file: None
