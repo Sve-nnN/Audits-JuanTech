@@ -9,7 +9,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Fingerprint de Stack Técnico
 
-- [ ] **FPRINT-01**: El sistema captura headers HTTP relevantes y cookies (nombres, no valores) de cada página crawleada, sin requests adicionales
+- [x] **FPRINT-01**: El sistema captura headers HTTP relevantes y cookies (nombres, no valores) de cada página crawleada, sin requests adicionales
 - [x] **FPRINT-02**: El sistema detecta el CMS principal del sitio (WordPress, Shopify, Webflow, Wix, Squarespace, o "no detectado") con un nivel de confianza (alto/medio/bajo)
 - [x] **FPRINT-03**: Si el CMS detectado es WordPress, el sistema detecta el builder de página en uso (Elementor, WPBakery, Divi, o Gutenberg/nativo por defecto)
 - [x] **FPRINT-04**: El sistema detecta CDN/proxy en uso (ej. Cloudflare, Fastly, Akamai) cuando hay señal suficiente
@@ -69,7 +69,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FPRINT-01 | Phase 25 | Pending |
+| FPRINT-01 | Phase 25 | Complete |
 | FPRINT-02 | Phase 25 | Complete |
 | FPRINT-03 | Phase 25 | Complete |
 | FPRINT-04 | Phase 25 | Complete |

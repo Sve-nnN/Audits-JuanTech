@@ -156,7 +156,7 @@ Detalle completo: `.planning/milestones/v1.4-ROADMAP.md`. Audit: `.planning/mile
 
 Aditivo sobre v1.0-v1.4 — no toca el pipeline de crawl/checks/scoring existente. Secuencia de riesgo ascendente según research (ARCHITECTURE.md/SUMMARY.md): primero el contrato de datos completo del fingerprint (tipos con `confidence`, captura de headers/cookies sin requests extra, motor de detección por eje independiente) porque cambiarlo después obliga a retocar cada adaptador y cada UI consumidora; luego el wiring end-to-end mínimo (worker + tabla en el reporte) para validar que la detección produce resultados útiles y visibles *antes* de invertir en la pieza más costosa; y por último el motor de recomendaciones por CMS (patrón adaptador + fallback en cadena), el diferenciador central del milestone.
 
-- [ ] **Phase 25: Fingerprint de stack técnico — contrato de datos y motor de detección** - Detecta CMS+builder/CDN/hosting/framework/analytics con confianza tipada por eje, nunca winner-take-all
+- [x] **Phase 25: Fingerprint de stack técnico — contrato de datos y motor de detección** - Detecta CMS+builder/CDN/hosting/framework/analytics con confianza tipada por eje, nunca winner-take-all (completed 2026-07-21)
 - [ ] **Phase 26: Wiring en el worker + tabla de stack en el reporte** - Persiste el stack detectado una vez por auditoría y lo muestra en una tabla tokens-only al inicio del reporte
 - [ ] **Phase 27: Motor de recomendaciones por CMS — patrón adaptador + fallback** - Reescribe el fix de los checks de mayor volumen según el CMS/builder detectado, con fallback genérico garantizado
 
