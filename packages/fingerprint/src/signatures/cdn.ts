@@ -1,9 +1,13 @@
 import type { AggregatedInput, Signature } from "../types";
 
 /**
- * Signatures del eje `cdn` (FPRINT-04). La confianza se deriva del número de
- * headers independientes del mismo vendor (multi-señal). Matching solo sobre
- * `ctx.responseHeaders` (keys en minúscula por contrato) — sin regex.
+ * Signatures del eje `cdn` (FPRINT-04). Cada firma devuelve un CONTEO de headers
+ * del mismo vendor, pero ese conteo es solo EVIDENCIA — NO alimenta la confianza.
+ * La confianza la fija el motor (`resolveConfidence`) por marcador inequívoco
+ * (`unequivocal`, ej. cf-ray / x-amz-cf-id) → `alto`, o por una única firma fuerte
+ * no inequívoca → `medio`. El conteo de headers solo se usa para el desempate de
+ * builder, no acá. Matching solo sobre `ctx.responseHeaders` (keys en minúscula
+ * por contrato) — sin regex.
  */
 
 /** Cuenta cuántos de los headers indicados están presentes. */

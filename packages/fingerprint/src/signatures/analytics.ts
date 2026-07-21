@@ -19,20 +19,28 @@ export const analyticsSignatures: Signature[] = [
     axis: "analytics",
     value: "GA4",
     strength: "fuerte",
-    test: (ctx) => htmlIncludes(ctx, "googletagmanager.com/gtag/js?id=G-", "gtag("),
+    // Solo el loader con measurement-id GA4 (`?id=G-`). `gtag(` suelto se comparte
+    // con Google Ads (`AW-`) y con GTM, por eso NO se usa como marcador (WR-03).
+    test: (ctx) => htmlIncludes(ctx, "googletagmanager.com/gtag/js?id=G-"),
   },
   {
     id: "analytics.gtm",
     axis: "analytics",
     value: "Google Tag Manager",
     strength: "fuerte",
-    test: (ctx) => htmlIncludes(ctx, "googletagmanager.com/gtm.js", "GTM-", "dataLayer"),
+    // Marcadores específicos de GTM: el loader `gtm.js` o el container id `GTM-`.
+    // `dataLayer` suelto NO sirve: aparece también en el snippet estándar de GA4,
+    // lo que producía un falso positivo sistemático de GTM (WR-01).
+    test: (ctx) => htmlIncludes(ctx, "googletagmanager.com/gtm.js", "GTM-"),
   },
   {
     id: "analytics.metaPixel",
     axis: "analytics",
     value: "Meta Pixel",
     strength: "fuerte",
-    test: (ctx) => htmlIncludes(ctx, "connect.facebook.net", "fbevents.js", "fbq("),
+    // Marcadores propios del pixel: el script `fbevents.js` o la llamada `fbq(`.
+    // `connect.facebook.net` suelto también lo carga el SDK de Facebook (sdk.js),
+    // no solo el pixel, por eso se descarta como marcador (WR-03).
+    test: (ctx) => htmlIncludes(ctx, "fbevents.js", "fbq("),
   },
 ];
