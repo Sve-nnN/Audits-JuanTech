@@ -70,10 +70,10 @@ coverage:
     requirement: FPRINT-01
     verification:
       - kind: other
-        ref: "pnpm --filter @auditor/db db:push (BLOQUEADO — P1001, entorno sin conexión a Neon)"
-        status: fail
+        ref: "pnpm --filter @auditor/db db:push + db:generate corridos por Juan (2026-07-21) — exitoso, DB en sync con schema"
+        status: pass
     human_judgment: true
-    rationale: "El entorno de ejecución no alcanza el compute de Neon (P1001). Juan debe correr el push manualmente; no se puede verificar automáticamente aquí sin conexión."
+    rationale: "El entorno de ejecución no alcanzaba el compute de Neon (P1001); Juan corrió el push/generate manualmente y confirmó DB en sync con el schema. Bloqueo cerrado."
 
 # Metrics
 duration: 5min
@@ -102,7 +102,7 @@ status: complete
 ## Task Commits
 
 1. **Task 1: Columnas aditivas Page.responseHeaders + cookieNames** - `66b7889` (feat)
-2. **Task 2: [BLOQUEANTE] Aplicar schema a Neon + regenerar cliente** - db:generate OK (offline, sin artefactos versionables); **db:push a Neon BLOQUEADO** (ver Issues)
+2. **Task 2: [BLOQUEANTE] Aplicar schema a Neon + regenerar cliente** - db:generate OK (offline); **db:push a Neon COMPLETADO por Juan (2026-07-21)** — DB en sync con schema (ver Issues → Resolución)
 3. **Task 3 (TDD): helpers + wiring** - `6ed9e0e` (test/RED) → `124234f` (feat/GREEN)
 
 _No hubo commit de REFACTOR: el código quedó limpio en GREEN._
@@ -143,19 +143,14 @@ _No hubo commit de REFACTOR: el código quedó limpio en GREEN._
 - Decisión: No se fabricó éxito. Se detuvieron los intentos de conexión (confirmado por el orquestador de fase: Juan aplicará el push).
 - `db:generate` SÍ corrió (offline) y regeneró `@prisma/client` con `responseHeaders`/`cookieNames`, por eso el typecheck de Task 3 es válido y pasa.
 
-**Acción pendiente para Juan (único paso que falta, no destructivo):**
-```bash
-cd /Users/juan/Documents/Codigo/Personal/juantech/auditor
-pnpm --filter @auditor/db db:push && pnpm --filter @auditor/db db:generate
-```
-Columnas aditivas/nullable → el push no requiere `--accept-data-loss`. Hasta correrlo, un crawl real fallaría al escribir en Neon (las columnas del cliente existen en tipos, pero no en la base viva).
+**Resolución (2026-07-21):** Juan corrió `pnpm --filter @auditor/db db:push && pnpm --filter @auditor/db db:generate` desde la raíz del repo — exitoso, sin prompt de pérdida de datos. La base Neon quedó en sync con el schema (columnas `responseHeaders`/`cookieNames` físicamente aplicadas). Bloqueo cerrado; un crawl real ya puede escribir ambos campos.
 
 ## User Setup Required
 None - no se requiere configuración de servicio externo nuevo (solo el `db:push` operacional descrito arriba, sobre la base Neon ya configurada).
 
 ## Next Phase Readiness
 - Código y schema listos para Phase 26 (motor `detectStack` que consume `Page.responseHeaders` + `Page.cookieNames`).
-- **Bloqueo abierto:** `pnpm --filter @auditor/db db:push` debe correrse contra Neon antes de un crawl real o de depender de las columnas en runtime.
+- **Bloqueo cerrado:** `db:push` a Neon aplicado por Juan (2026-07-21); base en sync con schema. Sin acciones operacionales pendientes.
 
 ## Self-Check: PASSED
 
