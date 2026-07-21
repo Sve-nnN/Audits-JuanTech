@@ -1,201 +1,285 @@
-# Architecture Research — Milestone v1.3 (Deeper checks + architecture visualizer)
+# Architecture Research
 
-**Domain:** SEO/technical web-audit tool — subsequent-milestone feature integration
-**Researched:** 2026-07-08
-**Confidence:** HIGH (grounded in direct reading of the current v1.0-v1.2 codebase, not greenfield guesswork)
+**Domain:** Tech-stack fingerprinting + CMS-personalized fix recommendations, integrated into an existing Crawlee + BullMQ + Prisma audit pipeline (monorepo pnpm/Turborepo)
+**Researched:** 2026-07-21
+**Confidence:** HIGH (codebase-derived: read `packages/db/prisma/schema.prisma`, `apps/worker/src/index.ts`, `packages/crawler/src/crawl.ts`, `packages/checks/src/{types,registry}.ts`, `packages/report-model/src/{model,build}.ts`. MEDIUM on the specific fingerprint signature list, cross-checked against Wappalyzer's published detection methodology.)
 
-> Scope note: this is **integration research** for 5 new features, not a re-design.
-> The existing pipeline (crawl → `runAllChecks` → PSI sample → render sample →
-> persist → `buildReportModel` → report UI/exports) is validated and MUST NOT
-> change. Everything below is additive. Where a recommendation touches an
-> existing file it says **MODIFY**; where it introduces something new it says
-> **NEW**.
-
----
-
-## Standard Architecture (current, unchanged)
+## Standard Architecture
 
 ### System Overview
 
 ```
-apps/worker (Crawlee)          packages/checks                packages/psi
-   crawl → runAllChecks() ──►    registry.ts orquesta            client.ts (fetch PSI)
-   → PSI sample → render         PageCheck/SiteCheck/            parser.ts (extrae subset
-   sample → persist              NetworkCheck                    de Lighthouse JSON)
-        │                        checks/{tech,onpage,               │
-        │                         schema,aeo}/*.ts                 issues.ts (mapea a
-        ▼                            │                              PerfIssueDraft)
-   Postgres/Prisma (Page, Issue,      ▼
-   Audit.scores/stats)          IssueDraft[] (checkId,
-        │                        category, severity,
-        │                        fingerprint, pageId|scope)
-        ▼
-packages/report-model                                          apps/web
-   buildReportModel(auditId) ────────────────────────────────►  audits/[id]/page.tsx
-   lee SOLO datos persistidos                                   audits/[id]/pages/page.tsx
-   (Audit.scores/stats, Issue[])                                 (usa CategoryAccordion,
-   expone ReportModel                                            IssueTypeGroup, JsonLdBadge)
-   (issuesByCategory, priorityCandidates,
-   grouping.ts, jsonld.ts = pure helpers)                       packages/export
-                                                                  (PDF/MD/PPTX, mismo
-                                                                  ReportModel)
+┌──────────────────────────────────────────────────────────────────────────┐
+│  apps/worker (Railway container, BullMQ Worker, processAuditJob)         │
+│                                                                            │
+│  resolveCanonicalUrl → runCrawl (Crawlee) → Page[] persisted (+headers)  │
+│                              │                                            │
+│                              ▼                                           │
+│              prisma.page.findMany({ auditId })  ── same Page[] reused ── │
+│                for: buildLinkGraph · runRenderSample · runAllChecks       │
+│                     ▼                          ▼                         │
+│         ┌─────────────────────┐   ┌─────────────────────────────┐        │
+│         │ @auditor/fingerprint │   │ @auditor/checks (unchanged) │        │
+│         │  detectStack(pages)  │   │  runAllChecks → IssueDraft[]│        │
+│         │  → DetectedStack     │   │  (checkId + generic rec.)   │        │
+│         └──────────┬───────────┘   └──────────────┬───────────────┘        │
+│                    │                               │                      │
+│                    ▼                               ▼                      │
+│         Audit.stack (new Json col)        Issue rows (schema unchanged)   │
+└──────────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  packages/report-model (buildReportModel — single source of truth)       │
+│                                                                            │
+│   audit.stack (Json) ──► DetectedStack ──► ReportModel.stack             │
+│                               │                                          │
+│                               ▼                                          │
+│                  @auditor/cms-adapters.resolveCmsRecommendation(         │
+│                     stack, issue.checkId, issue.recommendation )         │
+│                               │                                          │
+│                               ▼                                          │
+│              ReportIssue.recommendation ← personalized-or-generic text   │
+└──────────────────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┴────────────────┐
+              ▼                                ▼
+   apps/web report route                packages/export
+   <StackTable stack={model.stack}/>    (PDF/Markdown/PPTX — reads the
+   IssuesTable (recommendation already  same ReportModel; needs its own
+   personalized, zero extra plumbing)   stack-table section added)
 ```
 
-### Component Responsibilities (verified in code)
+### Component Responsibilities
 
-| Component | Responsibility | Verified detail |
-|-----------|----------------|------------------|
-| `packages/checks/src/types.ts` | Defines `PageCheck`/`SiteCheck`/`NetworkCheck` contracts | `PageCheck.run({page, $})` gets one crawled `Page` + Cheerio-loaded HTML; `SiteCheck.run({pages, origin, robotsTxt, sitemapUrls})` gets the whole crawled set. No pre-computed "template" or "link graph" is passed — checks that need that compute it ad-hoc from `page.html` (pattern: `orphanPages.ts`). |
-| `packages/checks/src/registry.ts` | Aggregates all check arrays by category | Reads from each category's `checks/{cat}/index.ts` (e.g. `techPageChecks`, `schemaSiteChecks`). Adding a check = create file → export from that category's `index.ts` → already included, no edit to `registry.ts` itself needed. |
-| `packages/db` (Prisma) `Page` model | Stores crawled page HTML + crawl metadata | `Page.depth: Int?` already exists and is already populated by the crawler — **no check or UI reads it yet** (confirmed via repo-wide grep: only appears in schema + crawler). `Page.html: String? @db.Text` is the only raw-HTML source; no separate link table exists. |
-| `packages/psi` | Fetches + parses PageSpeed Insights, maps to issues | `PsiMetrics` (types.ts) is a closed 5-field type (`performanceScore, lcpMs, cls, inpMs, ttfbMs`) built by hand in `parser.ts` from `RawPsiResponse.lighthouseResult.audits`. Lighthouse's `audits` object already contains far more (`uses-webp-images`, `render-blocking-resources`, `unused-css-rules`, `unused-javascript`, etc.) that is currently discarded. `issues.ts`'s `mapPerfIssues` maps `PsiMetrics` → `PerfIssueDraft[]` via a `METRIC_SPECS` array (numeric-threshold shape). |
-| `packages/report-model` | Single source of truth for report UI + exports | `buildReportModel(auditId)` explicitly **never recomputes checks** — reads only `Audit.scores`, `Audit.stats`, `Issue` rows (own JSDoc: "no checks are recomputed"). `grouping.ts` (`groupIssuesByType`) and `jsonld.ts` (`jsonLdStateForPage`) are pure, dependency-free helper functions — the established pattern for any new derived/grouped view. |
-| `apps/web/app/components/ui/IssueTypeGroup.tsx` | Renders issue groups | Calls `groupIssuesByType(issues)` **internally** — does not accept pre-computed groups as a prop. Coupled to that one grouping function today. |
-| `apps/web/app/audits/[id]/pages/page.tsx` | Lists crawled pages | Direct `prisma.page.findMany({select:...})` + `prisma.issue.findMany` — bypasses `report-model` (a known, already-documented fragility from v1.2: "parallel JSON-LD query in pages/page.tsx outside report-model"). Do not repeat this pattern for new features. |
-| `packages/checks/src/checks/tech/orphanPages.ts` | Reference pattern for link-graph computation | 100% on-demand: `cheerio.load(page.html)` per crawled `Page`, extracts `a[href]`, normalizes with `normalizeUrl`/`sameRegistrableDomain` from `@auditor/crawler`, no persistence, no migration. This is the exact pattern requested for the architecture visualizer's link graph. |
-| Existing "pages + grafo" screen (v1.1 SCREEN list) | JSON-LD entity-graph badge, NOT a link-graph visualizer | Confirmed: no link-graph/architecture-tree UI exists anywhere in `apps/web`. Feature 5 is genuinely new UI surface, not an extension of an existing graph screen. |
+| Component | Responsibility | Typical Implementation |
+|-----------|-----------------|-------------------------|
+| `packages/fingerprint` (**new**) | Detect CMS, page-builder, CDN/proxy, hosting/server, JS framework, analytics — from already-crawled `Page.html` + `Page.responseHeaders`. Pure, sync, no network calls. | Signal-registry of small rule objects (regex/substring on HTML + header lookups), scored per independent axis, run once over the full `Page[]` array after the crawl completes. |
+| `packages/cms-adapters` (**new**) | Map `(checkId, DetectedStack.cms)` → a CMS-specific fix instruction; fall back to the check's existing generic `recommendation` when no adapter or no per-check entry exists. | One module per platform (`wordpress/`, `shopify/`, `webflow/`, `wix-squarespace/`) exporting a `Record<checkId, string>` lookup table, aggregated into a registry + `resolveCmsRecommendation()`. |
+| `packages/crawler` (**modified**) | Capture a small allowlisted subset of response headers per crawled page (already has `response` in hand during `requestHandler` — no new requests). | Extend `Page.create/update` payload in `crawl.ts` with `responseHeaders: pickHeaders(response.headers)`. |
+| `packages/db` (**modified**) | Persist `Page.responseHeaders Json?` and `Audit.stack Json?` — both additive/nullable, same pattern as existing `schemaGraph`/`schemaJson`/`scores`/`stats`. | Prisma migration, no backfill (old rows simply have `null`, UI degrades gracefully — same precedent as `Audit.resolvedUrl`). |
+| `apps/worker` (**modified**) | Call `detectStack(pages, origin)` once per audit, right after the crawl's `Page[]` load (same array already used for `buildLinkGraph`/`runAllChecks`); persist the result on `Audit.stack` in the existing final `prisma.audit.update`. | One extra sync function call + one extra field in an update payload that already exists — no new DB round-trip, no new BullMQ sub-job. |
+| `packages/report-model` (**modified**) | Parse `Audit.stack`, expose it as `ReportModel.stack`; resolve each `ReportIssue.recommendation` through `@auditor/cms-adapters` before returning it. | `buildReportModel()` gains one parse + one map-over-issues call; `ReportModel`/`ReportIssue` gain one field each. |
+| `apps/web` (**modified**) | Render a `StackTable` at the top of the report (right after/alongside the score gauge); everything else in the report (IssuesTable, exports) already reads `ReportIssue.recommendation`, so personalization needs zero extra wiring there. | New tokens-only component, same pattern as `CategoryCard`/`Badge`. |
+| `packages/export` (**optional, flag as follow-up**) | Add a stack-table section to PDF/Markdown/PPTX so the personalized report is complete outside the browser too. | Reads `ReportModel.stack` the same way `apps/web` does; recommendation text is already personalized for free. |
 
-## Feature-by-Feature Integration
+## Recommended Project Structure
 
-### Feature 1 — Schema-content mismatch check (FAQPage/HowTo/Product without matching visible content)
+```
+packages/
+├── fingerprint/                  # NEW — pure detection, zero platform coupling
+│   ├── src/
+│   │   ├── types.ts              # DetectedStack, StackAxis, Evidence, FingerprintInput
+│   │   ├── rules/
+│   │   │   ├── cms.ts            # WordPress/Shopify/Webflow/Wix/Squarespace/Drupal/…
+│   │   │   ├── cdn.ts            # Cloudflare/Vercel/CloudFront/Fastly/Akamai
+│   │   │   ├── hosting.ts        # Server header heuristics (nginx/Apache/LiteSpeed/…)
+│   │   │   ├── jsFramework.ts    # Next.js/__NEXT_DATA__, React, Vue data-v-*, Nuxt
+│   │   │   └── analytics.ts      # GA4/GTM/Meta Pixel/Hotjar/Segment
+│   │   ├── detectStack.ts        # orchestrator: scores each axis independently
+│   │   └── index.ts
+│   └── package.json              # deps: cheerio only — no @auditor/db, no network
+├── cms-adapters/                 # NEW — recommendation resolution, zero check coupling
+│   ├── src/
+│   │   ├── types.ts              # CmsAdapter, CmsPlatform (re-exported from fingerprint, type-only)
+│   │   ├── wordpress/{onpage,tech,schema}.ts
+│   │   ├── shopify/{onpage,tech,schema}.ts
+│   │   ├── webflow/{onpage,tech,schema}.ts
+│   │   ├── wix-squarespace/{onpage,tech,schema}.ts
+│   │   ├── registry.ts           # Record<CmsPlatform, CmsAdapter | undefined>
+│   │   ├── resolveCmsRecommendation.ts
+│   │   └── index.ts
+│   └── package.json              # deps: @auditor/fingerprint (type-only import)
+├── checks/                        # UNCHANGED — never imports fingerprint or cms-adapters
+├── crawler/
+│   └── src/crawl.ts              # MODIFIED — + pickHeaders(), + Page.responseHeaders
+├── db/
+│   └── prisma/schema.prisma      # MODIFIED — + Page.responseHeaders, + Audit.stack
+└── report-model/
+    └── src/build.ts              # MODIFIED — + stack parse, + resolveCmsRecommendation call
 
-**Type:** new `PageCheck`.
-**Location (NEW):** `packages/checks/src/checks/schema/schemaContentMismatch.ts` (same folder as `schemaTypes.ts`, `schemaValidate.ts`).
+apps/
+├── worker/src/index.ts           # MODIFIED — + detectStack() call, + Audit.stack persist
+└── web/app/
+    ├── audits/[id]/page.tsx      # MODIFIED — renders <StackTable/>
+    └── components/ui/
+        ├── StackTable.tsx        # NEW
+        └── StackTable.module.css # NEW — tokens-only, mirrors CategoryCard/Badge
+```
 
-- Reuses `extractJsonLdBlocks`, `flattenNodes`, `typesOf`, `hasProp` from `schema/extract.ts` — no changes needed there for the basic case; may need 1-2 additional helpers (e.g. counting `FAQPage.mainEntity` questions, walking `HowTo.step`) — add these to `extract.ts` if generic/reusable, otherwise keep private to the new check file.
-- Needs the page's visible text — reuse whatever helper `onpage/contentLength.ts` already uses for visible-text extraction (avoid a second implementation of "visible text vs raw HTML").
-- Registration (MODIFY): `checks/schema/index.ts` — add to `schemaPageChecks` array and export list. `registry.ts` itself untouched.
-- New `checkId` (e.g. next available `SD-0x`), `category: "schema"`.
-- No dependency on any other v1.3 feature — buildable first/independently.
+### Structure Rationale
 
-**New:** `schemaContentMismatch.ts` (+ test).
-**Modified:** `checks/schema/index.ts`; possibly `extract.ts` (generic sub-property helpers only).
+- **`packages/fingerprint` has zero dependency on `@auditor/db`, `@auditor/crawler` or `@auditor/checks`.** It accepts a locally-declared minimal input type (`{ url, html, responseHeaders }[]`), exactly mirroring how `packages/checks/src/types.ts` already redeclares `RenderVerdictValue` locally instead of importing `@auditor/render` — the codebase already has this "don't pull in a sibling package just for a type" convention; fingerprint should follow it too, and additionally must stay import-free of anything platform-specific.
+- **`packages/cms-adapters` imports only a *type* from `@auditor/fingerprint`**, never a runtime function. It has no dependency on `@auditor/checks` in either direction — the adapter registry is keyed by the plain `checkId` string (`"ONPAGE-04"`, `"TECH-04"`, …) that is already a stable, persisted field on every `Issue` row. This is what satisfies "sin acoplar `packages/checks` a paquetes de plataformas específicas": the coupling point is a string key, not an import.
+- **One adapter module per platform, one file per check-category inside it** (`onpage.ts`/`tech.ts`/`schema.ts`), mirroring `packages/checks/src/checks/{onpage,tech,schema}/` — same mental model for whoever maintains both sides, and matches the milestone's explicit scope ("cobertura … en on-page, SEO técnico y datos estructurados").
+- **`wix` and `squarespace` are two distinct `CmsPlatform` detection values** (for accurate on-screen labeling — Juan will see "Wix" or "Squarespace", not a merged label) **but both route to the same `wix-squarespace` adapter module** in the registry, matching the milestone's own grouping of the two under one adapter target.
 
-### Feature 2 — Click-depth check (3-click rule)
+## Architectural Patterns
 
-**Type:** new `PageCheck` (simplest option — `ctx.page.depth` is already on the `Page` object `PageCheckCtx` receives; no need for `SiteCheck`'s full-set context unless a site-wide aggregate like "% of pages beyond 3 clicks" is wanted later).
-**Location (NEW):** `packages/checks/src/checks/tech/clickDepth.ts` (folder `tech`, same domain as `orphanPages.ts`).
+### Pattern 1: Compute-once-and-thread-through (already established, reused verbatim)
 
-- Reads `ctx.page.depth` directly — zero HTML parsing, cheapest of the 5 features.
-- `depth` is nullable (`Int?`) — check MUST degrade clean (`return []`) when `depth == null`, matching the project's established best-effort degradation pattern (worker `try/catch`, PSI's "no disponible").
-- New `checkId` (e.g. `TECH-10`), `category: "tech"`, severity by threshold (e.g. `<=3` ok, `4` warning, `>=5` critical — confirm exact thresholds with Juan if needed).
-- Registration (MODIFY): `checks/tech/index.ts` — add to `techPageChecks`.
-- **"Surface in the report"**: the requirement text implies showing depth directly, not just via the issue. Two places this can land:
-  1. The issue itself already flows through `issuesByCategory`/`priorityCandidates` automatically (no `report-model` change needed — it's a normal `IssueDraft` with `pageId`).
-  2. If depth should also show as a raw value/badge on the pages list (`apps/web/app/audits/[id]/pages/page.tsx`), that page does a direct Prisma `select` — just add `depth` to the existing `select` and render it (MODIFY), no `report-model` involvement since it's a raw `Page` field, not derived issue data.
+**What:** A derived artifact that costs real CPU/IO is computed exactly once per audit, right after the crawl, from the already-persisted `Page[]` array — never per-check, never per-request.
+**When to use:** Any cross-page analysis a check battery would otherwise redundantly recompute. The codebase already does this twice: `buildLinkGraph` (BFS depth, Phase 16) and `runRenderSample` (SSR/CSR verdict, Phase 12) are both computed once in `apps/worker/src/index.ts` and passed into `runAllChecks` via `SiteCheckCtx`.
+**Trade-offs:** Requires the worker to hold the full `Page[]` in memory once more (already does, for the checks pass) — no extra Postgres round-trip. Con: the worker function grows another local variable/step; acceptable given the existing precedent already has three (`graph`, `renderVerdictByPageId`, and now `detectedStack`).
 
-**New:** `clickDepth.ts` (+ test).
-**Modified:** `checks/tech/index.ts`; optionally `apps/web/app/audits/[id]/pages/page.tsx` (select + render `depth`).
-**Dependencies:** none — buildable in parallel with Feature 1.
+**Example:**
+```typescript
+// apps/worker/src/index.ts — inserted right after `pages` loads, alongside
+// the existing buildLinkGraph call. Sync, no I/O — reuses Page.html/headers
+// that the crawl already fetched. Runs once, not per check, not per page.
+const detectedStack: DetectedStack = detectStack(
+  pages.map((p) => ({
+    url: p.finalUrl ?? p.url,
+    html: p.html,
+    responseHeaders: p.responseHeaders as Record<string, string> | null,
+  })),
+  origin
+);
+```
 
-### Feature 3 — Lighthouse diagnostics (WebP, render-blocking, unused CSS/JS)
+### Pattern 2: Independent-axis detection, not a single mutually-exclusive winner
 
-**Type:** extension of `packages/psi`, not `packages/checks`.
+**What:** `DetectedStack` is a struct with independent fields (`cms`, `builder`, `cdn`, `hosting`, `jsFramework`, `analytics: string[]`), each resolved by its own rule set. A WordPress+Elementor site behind Cloudflare using Google Analytics is a completely normal, simultaneous result across four axes — it is never "first matching rule wins and stops everything else."
+**When to use:** Any fingerprinting/technology-detection problem where categories aren't mutually exclusive (this is exactly how Wappalyzer's own rule categories work — CMS, CDN, analytics, and JS framework are separate buckets evaluated independently).
+**Trade-offs:** Slightly more code (one rule module per axis) than a flat "first CMS pattern that matches, return it" chain, but avoids the real failure mode of the naive approach: a Cloudflare-fronted WordPress site would otherwise risk the CDN signal (which is often the *strongest, most unambiguous* signal — `cf-ray` header) clobbering or preventing the CMS signal from being evaluated at all.
 
-- **`parser.ts` (MODIFY):** extract the relevant Lighthouse audits (`uses-webp-images`, `render-blocking-resources`, `unused-css-rules`, `unused-javascript`, etc.) from `RawPsiResponse.lighthouseResult.audits` — will need to widen the audit-entry type (today only `numericValue` is typed; these audits carry `score`/`details.items` with wasted-bytes info).
-- **New file `packages/psi/src/diagnostics.ts`:** a sibling to `issues.ts`, exposing `mapDiagnosticIssues(diagnostics)`. Recommend a **separate function**, not folding diagnostics into `mapPerfIssues`'s `METRIC_SPECS` — `METRIC_SPECS` assumes "numeric value + threshold" (LCP/CLS/TTFB shape); Lighthouse diagnostics are "pass/fail + list of offending resources", a different shape.
-- **Does this change `PsiMetrics`'s shape?** No — recommend a **parallel structure**, not new fields on `PsiMetrics`. `PsiMetrics` is what gets cached (`cache.ts`) and averaged across mobile/desktop and across sampled pages (`ReportStrategyPerf.avg*` in report-model) — a diagnostic like "uses WebP: yes/no" has no sensible average/cache semantics and would pollute a type already used in 4+ places. Add `PsiDiagnostics` to `types.ts` and extend `PsiRunResult` (`{ metrics, diagnostics, ok, error, fromCache }`) so diagnostics ride alongside metrics without entering the averaging/caching path used for `ReportPerf`.
-- **Worker (MODIFY) `apps/worker/src/index.ts`:** the existing PSI loop that calls `runPsi`/maps to `PerfIssueDraft` gets a parallel call to `mapDiagnosticIssues` and pushes the results into the same issues array, same pattern already used for `renderIssues` (Phase 12).
-- `category: "perf"` — flows into existing `issuesByCategory`/scoring untouched; `scorePerfCategory` already treats "perf" as one aggregated category, no scoring changes needed.
-- **Cost:** zero extra API calls — this is data PSI already returns and today's 4-field parser discards. Low risk, high value.
+**Example:**
+```typescript
+// packages/fingerprint/src/types.ts
+export type CmsPlatform = "wordpress" | "shopify" | "webflow" | "wix" | "squarespace" | "unknown";
 
-**New:** `packages/psi/src/diagnostics.ts` (+ test).
-**Modified:** `packages/psi/src/types.ts`, `packages/psi/src/parser.ts`, `apps/worker/src/index.ts`.
-**Dependencies:** none functionally; touches the same worker file as Features 1/2 (sequence to avoid merge conflicts, not because of a real dependency).
+export interface DetectedStack {
+  cms: { platform: CmsPlatform; confidence: "high" | "medium" | "low"; builder?: string | null };
+  cdn: { name: string; confidence: "high" | "medium" | "low" } | null;
+  hosting: { server: string | null } | null;
+  jsFramework: { name: string; confidence: "high" | "medium" | "low" } | null;
+  analytics: string[]; // e.g. ["Google Analytics 4", "Meta Pixel"]
+}
+```
 
-### Feature 4 — Template-based issue grouping (home/category/product/article)
+### Pattern 3: Recommendation resolution is a report-time concern, not a persist-time one
 
-**Where does template classification live?** Recommend **`packages/report-model`**, as a new pure helper (same pattern as `grouping.ts`/`jsonld.ts`), NOT `apps/web`. Reason: `report-model` is explicitly documented as the single source of truth "consumed by report UI AND export serializers" — if template classification lived only in `apps/web`, the PDF/Markdown/PPTX exports (`packages/export`) couldn't reuse it without duplicating logic. This is exactly the mistake the project already flagged as a v1.2 latent fragility (parallel JSON-LD query outside `report-model`) — don't repeat it.
+**What:** `Issue.recommendation` (the generic text a check already emits, e.g. ONPAGE-04's `"Agrega el atributo alt descriptivo a esta imagen."`) is **never rewritten in the database**. `packages/report-model` resolves the CMS-specific variant lazily, at `buildReportModel()` time, by calling `resolveCmsRecommendation(stack, issue.checkId, issue.recommendation)` and putting the result into `ReportIssue.recommendation`.
+**When to use:** Whenever personalization logic might change independently of the underlying detection (you'll want to tweak WordPress wording without re-running any audit) and whenever the same personalization needs to reach multiple consumers (on-screen report + PDF/Markdown/PPTX exports) that already read a single shared model (`ReportModel`/`ReportIssue`) — matches the existing v1.2 decision "`buildReportModel` as single source of truth (report UI + exports + grouping)."
+**Trade-offs:** Adds a small amount of work to every `buildReportModel()` call (bounded — it's a map lookup per issue, not I/O). The alternative (persisting the resolved text at worker-run time) would require re-running the whole audit just to fix a typo in a WordPress instruction, and would silently diverge for old `Issue` rows saved under an older wording — resolving at read time avoids both problems.
 
-**Concrete design:**
-- **New file `packages/report-model/src/template.ts`:**
-  - `classifyTemplate(url: string, ...): PageTemplate` — a pure heuristic classifier (URL pattern matching, e.g. `/producto/`, `/categoria/`, `/blog/`; possibly cross-referenced with dominant schema.org type if available via `schemaGraph`).
-  - `groupIssuesByTemplate(issues: ReportIssue[]): TemplateGroup[]` — analogous to `groupIssuesByType` but keyed by `classifyTemplate(issue.url)`.
-- **Open design risk to resolve before building:** `ReportIssue.url` alone may not carry enough signal for reliable classification (URL patterns vary per site). If more robust classification is needed (e.g. dominant schema type, or depth+content heuristics), that's a product-research question, not just an architecture one — flag as an open question for the phase that builds this.
+**Example:**
+```typescript
+// packages/report-model/src/build.ts — inside toReportIssue(), given `stack`
+// already parsed from audit.stack earlier in buildReportModel()
+function toReportIssue(issue: IssueRow, stack: DetectedStack | null): ReportIssue {
+  const resolved = resolveCmsRecommendation(stack, issue.checkId, issue.recommendation);
+  return {
+    ...,
+    recommendation: resolved.text,      // CMS-specific text, or the original generic one
+    recommendationSource: resolved.source, // "cms" | "generic" — lets the UI show a small badge
+  };
+}
+```
 
-**Report UI — new component or reuse `IssueTypeGroup`?**
-`IssueTypeGroup.tsx` today calls `groupIssuesByType(issues)` internally and does not accept pre-computed groups — it's coupled to one specific grouping function. Two options:
-1. **New component `TemplateGroup.tsx`** replicating ~90% of the JSX/CSS module, calling `groupIssuesByTemplate` instead — fast but duplicates a component (and any future fix/accessibility change needs to be applied twice).
-2. **Recommended: generalize the existing component** to accept pre-computed `groups: IssueTypeGroup[]` (rename the shared type more generically, e.g. `IssueGroup`) as an optional prop, defaulting to `issues` + `groupIssuesByType` for backward compatibility. Both grouping functions already return a compatible shape (`{key/title, severity, count, issues}`), making this a low-risk refactor. **This decision should be made before or alongside building Feature 4** — it's the only one of the 5 features with a shared-component reuse decision that affects build order.
+## Data Flow
 
-**New:** `packages/report-model/src/template.ts` (+ test), exported from `report-model/src/index.ts`.
-**Modified (recommended):** `apps/web/app/components/ui/IssueTypeGroup.tsx` (generalize props) — or a new standalone `TemplateGroup.tsx` if avoiding touching the shared component is preferred for time/risk reasons.
-**Modified:** `apps/web/app/audits/[id]/page.tsx` (add the template-grouped section/tab alongside the existing `CategoryAccordion`+`IssueTypeGroup` axis).
-**Out of scope unless requested:** extending `packages/export` serializers to also group by template — the milestone scope says "grouping... in the report", not exports.
+### Request Flow (fingerprinting + personalized recommendations)
 
-### Feature 5 — Architecture visualizer (Octopus.do-style)
+```
+runCrawl() persists Page rows (html + NEW responseHeaders)
+    ↓
+apps/worker loads Page[] once (already does, for checks/graph/render)
+    ↓
+detectStack(pages, origin)  →  DetectedStack (sync, in-memory, no I/O)
+    ↓
+prisma.audit.update({ data: { stack: detectedStack, ...existing fields } })
+    ↓ (report request, later)
+buildReportModel(auditId): reads audit.stack + Issue rows
+    ↓
+resolveCmsRecommendation(stack, issue.checkId, issue.recommendation) per issue
+    ↓
+ReportModel { stack, priorityIssues[with personalized recommendation], ... }
+    ↓
+apps/web renders <StackTable> + <IssuesTable> (recommendation already resolved)
+packages/export renders PDF/Markdown/PPTX from the SAME ReportModel
+```
 
-**Route (NEW):** `apps/web/app/audits/[id]/architecture/page.tsx` — a Server Component following the exact pattern of `pages/page.tsx` (direct `prisma.*.findMany` + render), **not a new API route**. There is no precedent in this codebase for API routes reading existing-audit data (`apps/web/app/api/audits/route.ts` is for creation/enqueueing, not reading an existing audit's tree) — stay consistent with the established pattern rather than introduce a new one.
+### Key Data Flows
 
-**Computing the graph — server-side, on-demand, no migration:**
-- Reuse the `orphanPages.ts` pattern literally: `prisma.page.findMany({ where: { auditId }, select: { id, url, finalUrl, html, depth } })`, then `cheerio.load(page.html)` per page to extract internal `a[href]` links and build edges (`normalizeUrl` + `sameRegistrableDomain` from `@auditor/crawler`, the same helpers `orphanPages.ts` already uses).
-- **Layer decision:** this "compute graph from raw HTML" logic is a candidate for `packages/report-model` (e.g. `packages/report-model/src/linkGraph.ts`, a pure `buildLinkGraph(pages, origin): LinkGraph` function) for the same centralization reason as Feature 4. **However**, unlike `buildReportModel` (which only reads `Audit.scores/stats` + `Issue`), this needs each `Page.html` — a heavy field (`@db.Text`) that `buildReportModel` deliberately never fetches (to avoid inflating the main report query). **Recommendation: a separate helper/query path, NOT merged into `ReportModel` or `buildReportModel`** — a standalone pure helper in `report-model` (or its own small module) invoked only by the `/architecture` route, with its own Prisma query that fetches `html` only there, never in the main report's query.
-- The internal-link-extraction fragment (~10 lines: `a[href]` + `normalizeUrl` + `sameRegistrableDomain`) currently lives inline inside `orphanPages.ts` in `packages/checks`. If `report-model` doesn't depend on `packages/checks`, decide: (a) duplicate the small fragment (acceptable given its size, avoids a new cross-package dependency), or (b) extract it to a shared utility package. Given the fragment's size, **duplication is the pragmatic choice** here.
-- **Hierarchical tree by depth:** uses `Page.depth` directly — same field as Feature 2. This creates a **data dependency** between Feature 2 and Feature 5 (both read `Page.depth`) but **not a build dependency** — Feature 5 can read `Page.depth` straight from Prisma regardless of whether Feature 2's check exists yet. They're independent in code; they just share an existing schema field.
-
-**Visualization component:** genuinely new — nothing in the current design system (`ScoreGauge`, `CategoryCard`, `IssuesTable`, `CategoryAccordion`) is graph/tree-oriented; all existing components are tabular/score-oriented. A graph-rendering library choice (e.g. `react-flow`/`@xyflow/react`, or a hand-rolled SVG/CSS hierarchical layout to avoid a new heavy dependency) is an **open stack decision, not resolved by this architecture research** — flag for a dedicated library-research pass in whichever phase builds this feature.
-
-**New:** `apps/web/app/audits/[id]/architecture/page.tsx` (+ CSS module, + new graph/tree component(s) in `apps/web/app/components/ui/`); `packages/report-model/src/linkGraph.ts` (or a standalone module, per the layering decision above).
-**Modified:** app navigation (add an "Arquitectura" link near the existing "Páginas rastreadas" link).
-**No Prisma migration** — `html` and `depth` both already exist, satisfying the milestone's explicit no-migration constraint.
-
-## Dependencies and Recommended Build Order
-
-There are no strong **functional** dependencies between the 5 features — all read already-persisted data (`Page.html`, `Page.depth`, PSI JSON) without requiring another new feature to exist first. The real dependencies are about **shared design decisions and risk**, not data:
-
-1. **Feature 2 (click-depth)** — build first. Simplest (reads an already-persisted field, zero HTML parsing, near-zero risk); validates the "new check → registry → surfaced in report" pattern the others reuse.
-2. **Feature 1 (schema-content mismatch)** — second. Same `PageCheck` pattern as Feature 2 but more logic (JSON-LD vs visible-text cross-reference); reuses the already-mature `extract.ts`, no dependency on the others.
-3. **Feature 3 (Lighthouse diagnostics)** — third, buildable in parallel with 1/2 since it touches a different package (`psi`, not `checks`). The only shared touch-point is `apps/worker/src/index.ts` (where 1 and 2 also add issue-pushes) — sequence the worker edits to avoid merge conflicts, not because of a functional dependency.
-4. **Feature 4 (template grouping)** — fourth, AFTER deciding the `IssueTypeGroup` generalization (or committing to a standalone `TemplateGroup` to avoid touching the shared component). This is the only feature with a UI-component-reuse decision worth resolving before writing the final UI, to avoid rework.
-5. **Feature 5 (architecture visualizer)** — last. Largest surface (new route, new graph component(s), an open visualization-library decision) and the one with the most genuinely new risk (only feature introducing a potentially heavy new UI dependency). Building it last lets Feature 2's `Page.depth` usage and the link-extraction pattern be validated/stable first, even though there's no hard build dependency.
-
-**Suggested phase grouping:**
-- Phase A: Features 2 + 1 (both `PageCheck`s in `packages/checks`, low risk, same pattern).
-- Phase B: Feature 3 (isolated in `packages/psi`).
-- Phase C: Feature 4 (report-model helper + UI component-reuse decision).
-- Phase D: Feature 5 (new route + dedicated graph-library research — likely candidate for its own research-flagged phase).
-
-## Anti-Patterns to Avoid (specific to this milestone)
-
-### Anti-Pattern 1: Template classification or link-graph logic living only in `apps/web`
-**What people would do:** write `classifyTemplate`/`buildLinkGraph` directly inside the `apps/web` Server Component.
-**Why it's wrong:** repeats the already-documented v1.2 fragility ("parallel JSON-LD query in pages/page.tsx" outside `report-model`) — business logic outside the single source of truth, unavailable to future exports, harder to unit-test than a pure function.
-**Do this instead:** pure helpers in `packages/report-model`, consumed by the Server Component.
-
-### Anti-Pattern 2: Folding Lighthouse diagnostics into `PsiMetrics`
-**What people would do:** add fields like `usesWebp: boolean` directly onto the `PsiMetrics` interface.
-**Why it's wrong:** `PsiMetrics` is what gets cached (`cache.ts`) and averaged across mobile/desktop and across sampled pages (`ReportStrategyPerf.avg*`) — averaging/caching a pass/fail diagnostic makes no semantic sense and pollutes a type already relied on in 4+ places.
-**Do this instead:** a parallel `PsiDiagnostics` structure, mapped to issues by a separate function (`mapDiagnosticIssues`), matching the same "shape-compatible with IssueDraft" pattern `PerfIssueDraft` already uses.
-
-### Anti-Pattern 3: Duplicating `IssueTypeGroup` without generalizing it
-**What people would do:** copy/paste `IssueTypeGroup.tsx` into `TemplateGroup.tsx`, changing only the grouping function call.
-**Why it's wrong:** duplicates CSS module + JSX + tests; any future visual/accessibility fix must be applied twice.
-**Do this instead (if time allows):** generalize `IssueTypeGroup` to accept pre-computed groups in a shared shape (`{title, severity, count, issues}`), reused by both grouping axes.
-
-### Anti-Pattern 4: Fetching `Page.html` inside `buildReportModel`
-**What people would do:** add `html` to `buildReportModel`'s query so the architecture visualizer can reuse the same `ReportModel`.
-**Why it's wrong:** `html` is `@db.Text` (potentially large, ×500 pages) and `buildReportModel` feeds both the report page load and all 3 exports — inflating that query for a feature used only on one isolated new route degrades everything else.
-**Do this instead:** a dedicated Prisma query (with `html` in the `select`) scoped only to the architecture-visualizer route/helper.
+1. **Detection flow:** Crawl → `Page.html`/`Page.responseHeaders` (already fetched, zero extra requests) → one `detectStack()` call per audit → `Audit.stack` (new Json column). Never touches `packages/checks`.
+2. **Personalization flow:** `Issue.checkId` (already persisted, unchanged) + `Audit.stack` (read at report-build time) → `packages/cms-adapters` lookup → `ReportIssue.recommendation` (resolved, never persisted back to `Issue`).
 
 ## Scaling Considerations
 
-| Concern | At current scale (≤500 URLs/audit) | Notes |
-|---------|--------------------------------------|-------|
-| Link-graph computation (Feature 5) | Fine — `orphanPages.ts` already does the same `cheerio.load` × N pages work today with no reported performance issue | If audits ever grow past 500 URLs, revisit whether the graph computation should be cached/persisted instead of on-demand; out of scope for v1.3. |
-| Lighthouse diagnostics (Feature 3) | Zero extra cost — parsed from data already fetched | No new PSI quota consumption. |
-| Template classification (Feature 4) | Cheap — pure string/regex classification per issue, O(n) | Revisit only if classification needs cross-referencing schema data at scale. |
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| Current (free tier, ≤500 URLs/audit) | `detectStack` scans all crawled pages in memory — negligible cost (string/regex over already-loaded HTML, no new network or DB round-trip). Fine as-is. |
+| More CMS platforms added later | Pure Open/Closed growth: one new rule file in `packages/fingerprint/src/rules/cms.ts` + one new adapter module in `packages/cms-adapters/src/<platform>/`, registered in the two registries. No change to `packages/checks`, `apps/worker` orchestration, or `report-model`'s call site. |
+| Cross-audit analytics (e.g. "% of audits that are WordPress") | `Audit.stack` as Json is queryable via Postgres JSON operators / Prisma's `path`/`equals` filters for light aggregate queries. If heavier reporting emerges (dashboards, filtering audits by CMS at scale), promote to a normalized `Stack` table — the `ReportModel.stack` shape stays the same, so this migration is invisible to `apps/web`/`packages/export`. |
+
+### Scaling Priorities
+
+1. **First likely friction:** wording/coverage of adapter lookup tables (needs real content authoring per checkId, not an engineering bottleneck) — not a performance concern.
+2. **Second:** if fingerprint rules grow to dozens of signals per axis, consider a small scoring threshold config instead of ad-hoc booleans, but this is a content/tuning concern, not a structural one — the `rules/*.ts` file-per-axis structure already scales to that.
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Coupling `packages/checks` to CMS knowledge
+
+**What people do:** Add `if (stack.cms === "wordpress") { recommendation = "..." }` directly inside a check file (e.g. inside `altText.ts`), because "it's right there and the check already knows the issue."
+**Why it's wrong:** Violates the explicit constraint of this milestone, makes `packages/checks` depend on a platform-specific package (breaking its current zero-platform-dependency status, verified by the existing convention of redeclaring types rather than importing sibling packages), and means every future CMS addition requires touching every check file instead of adding one adapter module.
+**Instead:** Checks keep emitting exactly what they emit today (generic `recommendation` + stable `checkId`). Resolution happens once, downstream, in `packages/report-model`, via `packages/cms-adapters`.
+
+### Anti-Pattern 2: Per-page/per-request fingerprinting inside the Crawlee `requestHandler`
+
+**What people do:** Try to detect the CMS incrementally, request-by-request, inside `packages/crawler`'s `requestHandler` (since "cookies and paths are visible right there").
+**Why it's wrong:** Couples the generic, reusable crawling engine (`packages/crawler`) to CMS-detection knowledge it has no business knowing about, and buys no real performance benefit — Crawlee already fetches and stores every page's HTML regardless; a post-crawl scan over the same in-memory/DB data costs nothing extra a per-request hook would have saved.
+**Instead:** `packages/crawler` only captures raw signal (an allowlisted header subset), nothing more. All interpretation (turning headers/HTML into "this is Shopify") lives in `packages/fingerprint`, run once after the crawl.
+
+### Anti-Pattern 3: Winner-take-all technology detection
+
+**What people do:** Build a single ordered rule chain ("check WordPress markers, else Shopify markers, else Webflow markers, else …, first match wins") and store one flat `stack: string` value.
+**Why it's wrong:** CDN, hosting, CMS, JS framework and analytics are independent facts that regularly co-occur (a WordPress site is very often *also* behind Cloudflare *and* using GA4). A single winner-take-all match either mislabels the CDN as the CMS or silently drops information the report table is supposed to show.
+**Instead:** Score each axis (`cms`, `cdn`, `hosting`, `jsFramework`, `analytics`) independently (Pattern 2 above); only the `cms` axis feeds `packages/cms-adapters`' single-adapter-per-issue selection, because fix instructions genuinely are platform-exclusive (you don't show WordPress AND Shopify instructions for the same issue).
+
+### Anti-Pattern 4: Persisting raw cookie values for fingerprinting
+
+**What people do:** Store the full `Set-Cookie` header value (e.g. `wordpress_logged_in_abc123=<session-hash>; …`) because "the cookie name tells you the CMS."
+**Why it's wrong:** Session/auth cookie values are exactly the kind of data the project's own deploy checklist flags for GDPR review; storing them serves no fingerprinting purpose (only the cookie *name* is a useful signal) and creates an unnecessary PII/security liability in `Page.responseHeaders`.
+**Instead:** When capturing `Set-Cookie`, extract and persist only the cookie **names** (split on the first `=`), never the value.
+
+## Integration Points
+
+### External Services
+
+None new. Fingerprinting is derived entirely from data the crawl already fetches — no new PSI/Lighthouse/third-party calls, matching the milestone's own constraint ("vía fingerprint propio … sin servicios pagos de terceros").
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|----------------|-------|
+| `packages/crawler` → `packages/db` | Direct Prisma write (`Page.responseHeaders`) | Additive column; requires the `packages/db` migration to land first (build-order dependency). |
+| `apps/worker` → `packages/fingerprint` | Direct function call, sync, in-process | No BullMQ sub-job needed — this is cheap post-processing, not a separate long-running task; keep it inside the same `crawlAndCheck()` closure that already runs `buildLinkGraph`/`runAllChecks`. |
+| `apps/worker` → `packages/db` | Direct Prisma write (`Audit.stack`) | Folded into the existing final `prisma.audit.update` call — zero extra round-trips. |
+| `packages/report-model` → `packages/cms-adapters` | Direct function call, sync, in-process | `resolveCmsRecommendation` is a pure lookup, called once per `Issue` row inside the existing `toReportIssue()` mapper — no new query. |
+| `packages/cms-adapters` → `packages/fingerprint` | **Type-only** import of `CmsPlatform`/`DetectedStack` | No runtime dependency; keeps `cms-adapters` free of `cheerio` and any HTML-parsing weight. |
+| `packages/checks` ↔ `packages/fingerprint` / `packages/cms-adapters` | **None, by design** | This is the hard boundary the milestone asks to preserve. The only shared surface is the plain-string `checkId`, which `Issue`/`IssueDraft` already carry today — no import in either direction. |
+| `apps/web` → `packages/report-model` | Already-existing read path (`buildReportModel`) | `ReportModel.stack` is simply a new field on an interface the report route already consumes; no new API route, no new fetch. |
+| `packages/export` → `packages/report-model` | Already-existing read path | Recommendation personalization is free (same `ReportIssue.recommendation` field the serializers already read); the stack table itself needs an explicit new section added to `pdf.tsx`/`markdown.ts`/`pptx.ts` if Juan wants parity in exports (flagged as a follow-up, not implicit). |
+
+## Suggested Build Order (dependency-respecting)
+
+1. **`packages/db`** — Prisma migration: `Page.responseHeaders Json?`, `Audit.stack Json?` (additive, nullable, no backfill — same precedent as `resolvedUrl`/`schemaGraph`). Everything downstream needs the generated Prisma types.
+2. **`packages/fingerprint`** (new) — can be built in parallel with step 1 (its input type is locally declared, not `@auditor/db`-derived); needs step 1 only when wired into the worker.
+3. **`packages/crawler`** (modified: header capture) — depends on step 1 (needs the new column to write into).
+4. **`packages/cms-adapters`** (new) — depends only on step 2's exported types; can be authored in parallel with step 3.
+5. **`apps/worker`** (wire `detectStack` + persist `Audit.stack`) — depends on 1, 2, 3.
+6. **`packages/report-model`** (parse `Audit.stack`, call `resolveCmsRecommendation`) — depends on 1, 2, 4.
+7. **`apps/web`** (`StackTable` component + report page wiring) — depends on 6.
+8. **`packages/export`** (optional parity: stack-table section in PDF/Markdown/PPTX) — depends on 6; can ship in a later phase without blocking 1–7.
 
 ## Sources
 
-- Direct source-code reading (HIGH confidence, no external verification needed):
-  - `packages/checks/src/types.ts`, `registry.ts`, `checks/tech/{index,orphanPages}.ts`, `checks/schema/{extract,schemaTypes}.ts`
-  - `packages/psi/src/{types,parser,issues}.ts`
-  - `packages/report-model/src/{model,build,grouping,jsonld,index}.ts`
-  - `apps/web/app/audits/[id]/{page.tsx,pages/page.tsx}`, `apps/web/app/components/ui/IssueTypeGroup.tsx`
-  - `apps/worker/src/index.ts`
-  - `packages/db/prisma/schema.prisma` (`Page` model, `depth` field)
-  - `.planning/PROJECT.md` (v1.3 milestone context and prior key decisions)
+- Direct codebase inspection (HIGH confidence, primary source for all integration points): `packages/db/prisma/schema.prisma`, `apps/worker/src/index.ts`, `packages/crawler/src/crawl.ts`, `packages/checks/src/types.ts`, `packages/checks/src/registry.ts`, `packages/checks/src/checks/onpage/altText.ts`, `packages/checks/src/checks/tech/canonical.ts`, `packages/report-model/src/model.ts`, `packages/report-model/src/build.ts`, `.planning/PROJECT.md`.
+- [How to identify the technologies used on a website — Wappalyzer](https://www.wappalyzer.com/articles/find-out-what-cms-or-framework-a-website-is-using/) — confirms HTML `<meta name="generator">`, HTTP response headers, and cookie names as the standard, no-extra-request fingerprinting signal categories; MEDIUM confidence (vendor-authored, but methodology is well-established and cross-checked against multiple independent CMS-detector write-ups returned in the same search).
+- [tomnomnom/wappalyzer on GitHub](https://github.com/tomnomnom/wappalyzer) — confirms categorized (non-mutually-exclusive) rule buckets (CMS, CDN, analytics, JS framework) as the standard architecture for this class of tool; MEDIUM confidence.
 
 ---
-*Architecture research for: 5-feature integration (v1.3) onto the existing SEO-auditor monorepo*
-*Researched: 2026-07-08*
+*Architecture research for: tech-stack fingerprinting + CMS-personalized recommendations integration*
+*Researched: 2026-07-21*

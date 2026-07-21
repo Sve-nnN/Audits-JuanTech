@@ -1,147 +1,154 @@
 # Project Research Summary
 
-**Project:** Auditor Web (SEO/Técnico) — Lead Magnet para juan-tech.com
-**Domain:** Extensión de un auditor SEO en producción (5 features nuevas sobre pipeline validado v1.0-v1.2)
-**Researched:** 2026-07-08
-**Confidence:** HIGH
+**Project:** Auditor Web (SEO/Técnico) — milestone v1.5: fingerprinting de stack técnico + recomendaciones de fix personalizadas por CMS
+**Domain:** Extensión de un auditor SEO/técnico ya existente (crawler Crawlee + checks + report model) con detección heurística de tecnología web y un motor de recomendaciones adaptador-por-plataforma
+**Researched:** 2026-07-21
+**Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-Las 5 features de v1.3 (schema-contenido, profundidad de clics, diagnósticos Lighthouse, agrupación por plantilla, visualizador de arquitectura) son aditivas sobre un pipeline ya validado y **no requieren ninguna dependencia nueva** — ni librería de grafos, ni Lighthouse local, ni migración de storage. Los cuatro research files coinciden en que el trabajo real es de integración cuidadosa dentro de los límites arquitectónicos ya establecidos (`packages/checks`, `packages/psi`, `packages/report-model`), no de exploración tecnológica.
+Este milestone agrega dos capacidades relacionadas sobre el pipeline de auditoría ya construido (Crawlee + Cheerio + Prisma + BullMQ, monorepo pnpm/Turborepo): (1) un fingerprint propio de stack técnico (CMS/builder, CDN/proxy, hosting, framework JS, analytics), sin adoptar ninguna librería de terceros empaquetada, porque toda opción "instalar y listo" (wappalyzer-core) está deprecada, licenciada GPL-3.0, o es una API paga — todas incompatibles con el requisito explícito de "sin servicios pagos de terceros"; y (2) un motor de recomendaciones que reescribe el fix de cada issue detectado según el CMS/builder identificado (WordPress+builder, Shopify, Webflow, Wix/Squarespace), con un fallback genérico obligatorio. Ningún competidor de referencia (Screaming Frog, Ahrefs, SEMrush) combina auditoría técnica completa con fix personalizado por plataforma — es el diferenciador central de este lead magnet frente a herramientas puramente de "technology profiling" (Wappalyzer/BuiltWith), que se detienen en "esto es lo que usa el sitio" sin dar el siguiente paso accionable.
 
-El hallazgo más importante de la investigación es una corrección a la premisa del propio milestone: **`Page.depth` no sirve para el check de profundidad de clics** en el modo de crawl dominante (sitemap-seeded), porque el BFS que lo calcula sólo corre en el fallback de link-crawl puro (verificado línea por línea en `crawl.ts`). Esto obliga a calcular un BFS real desde el home sobre el grafo de enlaces internos — el mismo cómputo que ya necesita el visualizador de arquitectura (feature 5). Estas dos features deben compartir una sola pasada de parseo de enlaces (reusando el patrón de `orphanPages.ts`), calculada una vez en el worker y persistida en `Audit.stats`, nunca recomputada en el camino de lectura del reporte (violaría la filosofía "sólo datos persistidos" de `buildReportModel` y sería perceptiblemente lento a 500 páginas).
+El enfoque recomendado es 100% aditivo sobre la arquitectura existente: dos paquetes nuevos (`packages/fingerprint`, `packages/cms-adapters`) que nunca acoplan `packages/checks` a conocimiento de plataforma — el único punto de contacto es el `checkId` string ya persistido en cada `Issue`. El fingerprint se computa una sola vez por auditoría (patrón "compute-once-and-thread-through" ya usado en el proyecto para `buildLinkGraph`/`runRenderSample`), reusando el HTML y headers que el crawl Cheerio-first ya captura — cero requests nuevas, cero llamadas a Playwright, cero servicios externos. La resolución de la recomendación personalizada ocurre en tiempo de lectura (`buildReportModel`), nunca se reescribe en la base de datos, preservando el patrón ya establecido de "single source of truth" del report model.
 
-Los otros riesgos identificados son de scoring e integridad de datos, no de arquitectura: los diagnósticos de Lighthouse deben extraerse en `client.ts`/`parser.ts` antes del punto donde hoy se descartan (si no, "gratis" se vuelve imposible de recuperar sin una segunda llamada a PSI), deben entrar con severidad informativa (`ok`) para no doblar el conteo del score de `perf` ya validado, y necesitan fingerprints sub-tipados por tipo de diagnóstico (repitiendo la lección de Phase 11). El check de schema-contenido y la agrupación por plantilla son heurísticos por naturaleza y deben degradar con gracia (severidad tope `warning`, bucket "desconocido" explícito) para no erosionar la confianza del usuario en un producto lead-magnet.
+El riesgo principal no es técnico sino de credibilidad del reporte: un fingerprint que afirma certeza donde no la hay (CMS mal detectado, builder incorrecto) daña la confianza en TODO el reporte, incluidos los checks SEO 100% verificables. La investigación de pitfalls es enfática y consistente en esto: el contrato de datos del detector debe incluir `confidence` desde el primer commit (nunca `string | null`), el motor debe manejar explícitamente el estado "no identificado / headless-JAMstack" como resultado legítimo (no como fallo), y el fallback genérico debe ser un adapter de primera clase, no un afterthought. Mitigación: diseñar el contrato de confianza y los estados "alta/media/no identificado" antes de escribir una sola regla de detección o un solo texto de fix — cambiar esto después implica retocar cada adapter y cada UI que ya lo consume.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Sin cambios de core stack ni instalaciones nuevas. La única decisión de stack real es el visualizador de arquitectura (feature 5): usar SVG nativo + React, replicando el patrón ya validado en producción de `apps/web/app/components/EntityGraphSvg.tsx` ("self-contained SVG renderer, no external libs — strict CSP"). Se descarta explícitamente `@xyflow/react` (55-70kB gzip, pensado para grafos interactivos con drag/zoom), `d3-hierarchy`/`@visx/hierarchy` (peso injustificado para una jerarquía fija de 4 niveles) y `react-arborist`/`react-d3-tree` (pensados para árboles editables/virtualizados de miles de nodos). Esto cierra la pregunta abierta que ARCHITECTURE.md había dejado pendiente ("open stack decision, flag for dedicated library-research pass").
+No se necesita ningún framework nuevo ni dependencia de peso. La decisión de stack central es construir un matcher de firmas propio (~150-300 líneas, patrón registry sobre el mismo `cheerio.load()` que `packages/checks` ya ejecuta) en vez de adoptar `wappalyzer-core` (deprecado desde 2023, GPL-3.0) o cualquier API paga de detección. La única dependencia de runtime genuinamente nueva es `set-cookie-parser` (3.1.2, cero dependencias) para parsear correctamente los headers `Set-Cookie` que hoy se descartan.
 
-**Core technologies (sin cambios):**
-- Cheerio (vía `@auditor/checks`/`@auditor/crawler`) — parseo de HTML crudo, ya en uso para todos los checks nuevos
-- PSI response ya obtenida — fuente de los diagnósticos Lighthouse, cero llamadas extra si se extrae en el punto correcto del pipeline
-- SVG nativo + React — visualizador de arquitectura, cero dependencias nuevas, respeta el CSP estricto y el presupuesto de bundle del reporte
+**Core technologies:**
+- `packages/fingerprint` (workspace nuevo, TS plano): motor de matching de firmas sobre `{ headers, html, cookies, scriptSrc, metaGenerator }` — reusa el mismo patrón de registry tipado que ya existe en `packages/checks/src/registry.ts`
+- `set-cookie-parser` 3.1.2: parsear `Set-Cookie` crudo (nombres de cookie, no valores — ver pitfall de seguridad) — cero deps, mantenido activamente
+- `cheerio` (ya dependencia existente): extraer meta generator, `scriptSrc`, marcadores DOM de builders — reusar el mismo `$` ya cargado, no un segundo parseo
+- Dataset propio de ~40-60 firmas curadas (CMS, builders WP, CDN, framework JS, analytics), escritas desde investigación propia — el dataset público de `enthec/webappanalyzer` sirve solo como referencia de verificación cruzada, no como fuente para copiar (licencia GPL-3.0)
 
 ### Expected Features
 
-**Must have (las 5 ya bloqueadas por el milestone, "MVP" = versión más lean y correcta de cada una):**
-- Check de profundidad de clics (`Page.depth > 3` recalculado vía BFS real, no leído del campo persistido) — severidad `warning`, agregado además de por-página para no inundar la lista de prioridad
-- Diagnósticos de Lighthouse curados (5-7 audit IDs: WebP/formatos modernos, CSS/JS sin usar, render-blocking, imágenes correctamente dimensionadas) — severidad informativa, nunca `critical`
-- Agrupación por plantilla (home/categoría/producto/artículo/desconocido) — segundo eje junto a `groupIssuesByType` de v1.2
-- Check schema-contenido (FAQPage/HowTo/Product+AggregateRating sin contenido visible correspondiente) — severidad tope `warning`, cruzado contra la muestra CSR/SSR de v1.2 antes de marcar mismatch
-- Visualizador de arquitectura (árbol jerárquico por profundidad, bucket "3+", grafo de enlaces on-demand pero **precomputado y persistido**, no recalculado por request)
+Screaming Frog/Ahrefs/SEMrush no tratan la detección de CMS como feature central de auditoría; Wappalyzer/BuiltWith se detienen en "esto es lo que usa el sitio" sin dar el paso siguiente. El vacío competitivo real es combinar ambos: auditoría técnica completa + fix reescrito para el admin real del CMS detectado.
 
-**Explícitamente fuera de alcance (anti-features confirmadas por research):**
-- Grafo interactivo completo con aristas persistidas y fuerzas físicas — balonaría scope y storage sin aportar señal extra sobre el árbol jerárquico
-- Lighthouse completo (40+ audits) por página — contradice el principio "no ahogar a una audiencia de lead-magnet en minucias"
-- Clasificación de plantilla por taxonomía rígida específica de CMS — genera falsa confianza en sitios que no siguen esas convenciones; usar heurística de patrones + fallback "desconocido"
+**Must have (table stakes):**
+- Detección de CMS principal (WordPress, Shopify, Webflow, Wix, Squarespace, "no detectado") — prerequisito de todo lo demás
+- Tabla de "stack detectado" visible al inicio del reporte
+- Fallback "no se pudo detectar con certeza" — nunca forzar una respuesta cuando la señal es insuficiente
+
+**Should have (competitivo, corazón del milestone):**
+- Motor de recomendaciones adaptador-por-plataforma (WordPress/Shopify/Webflow/Wix-Squarespace + fallback genérico obligatorio) — el diferenciador real frente a cualquier competidor mencionado
+- Detección de builder de WordPress (Elementor, WPBakery, Divi) — afina el "cómo" del fix dentro del adaptador WordPress
+- Detección de CDN/proxy, hosting/servidor, framework JS, analytics — bajo costo relativo, alto valor de "expertise completo"
+- Fix personalizado priorizado en los checks de mayor volumen/impacto: alt text, title/meta, H1, OG tags, canonical, JSON-LD, sitemap/robots.txt
+
+**Defer (v2+):**
+- Adaptador Squarespace separado de Wix, más builders WP (Beaver Builder, Oxygen, Bricks), detección de plugins SEO (Yoast/Rank Math)
+- Historial de cambios de stack entre corridas, confianza cuantitativa (%) en vez de alto/medio/bajo
+- Fix personalizado en checks CMS-agnósticos (hreflang, mixed content, profundidad de clics) — técnicamente iguales sin importar el CMS, no ganan nada con personalización
+- Auto-corrección de issues (explícitamente fuera de alcance de todo el producto)
 
 ### Architecture Approach
 
-El pipeline (crawl → `runAllChecks` → PSI sample → render sample → persist → `buildReportModel` → UI/exports) queda intacto; todas las adiciones son aditivas. Los componentes existentes que se tocan: `packages/checks/src/checks/{tech,schema}` (dos `PageCheck`s nuevos), `packages/psi` (extensión de `parser.ts`/`types.ts` + nuevo `diagnostics.ts` paralelo, nunca fusionado en `PsiMetrics`), `packages/report-model` (nuevo `template.ts` y, según la reconciliación de este milestone, un módulo compartido de grafo/BFS), y una ruta nueva `apps/web/app/audits/[id]/architecture/page.tsx`.
+Dos paquetes nuevos, aditivos, que preservan el aislamiento de `packages/checks`: `packages/fingerprint` (detección pura, sync, cero acoplamiento a plataforma) y `packages/cms-adapters` (resolución de recomendación, import solo de tipo desde fingerprint, nunca de runtime). El fingerprint se calcula una vez por auditoría desde el `Page[]` ya cargado (mismo patrón que `buildLinkGraph`/`runRenderSample`), se persiste como `Audit.stack Json?` nuevo, y `packages/report-model` resuelve la recomendación personalizada en tiempo de lectura vía `resolveCmsRecommendation(stack, checkId, genericRecommendation)` — nunca reescribe `Issue.recommendation` en la base.
 
-**Major components (según la reconciliación arquitectura+pitfalls):**
-1. **Módulo compartido de grafo de enlaces** (nuevo, en el worker) — una sola pasada de Cheerio sobre las hasta 500 páginas de `page.html`, produciendo BFS real de profundidad de clics + adjacency list para el árbol de arquitectura. Se persiste en `Audit.stats` (mismo mecanismo que `stats.perf`). Reemplaza la idea original de "el check de profundidad lee `Page.depth`" y la idea original de "el visualizador reparsea HTML on-demand en el reporte" — ambas quedaban invalidadas por PITFALLS.md.
-2. **`packages/psi` extendido** — `parser.ts`/`types.ts` capturan diagnósticos en el momento en que la respuesta cruda de PSI existe en memoria (dentro de `client.ts`, antes del cacheo reducido actual); nuevo `diagnostics.ts` con `mapDiagnosticIssues`, estructura paralela a `PsiMetrics`, nunca fusionada en ella.
-3. **`packages/report-model` como única fuente de verdad** — `template.ts` (clasificación + agrupación por plantilla) y el consumo del grafo ya persistido en `Audit.stats`; `buildReportModel` sigue sin tocar `Page.html` directamente (evita repetir la fragilidad ya documentada de v1.2 de queries paralelas fuera de `report-model`).
-4. **UI del reporte** — generalizar `IssueTypeGroup` para aceptar grupos precomputados (reusado por template y por tipo), y nueva ruta `/architecture` que sólo lee JSON ya calculado, sin Cheerio en `apps/web`.
+**Major components:**
+1. `packages/fingerprint` — detección independiente por eje (`cms`, `cdn`, `hosting`, `jsFramework`, `analytics`), nunca winner-take-all; cero dependencia de `@auditor/db`/`@auditor/crawler`/`@auditor/checks`
+2. `packages/cms-adapters` — un módulo por plataforma (`wordpress/`, `shopify/`, `webflow/`, `wix-squarespace/`), lookup `checkId → texto de fix`, fallback genérico como entrada de primera clase del mismo registry
+3. `packages/crawler` (modificado) — captura allowlist de headers de respuesta por página (`Page.responseHeaders`), solo nombres de cookies, nunca valores
+4. `packages/report-model` (modificado) — parsea `Audit.stack`, resuelve `ReportIssue.recommendation` por issue en `buildReportModel()`
+5. `apps/web` — nuevo componente `StackTable` en el reporte; `IssuesTable` no requiere cambios (ya lee `recommendation` resuelto)
 
 ### Critical Pitfalls
 
-1. **`Page.depth` no es profundidad de clics real en crawls sembrados por sitemap** (modo dominante en producción) — el BFS que lo incrementa está guardado detrás de `if (!seedFromSitemap)` y nunca corre en ese modo. Evitarlo calculando un BFS real desde el home sobre el grafo de enlaces, sin sobrescribir `Page.depth`.
-2. **Diagnósticos de Lighthouse "gratis" sólo si se extraen antes del cacheo actual** — `parser.ts` descarta hoy todo excepto 5 campos y `cache.ts` sólo persiste ese objeto reducido en Redis. Extraer en `client.ts` en el punto donde la respuesta cruda aún existe; aceptar degradación graciosa para el caché ya poblado (TTL 24h) sin invalidación manual.
-3. **Doble conteo de severidad entre diagnósticos nuevos y las 4 métricas de perf ya scoreadas** — `scoreCategory` promedia salud sin ponderar causa raíz; diagnósticos redundantes con LCP/CLS penalizarían dos veces. Mitigar con severidad `ok`/exclusión del cómputo de score, nunca `critical`.
-4. **Falsos positivos sistemáticos en schema-contenido para páginas CSR fuera de la muestra renderizada o con markup no estándar** (`<details>/<summary>`). Tope `warning`, cruzar con RENDER-01..03 antes de marcar mismatch, ampliar detección más allá de `div/dt/dd`.
-5. **Fingerprints sin sub-tipo colapsan hallazgos múltiples por página** — repetición del bug de Phase 11 si un solo `checkId` cubre varios tipos de diagnóstico. Sub-tipar `${checkId}-${tipo}:${url}`.
-6. **(Reconciliado) El visualizador on-demand tal como estaba descrito en ARCHITECTURE.md rompería la filosofía "sólo datos persistidos" y sería lento a 500 páginas** — resuelto compartiendo el cómputo de grafo/BFS con el check de profundidad de clics, calculado una vez en el worker y persistido en `Audit.stats`.
+1. **Fingerprint como booleano en vez de probabilístico** — el detector debe devolver siempre `{ platform, confidence: high/medium/low, signals }`, nunca `string | null`; fijar este contrato de datos antes de escribir el motor de recomendaciones (cambiarlo después obliga a retocar cada adapter)
+2. **Headers de servidor como señal única sin fallback** — CDNs/WAFs (Cloudflare, Fastly, Akamai) strippean headers de origen en la mayoría de sitios reales de producción; diseñar detección multi-señal (headers + cookies + paths de assets) desde el día uno, y nunca reportar "no detectado" como "no usa CDN"
+3. **Gutenberg sin regla positiva** — el editor nativo de WordPress no deja huella propietaria como los builders de terceros; tratarlo como detector positivo explícito (`wp-block-*`), no como default/else implícito
+4. **Meta generator como única señal de CMS** — sitios con hardening de seguridad (el público objetivo más cuidadoso, justo los leads de mayor valor) lo remueven deliberadamente; el CMS debe determinarse igual sin él vía paths/cookies/patrones de API
+5. **Arquitecturas headless (WordPress headless, Shopify Hydrogen) rompen firmas clásicas** — reconocer "frontend desacoplado, CMS no identificado" como estado legítimo y distinto del fallback genérico total, no como fallo silencioso
+6. **Fix mapeado solo por plataforma, ignorando builder** — el mismo texto de fix para Gutenberg/Elementor/Divi es técnicamente correcto pero inútil como instrucción accionable; diseñar el catálogo con fallback en cadena (plataforma+builder → plataforma → genérico universal) desde el modelo de datos inicial
 
 ## Implications for Roadmap
 
-Basado en la investigación combinada (incluyendo la reconciliación explícita del conflicto Page.depth/BFS y la resolución de la librería de grafos), la secuencia sugerida respeta: (a) riesgo ascendente (patrón ya usado en v1.2), (b) la sinergia BFS compartida entre profundidad de clics y visualizador, y (c) desacoplar decisiones de UI compartida (generalización de `IssueTypeGroup`) antes de construir sobre ellas.
+Based on research, suggested phase structure:
 
-### Phase 1: Grafo de enlaces compartido + check de profundidad de clics real
-**Rationale:** Es el fundamento técnico que tanto el check de profundidad como el visualizador (Phase 5) necesitan; construirlo primero evita que cada feature reparse el HTML de las 500 páginas por separado (pitfall de performance identificado). También es donde vive la corrección más importante encontrada en research (Page.depth no sirve tal cual).
-**Delivers:** Módulo de cómputo de grafo/BFS en el worker (reusa el patrón de `orphanPages.ts`), persistido en `Audit.stats`; nuevo check `TECH-1x` de profundidad de clics (severidad warning, agregado + por-página) leyendo el BFS recién calculado, no `Page.depth`.
-**Addresses:** Feature "Check profundidad de clics" de FEATURES.md/PROJECT.md.
-**Avoids:** Pitfall 1 (Page.depth falso) y Pitfall 6 (recomputación cara en el camino de lectura del reporte).
+### Phase 1: Contrato de datos del fingerprint + captura de headers/cookies
+**Rationale:** Todo lo demás depende de este contrato (confidence incluido); cambiarlo después implica retocar cada adapter y cada UI consumidora. También es el único paso con dependencia dura de esquema (migración Prisma bloquea el resto).
+**Delivers:** Migración Prisma (`Page.responseHeaders Json?`, `Audit.stack Json?`), `packages/crawler` modificado (captura allowlist de headers + nombres de cookies), tipos `DetectedStack`/`FingerprintInput` en `packages/fingerprint`
+**Addresses:** Prerequisito de "Detección de CMS principal" y "Fallback no detectado con certeza" de FEATURES.md
+**Avoids:** Pitfall 1 (fingerprint booleano) — el contrato de tipos con `confidence` se fija aquí, antes de escribir ninguna regla real
 
-### Phase 2: Check schema-contenido mismatch
-**Rationale:** Mismo patrón `PageCheck` que profundidad de clics pero sin dependencia de la Phase 1; construible en paralelo o justo después, reusa `extract.ts` ya maduro. Secuenciarlo temprano porque su principal riesgo (falsos positivos) requiere validación de test explícita antes de exponerse en producción.
-**Delivers:** Nuevo `PageCheck` en `packages/checks/src/checks/schema/schemaContentMismatch.ts`, severidad tope `warning`, cruzado con muestra CSR/SSR (v1.2) antes de marcar mismatch, detección ampliada a `<details>/<summary>` y roles ARIA.
-**Addresses:** Feature "Check schema-contenido" de PROJECT.md.
-**Avoids:** Pitfall 4 (falsos positivos sistemáticos en CSR fuera de muestra / markup no estándar).
+### Phase 2: Motor de fingerprint — CMS, builder, CDN/hosting, framework JS, analytics
+**Rationale:** Con el contrato fijo, el trabajo de reglas por eje es independiente y paralelizable (un archivo de reglas por eje: `cms.ts`, `cdn.ts`, `hosting.ts`, `jsFramework.ts`, `analytics.ts`).
+**Delivers:** `packages/fingerprint` completo con detección independiente por eje (nunca winner-take-all), dataset propio de ~40-60 firmas curadas
+**Uses:** `set-cookie-parser`, `cheerio` (reuso del `$` ya cargado en `runAllChecks`), patrón de registry de `packages/checks`
+**Implements:** Patrón 2 (independent-axis detection) y Patrón 1 (compute-once) de ARCHITECTURE.md
+**Avoids:** Pitfall 2 (CDN/headers strippeados), Pitfall 3 (Gutenberg sin regla positiva), Pitfall 4 (meta generator como única señal), Pitfall 5 (headless/JAMstack)
 
-### Phase 3: Diagnósticos de Lighthouse desde PSI
-**Rationale:** Aislado en `packages/psi`, sin dependencia funcional de las fases anteriores; secuenciar aquí para no competir por el mismo archivo `apps/worker/src/index.ts` con Phases 1-2 en el mismo commit.
-**Delivers:** Extensión de `parser.ts`/`types.ts` (extracción en el punto correcto, antes del cacheo reducido), nuevo `diagnostics.ts` con `mapDiagnosticIssues`, fingerprints sub-tipados por tipo de diagnóstico, severidad informativa (`ok`) excluida del cómputo de score de `perf`.
-**Uses:** JSON de PSI ya obtenido (STACK.md, tabla de audit IDs confirmados).
-**Avoids:** Pitfall 2 (datos ya descartados en el punto donde se intentaría leerlos), Pitfall 3 (doble conteo de score), Pitfall 5 (fingerprints colapsados).
+### Phase 3: Wiring en el worker + tabla de stack en el reporte
+**Rationale:** Antes de invertir en el motor de recomendaciones (el trabajo más costoso), validar que el fingerprint produce resultados útiles y visibles end-to-end da feedback temprano y desbloquea QA manual contra sitios reales.
+**Delivers:** `detectStack()` llamado una vez por auditoría en `apps/worker`, persistido en `Audit.stack`; componente `StackTable` en `apps/web` con al menos 3 estados visuales de confianza (alta/media/no identificado)
+**Addresses:** "Tabla de stack detectado al inicio del reporte" de FEATURES.md
+**Avoids:** Pitfall UX de comunicación de incertidumbre (mostrar confianza con el mismo peso visual que los badges de severidad ya existentes)
 
-### Phase 4: Agrupación por plantilla + generalización de `IssueTypeGroup`
-**Rationale:** Requiere primero decidir si se generaliza el componente compartido de agrupación (recomendado) o se duplica — esta decisión de UI debe tomarse antes de construir la superficie final, para evitar rework. No depende de las fases anteriores.
-**Delivers:** `packages/report-model/src/template.ts` (clasificación heurística con bucket "desconocido" explícito + `groupIssuesByTemplate`), generalización de `IssueTypeGroup` para aceptar grupos precomputados, nueva sección/tab en el reporte.
-**Implements:** Segundo eje de agrupación (report-model como fuente única, no lógica en `apps/web`).
-**Avoids:** Pitfall 7 (etiquetas de plantilla incorrectas sin fallback).
+### Phase 4: Motor de recomendaciones — patrón adaptador + fallback en cadena
+**Rationale:** El componente de mayor costo de implementación (HIGH en la matriz de priorización) y el diferenciador central del milestone; depende de que el fingerprint (fase 2) ya exponga `checkId`-compatible `DetectedStack` con builder incluido.
+**Delivers:** `packages/cms-adapters` (WordPress con niveles builder→plataforma→genérico, Shopify, Webflow, Wix/Squarespace agrupado), `resolveCmsRecommendation` integrado en `buildReportModel`
+**Addresses:** "Motor de recomendaciones adaptador-por-plataforma" y "Fix personalizado" de FEATURES.md — priorizar alt text, title/meta, H1, canonical, JSON-LD, sitemap/robots.txt
+**Avoids:** Pitfall 6 (fix solo por plataforma, ignorando builder) — el modelo de datos con fallback en cadena debe diseñarse antes de escribir el primer fix real
 
-### Phase 5: Visualizador de arquitectura
-**Rationale:** Última fase — mayor superficie nueva (ruta, componente SVG nuevo) y depende del grafo/BFS ya calculado y persistido en Phase 1 (no de las Phases 2-4, pero secuenciarla al final deja el patrón de grafo compartido validado y estable, y permite opcionalmente mostrar el badge de plantilla de Phase 4 en cada nodo).
-**Delivers:** Ruta `apps/web/app/audits/[id]/architecture/page.tsx` (Server Component, lee sólo `Audit.stats` ya calculado), componente `ArchitectureTreeSvg` (SVG nativo + React, patrón de `EntityGraphSvg.tsx`, cero dependencias nuevas), buckets de profundidad 0/1/2/3+, colapso/expansión con `useState`, scroll horizontal nativo en vez de pan/zoom de librería.
-**Uses:** Grafo/BFS de Phase 1 (compartido, no recalculado); SVG nativo confirmado por STACK.md.
-**Avoids:** Pitfall 6 (Cheerio/HTML crudo nunca entra al camino de lectura del reporte en `apps/web`).
+### Phase 5 (opcional, puede diferirse sin bloquear): Paridad en exports
+**Rationale:** No bloquea el valor central del milestone (reporte web); puede shippearse en una fase posterior sin afectar 1-4.
+**Delivers:** Sección de stack table + recomendaciones personalizadas en PDF/Markdown/PPTX (`packages/export`)
 
 ### Phase Ordering Rationale
 
-- Phase 1 primero porque desbloquea tanto el check de profundidad como el fundamento de datos de Phase 5 — construirlo tarde forzaría refactor de cualquiera de las dos features que se implementara primero de forma aislada.
-- Phases 2 y 3 son independientes entre sí y de Phase 1 — se ordenan por riesgo de falsos positivos (Phase 2, requiere más validación de test) antes que por riesgo técnico puro (Phase 3, es principalmente disciplina de dónde extraer datos).
-- Phase 4 se sitúa antes de Phase 5 porque, aunque no es una dependencia dura, permite que el visualizador muestre el badge de plantilla sin trabajo adicional si se construye después.
-- Phase 5 al final: mayor superficie nueva, único punto con una decisión de librería (ya resuelta: SVG nativo) y el que más se beneficia de que el patrón de grafo compartido (Phase 1) ya esté probado en producción con el check de profundidad de clics.
+- El orden respeta la dependencia de build identificada en ARCHITECTURE.md: DB migration → fingerprint (paralelo, tipos locales) → crawler (necesita columna nueva) → cms-adapters (solo tipos de fingerprint) → worker wiring → report-model → web → export
+- Separar "motor de fingerprint" (fase 2) de "motor de recomendaciones" (fase 4) permite validar la detección contra sitios reales antes de invertir en las ~100+ piezas de copy de fix por plataforma×builder×check
+- Fase 3 (wiring + UI mínima) intercalada antes del motor de recomendaciones da un punto de validación temprano end-to-end sin esperar el trabajo más costoso
 
 ### Research Flags
 
-Phases con research adicional recomendado durante planning:
-- **Ninguna requiere una ronda de research-phase completa** — los 4 documentos de research (stack, features, architecture, pitfalls) ya resolvieron las preguntas abiertas identificadas originalmente (librería de grafos: resuelta; semántica de Page.depth: resuelta y reconciliada). El único punto a verificar en fase de ejecución (no de research) es la vigencia de `overallSavingsMs` vs `metricSavings` en la versión exacta de Lighthouse detrás de PSI v5 (nota MEDIUM confidence en STACK.md) — validar con un log/print de la respuesta real durante la Phase 3, no requiere research previo.
+Phases likely needing deeper research during planning:
+- **Fase 2 (motor de fingerprint):** las firmas concretas de builders WP (Elementor/WPBakery/Divi/Gutenberg) y de CDN son de fuentes MEDIUM confidence (blogs/comunidad agregados, no verificados contra sitios reales) — recomendable verificación puntual contra 2-3 instalaciones reales por builder durante implementación, y fixtures explícitos de WordPress headless/Shopify Hydrogen y sitio detrás de Cloudflare
+- **Fase 4 (motor de recomendaciones):** el detalle de "cómo se ve el fix en cada plataforma×builder" para JSON-LD/canonical en Shopify/Webflow probablemente necesita revisión contra la documentación oficial de cada plataforma al momento de escribir el copy final (ya hay ejemplos de referencia en FEATURES.md, pero no cubren todos los checks priorizados)
 
-Phases con patrones estándar (ya bien documentados, ejecutar directo):
-- **Phase 1:** patrón `orphanPages.ts` ya validado en producción, sólo se extiende a BFS + persistencia en `Audit.stats` (mecanismo ya usado por `stats.perf`).
-- **Phase 2:** patrón `PageCheck` sobre Cheerio ya establecido, reusa `extract.ts` existente.
-- **Phase 3:** patrón `METRIC_SPECS`/`issues.ts` ya establecido, sólo se añade una estructura paralela.
-- **Phase 5:** patrón `EntityGraphSvg.tsx` ya validado en producción, cero dependencia nueva.
+Phases with standard patterns (skip research-phase):
+- **Fase 1 (contrato de datos + migración):** patrón ya establecido en el proyecto (columnas Json adicionales nullable, mismo precedente que `resolvedUrl`/`schemaGraph`)
+- **Fase 3 (wiring + tabla UI):** sigue patrones ya usados (`buildLinkGraph`/`runRenderSample` compute-once; componentes tokens-only como `CategoryCard`/`Badge`)
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Cero paquetes nuevos; decisión de SVG nativo verificada contra código real ya en producción (`EntityGraphSvg.tsx`) y contra pesos de bundle de npm registry actuales |
-| Features | MEDIUM-HIGH | Basado en fuentes oficiales de Google (structured data policy) + convención de mercado (Screaming Frog/Semrush/Sitebulb) para "3-click rule", que es heurística de industria, no spec técnica |
-| Architecture | HIGH | Verificado leyendo directamente el código fuente actual (`types.ts`, `registry.ts`, `build.ts`, `orphanPages.ts`) — ground truth, no inferencia |
-| Pitfalls | HIGH | Todos los hallazgos verificados línea por línea contra `crawl.ts`, `parser.ts`/`cache.ts`, `categoryScore.ts`/`diff.ts`, `schema.prisma` — incluye el hallazgo crítico que reconcilia la premisa original del milestone sobre `Page.depth` |
+| Stack | HIGH (decisión central) / MEDIUM (firmas puntuales) | La decisión de no adoptar wappalyzer-core está verificada directo contra el registro npm (deprecado, GPL-3.0). Las firmas concretas de headers/cookies por CDN/CMS son agregado de fuentes cruzadas, sin verificación contra sitios reales |
+| Features | MEDIUM | Patrones de ecosistema bien establecidos (comparativas de competidores), pero sin acceso directo a UI interna de herramientas comerciales pagas (Ahrefs/SEMrush) |
+| Architecture | HIGH | Derivada directamente del código real del repo (`schema.prisma`, `crawl.ts`, `registry.ts`, `build.ts` leídos directamente); solo la lista de firmas específicas es de fuente externa |
+| Pitfalls | MEDIUM | Web search cruzado en múltiples fuentes independientes coincidentes; dominio inherentemente basado en consenso comunitario (fingerprinting heurístico), no en spec oficial |
 
-**Overall confidence:** HIGH
+**Overall confidence:** MEDIUM-HIGH — la arquitectura de integración y la decisión de stack central son sólidas (verificadas contra el codebase real y el registro npm); el detalle fino de firmas y copy de fix por plataforma necesita validación empírica durante la implementación.
 
 ### Gaps to Address
 
-- **Umbral exacto de severidad para profundidad de clics** (ok ≤3, warning en 4, critical en ≥5 — sugerido en ARCHITECTURE.md pero no confirmado con Juan): decidir en la fase de planning de Phase 1, es un detalle de producto de bajo riesgo.
-- **`overallSavingsMs` vs `metricSavings` en Lighthouse/PSI v5:** verificar contra la respuesta real de PSI durante la implementación de Phase 3 (no bloquea el diseño, sólo el mapeo exacto de campos).
-- **Señal de contenido más allá de patrones de markup fijos para schema-contenido:** el enfoque de "coincidencia aproximada de texto entre JSON-LD y cualquier texto visible" (PITFALLS.md) es más robusto que patrones `div/dt/dd`, pero su umbral de "coincidencia suficiente" es una decisión de producto a afinar con casos de prueba reales durante la ejecución de Phase 2, no en research.
-- **Backfill de audits previos a v1.3** para el grafo/BFS persistido en `Audit.stats`: los audits ya existentes no tendrán este dato — decidir en Phase 1 si se degrada con gracia ("no disponible para auditorías previas a esta versión") o se backfillea; PITFALLS.md ya sugiere degradar sin backfill como opción de bajo costo.
+- **Firmas de builder WP y CDN no verificadas contra sitios reales:** planear un paso de QA manual contra 2-3 instalaciones reales por builder (Elementor/WPBakery/Divi/Gutenberg) y al menos un sitio real detrás de Cloudflare durante la fase de implementación del fingerprint, no solo tests con fixtures sintéticos
+- **Cobertura de copy de fix por plataforma para checks fuera de los ejemplos ya calibrados** (FEATURES.md solo detalla alt text, canonical y JSON-LD por plataforma): el resto de checks priorizados (title/meta, H1, OG tags, sitemap/robots.txt) necesita el mismo nivel de detalle escrito durante la fase 4, cruzado contra documentación oficial de cada plataforma
+- **Decisión de granularidad Wix vs Squarespace:** la investigación agrupa ambos bajo un solo adapter técnico pero con detección separada a nivel de label — validar en la primera vuelta si el fallback compartido produce copy suficientemente específico o si conviene separarlos antes de lo planeado en "Add After Validation"
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Lectura directa del código fuente del repo: `packages/crawler/src/crawl.ts`, `packages/psi/src/{client,parser,cache,types,issues}.ts`, `packages/checks/src/{types,registry}.ts`, `packages/checks/src/checks/tech/orphanPages.ts`, `packages/checks/src/checks/schema/{extract,schemaTypes}.ts`, `packages/report-model/src/{build,grouping,jsonld,index}.ts`, `packages/scoring/src/{categoryScore,diff}.ts`, `packages/db/prisma/schema.prisma`, `apps/web/app/components/EntityGraphSvg.tsx`, `apps/web/app/audits/[id]/{page.tsx,pages/page.tsx}`, `apps/web/app/components/ui/IssueTypeGroup.tsx`, `apps/worker/src/index.ts`
-- [Google Search Central — General Structured Data Guidelines](https://developers.google.com/search/docs/appearance/structured-data/sd-policies) y [FAQPage docs](https://developers.google.com/search/docs/appearance/structured-data/faqpage) — política oficial de manual action por schema sin contenido visible
-- [GoogleChrome/lighthouse — types/lhr/audit-details.d.ts y audit-result.d.ts](https://github.com/GoogleChrome/lighthouse) — shape oficial de audits de Lighthouse/PSI
-- npm registry (consulta directa, 2026-07-08) — versiones y pesos gzip de librerías de grafos evaluadas y descartadas
+- Codebase real del proyecto: `packages/db/prisma/schema.prisma`, `apps/worker/src/index.ts`, `packages/crawler/src/crawl.ts`, `packages/checks/src/{types,registry}.ts`, `packages/report-model/src/{model,build}.ts` — arquitectura de integración
+- Registro de npm, consulta directa (`npm view wappalyzer-core`, `npm view set-cookie-parser`, `npm view cheerio`, `npm view crawlee`, verificado 2026-07-21) — versiones y estado de deprecación
+- WordPress Developer Resources (`body_class()`), Webflow/Shopify/Squarespace/Wix Help Centers (alt text, SEO settings) — documentación oficial de cada plataforma
 
 ### Secondary (MEDIUM confidence)
-- WebSearch sobre "3-click rule" como convención de industria (Semrush, Screaming Frog, Sitebulb) — consenso de mercado, no spec técnica única
-- WebSearch sobre deprecación de `overallSavingsMs` en favor de `metricSavings` en Lighthouse — requiere verificación puntual en Phase 3
+- [Wappalyzer articles — find out what CMS or framework a site is using](https://www.wappalyzer.com/articles/find-out-what-cms-or-framework-a-website-is-using/) — metodología de fingerprinting estándar (headers, meta generator, cookies)
+- [enthec/webappanalyzer](https://github.com/enthec/webappanalyzer) — schema de referencia de firmas (GPL-3.0, no vendorizar)
+- [Stackcrawler — WordPress Website Builder Detector](https://stackcrawler.com/wordpress-website-builder-detector) y fuentes similares — firmas de builders WP por prefijo de clase
+- [Cloudflare Community discussions], [WordPress.com — What Is Headless WordPress] — comportamiento de CDN/WAF y arquitecturas headless
+- Comparativas de competidores (Screaming Frog/Ahrefs/SEMrush reviews 2026) — posicionamiento de features
 
 ### Tertiary (LOW confidence)
-- Ninguna fuente de baja confianza usada en decisiones clave de este milestone
+- Artículos comparativos de terceros sobre ausencia de CMS-detection en UI de herramientas comerciales pagas — inferencia razonable, no verificación directa contra las UIs reales
 
 ---
-*Research completed: 2026-07-08*
+*Research completed: 2026-07-21*
 *Ready for roadmap: yes*

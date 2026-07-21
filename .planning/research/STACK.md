@@ -1,157 +1,98 @@
-# Stack Research — v1.3 (checks técnicos + visualización de arquitectura)
+# Stack Research — v1.5 (fingerprinting de stack técnico + fixes personalizados por CMS)
 
-**Domain:** Adiciones de stack para milestone v1.3 (5 features sobre un SEO auditor existente: Next.js 15/React 19 en Vercel + worker Crawlee/Playwright + Postgres/Prisma + BullMQ)
-**Researched:** 2026-07-08
-**Confidence:** HIGH
+**Domain:** Fingerprinting de tecnología web (CMS/builder/CDN/hosting/framework JS/analytics) sin servicios pagos de terceros, más motor de recomendaciones adaptador-por-CMS, agregado sobre el crawler Crawlee/Cheerio y el pipeline de checks ya existentes.
+**Researched:** 2026-07-21
+**Confidence:** MEDIUM — la recomendación central (construir un motor de firmas propio en vez de adoptar una librería empaquetada) es HIGH confidence; las afirmaciones puntuales sobre firmas de tecnologías concretas (headers/paths/cookies) son de fuentes web cruzadas, MEDIUM confidence.
 
-## Resumen ejecutivo
-
-De las 5 features, **4 no requieren ninguna dependencia nueva** — son extensiones de código sobre patrones ya validados en el repo (`packages/checks`, `packages/psi`, `@auditor/report-model`). La única decisión de stack real es la **#5 (visualizador de arquitectura)**, y la recomendación es **no añadir ninguna librería de grafos/árboles**: usar SVG nativo + React, siguiendo exactamente el patrón que el propio proyecto ya estableció en `apps/web/app/components/EntityGraphSvg.tsx` (grafo de entidades del JSON-LD, ya en producción desde v1.0-v1.1).
+> Nota: reemplaza el `STACK.md` de v1.3 (árbol de arquitectura/Lighthouse diagnostics/template grouping), que ya fue implementado y archivado. Este documento es la investigación de stack para el milestone activo v1.5.
 
 ## Recommended Stack
 
 ### Core Technologies
 
-No hay cambios de core stack. Next.js 15 (App Router) + React 19 + Prisma/Postgres + Crawlee/Cheerio siguen siendo la base; las 5 features son aditivas dentro de esos límites ya decididos.
+No se necesita ningún framework nuevo. La decisión correcta para este milestone es **no** adoptar una librería de detección de terceros completa, sino agregar un módulo propio de matching de firmas dentro del pipeline ya existente — porque toda opción empaquetada disponible hoy está muerta, licenciada GPL, o es una API paga, lo cual choca con el requisito explícito del milestone ("fingerprint propio, sin servicios pagos de terceros").
 
-### Supporting Libraries (por feature)
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| Paquete nuevo `packages/fingerprint` (workspace propio, TypeScript plano, sin runtime deps nuevas de peso) | n/a | Motor de matching de firmas: evalúa un set curado de firmas contra `{ headers, html, cookies, scriptSrc, metaGenerator }` ya producido por el crawl, por página o por sitio | Cada opción de "instalar y listo" falla al menos una restricción dura (ver Alternatives / What NOT to Use). Un matcher de ~150-300 líneas sobre la pasada de Cheerio que `packages/checks` ya hace es la única opción simultáneamente gratuita, limpia en licencia, y acotada a las ~40-60 tecnologías que este proyecto realmente necesita (no las ~7.500 de Wappalyzer). Esto calca el patrón que el propio proyecto ya estableció: `packages/checks/src/registry.ts` ya corre un arreglo de objetos de check tipados (`PageCheck`/`SiteCheck`/`NetworkCheck`) sobre una única pasada de `cheerio.load()` por página — un módulo de fingerprint es estructuralmente el mismo tipo de registry, sólo que produce un `TechStack` en vez de `IssueDraft`s. |
+| `set-cookie-parser` | 3.1.2 | Parsear los headers `Set-Cookie` crudos de la respuesta en objetos estructurados `{ name, value, domain, path }` | El fingerprinting de CDN/CMS/analytics depende mucho de nombres de cookies (`__cf_bm`/`__cfduid` → Cloudflare, `_shopify_s`/`_secure_session_id` → Shopify, `wp-settings-*`/`wordpress_logged_in_*` → WordPress, `_wixCIDX`/`XSRF-TOKEN` en Wix, `_ga`/`_gid` → GA). Crawlee/got-scraping expone el `Set-Cookie` crudo como array de strings en la respuesta; parsearlo bien (múltiples cookies, atributos) es un problema ya resuelto que no vale la pena reinventar. Mantenida activamente, cero dependencias, encaja con el patrón ya usado en el proyecto de "librería de soporte chica y enfocada" (`fast-xml-parser`, `robots-parser`). Verificado directo contra el registro de npm (versión actual, sin deprecar). |
 
-| Feature | Librería nueva | Versión | Por qué (o por qué no) |
-|---------|---------------|---------|------------------------|
-| #1 Schema-content mismatch | Ninguna | — | Cheerio (ya en `@auditor/checks` vía `@crawlee/cheerio`/`cheerio`) es suficiente: parsear el JSON-LD ya extraído (reutiliza el parser de `packages/checks/src/checks/schema`) y buscar substrings/patrones del contenido declarado (preguntas de FAQPage, pasos de HowTo, rating de Product+AggregateRating) en el texto visible del DOM (`$("body").text()` normalizado). Mismo patrón que `orphanPages.ts`: cargar `page.html` con `cheerio.load`, sin fetch adicional. |
-| #2 Click-depth (3-click rule) | Ninguna | — | `Page.depth` ya persistido por Prisma (crawler ya lo calcula). El check es puro cálculo sobre datos existentes (nuevo `SiteCheck` que agrupa `pages` por `depth` y emite `IssueDraft` cuando `depth > 3`). Superficie en reporte: extender `buildReportModel`/agrupación existente, no requiere UI nueva más allá de una columna/badge de profundidad reutilizando `Badge` (ya en la librería de componentes de v1.1). |
-| #3 Lighthouse diagnostics/opportunities | Ninguna | — | Ya se paga y se recibe la respuesta completa de PSI; `packages/psi/src/parser.ts` sólo lee 4 campos de `lighthouseResult.audits`. Extender `parsePsiResponse` (o una función hermana `parsePsiOpportunities`) para leer los mismos `audits[auditId]` ya presentes en `RawPsiResponse`, usando `details.overallSavingsMs` / `details.overallSavingsBytes` / `displayValue` — ver tabla de audit IDs abajo. Cero dependencias: es JSON ya en memoria. |
-| #4 Template-based issue grouping | Ninguna | — | Heurística de clasificación de URL por patrón (home/categoría/producto/artículo) implementable con `URL` nativo + regex/segmentos de path — incluso path-based (`/producto/`, `/blog/`, `/categoria/`) y fallback a profundidad+cantidad de páginas similares (mismo patrón de segmentos). Vive como una función pura nueva en `@auditor/report-model` (paralela a `groupIssuesByType` en `grouping.ts`), consumida por la UI de reporte igual que la agrupación por tipo. |
-| #5 Architecture visualizer (árbol jerárquico) | Ninguna (recomendado) | — | Ver sección dedicada abajo. |
+### Supporting Libraries
+
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| `cheerio` (ya es dependencia) | 1.2.0 (pinneada, igual que en `packages/checks`/`packages/crawler`) | Extraer `<meta name="generator">`, atributos `src` de `<script>`, `href` de `<link>`, cuerpos de `<script>` inline (para matchear strings de `dataLayer`/`gtag`/`fbq`), y marcadores del DOM (ej. `data-wf-page`, `.elementor`, `.et_pb_*`, `.vc_row`) | Reusar el mismo `$` ya cargado una vez por página dentro de `runAllChecks` (por `ARCH-03` — "no re-parseo de HTML en ningún otro lado"). El fingerprint debe engancharse en ese loop existente como una pasada más sobre el mismo `$`, no abrir un segundo parseo. |
+| Matcher de firmas basado en regex (escrito a mano, sin librería) | n/a | Matchear `headers`, strings de `html`/`meta`/`scriptSrc`, y nombres de cookies contra objetos de firma por tecnología (`{ id, category, headers?, html?, scriptSrc?, cookies?, metaGenerator? }`) | Este es el "motor" real — deliberadamente no el motor de `wappalyzer-core` (ver abajo). Una firma es simplemente `{ pattern: RegExp, confidence: number }` por campo; el matching es `Object.entries(signatures).filter(sig => testSignature(sig, evidence))`. Suficientemente simple como para que importar un motor añada más riesgo (licencia, dependencias sin mantener) del que ahorra trabajo. |
+| Dataset de firmas propio y curado (JSON/TS de primera mano, ~40-60 entradas) | n/a | Las reglas de fingerprint reales para: CMS (WordPress, Shopify, Webflow, Wix, Squarespace, Ghost, Joomla, Drupal), builders de WordPress (Elementor, WPBakery/`js_composer`, Divi/`et_pb_*`, Oxygen), CDN/proxy (Cloudflare, Fastly, Akamai, Vercel, Netlify, CloudFront), frameworks JS (React, Next.js, Vue, Nuxt, Angular — vía `__NEXT_DATA__`, `data-reactroot`, `__nuxt`, `ng-version`), analytics/tag managers (GA4, GTM, Meta Pixel, Hotjar) | Escribirlas desde investigación propia de los headers/meta tags/dominios de CDN de assets/nombres de cookies conocidos de cada plataforma (la sección Sources de este documento ya deja señales concretas para CDNs y builders de WP como punto de partida). **No** copiar el archivo `technologies.json` de `enthec/webappanalyzer` textual al repo — ver nota de licenciamiento en "What NOT to Use". Leer ese dataset público como referencia para verificar las firmas propias está bien; vendorizar su archivo de datos GPL-3.0 dentro del árbol de fuentes de un producto propietario es lo que hay que evitar. |
 
 ### Development Tools
 
-No aplica — no hay tooling nuevo (linters, bundlers, CI) requerido por estas features.
-
-## Feature #5 en detalle: Architecture visualizer
-
-### Decisión: SVG nativo + React, cero librería de grafos
-
-**Recomendación: NO instalar `@xyflow/react`, `d3-hierarchy`, `@visx/hierarchy`, `react-arborist` ni `react-d3-tree`. Construir el árbol como un componente SVG/CSS propio, hermano de `EntityGraphSvg.tsx`.**
-
-Razones (en orden de peso):
-
-1. **Ya existe el patrón exacto en el repo y está validado en producción.** `apps/web/app/components/EntityGraphSvg.tsx` ya resuelve "renderizar un grafo con nodos y edges, sin dependencias externas, con colores por token del design system" — con un comentario explícito en el código: *"Self-contained SVG entity-graph renderer (no external libs / CDN — the deploy has a strict CSP)"*. El árbol de arquitectura es una versión **más simple** del mismo problema (jerarquía por `depth`, no un grafo con posicionamiento arbitrario), así que reutilizar el enfoque es consistente con la arquitectura de componentes ya aprobada y evita introducir un segundo paradigma de renderizado de visualizaciones en el mismo proyecto.
-
-2. **La decisión de producto ya está tomada y es más simple de lo que las librerías de grafos resuelven.** El milestone dice explícitamente: *"árbol jerárquico por profundidad... sin migración de storage"* y el research prompt aclara *"NOT a full interactive graph with persisted edges"*. Un árbol de 4 niveles (0/1/2/3+) con nodos agrupados por página es un problema de **layout jerárquico estático**, no de física de grafos (fuerzas, colisión, arrastre de nodos) — el terreno donde React Flow/d3-force realmente aportan valor. Para 500 URLs máx. agrupadas en 4 buckets de profundidad, un layout determinístico (filas por profundidad, columnas repartidas por ancho disponible, con colapso/expansión vía estado de React) es trivial de calcular a mano.
-
-3. **CSP estricto ya es una restricción confirmada del proyecto** (mencionado en el propio código de `EntityGraphSvg.tsx` y consistente con la decisión de v1.2 de "cero Chromium en Vercel" / librerías JS puras para exports). `@xyflow/react` inyecta estilos y depende de ResizeObserver/portal rendering con supuestos sobre el entorno de ejecución del cliente que no han sido validados contra ese CSP; adoptar una librería de UI de terceros de ~50-80kB gzip para un árbol de 4 niveles es una superficie de riesgo innecesaria en un producto lead-magnet que debe cargar rápido.
-
-4. **Presupuesto de bundle.** Este es un producto Vercel-hosted, gratuito, cuyo único objetivo es convertir visitantes en emails verificados — cada KB de JS en la página de reporte compite con el tiempo hasta que el usuario ve su score. Comparación de peso (gzip, cliente):
-   - `@xyflow/react` 12.11.2: ~55-70kB gzip (incluye zustand interno, drag/zoom/pan, minimap opcional).
-   - `d3-hierarchy` 3.1.2: ~8-10kB gzip — mucho más liviano, pero sigue siendo una dependencia sólo para calcular un layout de árbol (`d3.tree()`/`d3.stratify()`) que se puede escribir a mano en <100 líneas dado que la jerarquía es de sólo 4 niveles fijos (no arbitraria).
-   - `@visx/hierarchy@4.0.0` + `@visx/group@4.0.0`: similar a d3-hierarchy (visx es una capa de componentes React sobre los mismos algoritmos de d3), añade ~15-20kB sin resolver nada que un `<g>`/`<line>` manual no resuelva a esta escala.
-   - `react-arborist@3.13.2` / `react-d3-tree@3.6.6`: pensadas para árboles de archivos/organigramas editables con muchísimos nodos y virtualización — over-engineered para 4 niveles fijos; además usan sus propios sistemas de theming que chocarían con el design system tokenizado (DS-01..04) ya construido en v1.1.
-   - SVG nativo (enfoque recomendado): 0kB adicional — sólo JSX + CSS modules, exactamente como `EntityGraphSvg.tsx` + `EntityGraphSvg.module.css`.
-
-5. **Theming tokens-only.** La decisión de v1.1 (*"Componentes tokens-only, cero hex crudo"*) es más fácil de cumplir con SVG/CSS propio (clases CSS module con `color: var(--token)`, `fill: currentColor`, tal como hace `EntityGraphSvg.module.css`) que forzando el theming de una librería de terceros a través de sus props/CSS variables propias.
-
-### Cómo implementarlo (guía concreta para el ejecutor de la fase)
-
-- **Estructura de datos:** nuevo tipo `ArchitectureTree` (o similar) construido en `@auditor/report-model`: agrupar `pages` por `Page.depth` en buckets `0`, `1`, `2`, `3+`; dentro de cada bucket, listar páginas (título/URL/categoría de plantilla si la feature #4 ya aportó el clasificador — reutilizar esa función).
-- **Enlaces internos on-demand (el "grafo" del punto 5):** reusar literalmente el mismo parseo que `orphanPages.ts` — `cheerio.load(page.html)` + `$("a[href]")` + `normalizeUrl` + `sameRegistrableDomain` — para computar, sólo cuando el usuario lo pida (client-side toggle o ruta separada), las aristas padre→hijo por profundidad. No persistir aristas (coincide con la decisión "sin migración de storage").
-- **Renderizado:** componente `ArchitectureTreeSvg` (Client Component `"use client"` si necesita interactividad de colapso vía `useState`, igual que otros componentes interactivos ya en `apps/web/app/components`).
-- **Interactividad mínima necesaria:** colapsar/expandir ramas (estado React simple), tooltip/hover con detalles de la página. **No** se necesita pan/zoom real para 4 niveles — si una fila de profundidad tiene demasiados nodos, usar scroll horizontal nativo (`overflow-x: auto` en un contenedor) en vez de zoom/pan de librería.
-- **Accesibilidad:** seguir el patrón ya usado en `EntityGraphSvg` (`role="img"`, `aria-label` descriptivo) más, si es interactivo, controles de colapso como `<button>` reales con `aria-expanded` (no divs clicables) para cumplir con A11Y-01..03 ya validado en v1.1.
-
-### Cuándo SÍ reconsiderar una librería
-
-- Si en el futuro el árbol necesita ser un **grafo real de enlaces internos con posicionamiento por fuerzas** (no jerárquico) y persistencia de aristas (fuera de scope explícito de v1.3), `d3-hierarchy`/`d3-force` (no `@xyflow/react`, que es para editores de flujo interactivos) sería la opción MEDIUM-confidence a evaluar primero por su bajo peso.
-- Si el número de páginas por nivel de profundidad crece a punto de necesitar virtualización real (miles de nodos en una sola fila), ahí `react-arborist` sí justificaría su peso — no es el caso a 500 URLs máx.
-
-## Lighthouse audit IDs para feature #3 (diagnósticos/opportunities)
-
-Confirmado (HIGH confidence, vía tipos oficiales de Lighthouse `types/lhr/audit-details.d.ts` y `audit-result.d.ts` en el repo `GoogleChrome/lighthouse`):
-
-- El shape de cada entrada en `lighthouseResult.audits[auditId]` que ya se tipa parcialmente en `RawPsiResponse` (`packages/psi/src/parser.ts`) puede extenderse así:
-
-```typescript
-interface RawAudit {
-  score?: number | null;
-  scoreDisplayMode?: string;
-  numericValue?: number | null;
-  numericUnit?: string;
-  displayValue?: string;
-  details?: {
-    type?: string; // "opportunity" | "table" | ...
-    overallSavingsMs?: number;
-    overallSavingsBytes?: number;
-    items?: Array<Record<string, unknown>>;
-  };
-}
-```
-
-- IDs de audit relevantes a extraer para "diagnósticos y oportunidades" (todos ya vienen en la respuesta PSI actual, sin costo extra):
-  - `uses-webp-images` (formatos de imagen de próxima generación)
-  - `unused-css-rules` (CSS sin usar)
-  - `unused-javascript` (JS sin usar — mismo patrón de `details.overallSavingsBytes`)
-  - `render-blocking-resources` (recursos que bloquean el render)
-  - `properly-sized-images` (imágenes correctamente dimensionadas)
-  - Opcionalmente ampliar a `uses-optimized-images`, `uses-text-compression`, `total-byte-weight` si se quiere una cobertura más completa del mismo tipo de dato — mismo shape, mismo costo cero.
-- **Nota de vigencia (MEDIUM confidence, verificar en fase de implementación):** `overallSavingsMs` está marcado como parcialmente deprecado en favor de `metricSavings.LCP`/`metricSavings.FCP` en versiones recientes de Lighthouse — la respuesta de PSI v5 en producción puede incluir ambos campos. Al implementar, leer `overallSavingsMs` con fallback a `metricSavings` si está presente, y no asumir que sólo uno de los dos existirá indefinidamente.
-- Mapeo a severidad: usar `overallSavingsMs`/`overallSavingsBytes` con los mismos umbrales de scoring health-ratio ya usados para LCP/CLS/TTFB (reutilizar la lógica de `packages/scoring`, no inventar una escala nueva) — p. ej. >500ms de ahorro potencial en un solo audit = `warning`, >1500ms = severidad más alta, siguiendo el patrón size-independent ya validado en v1.0.
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| Ninguna nueva | — | No se necesita tooling de dev/build nuevo; esto se envía como un paquete de workspace TS plano siguiendo las convenciones ya existentes de `packages/checks` (Vitest para tests, `tsc --noEmit` para typecheck). |
 
 ## Installation
 
 ```bash
-# No hay instalación nueva de dependencias de producción para v1.3.
-# Todas las 5 features se implementan con las dependencias ya presentes en:
-# - packages/checks (cheerio, @auditor/crawler)
-# - packages/psi (fetch nativo, sin SDK)
-# - packages/report-model (TypeScript puro)
-# - apps/web (react, next — ya instalados)
+# Única dependencia de runtime genuinamente nueva en todo el milestone:
+pnpm --filter @auditor/fingerprint add set-cookie-parser@3.1.2
+
+# Todo lo demás (cheerio, crawlee) ya está instalado en las versiones que
+# asume esta investigación (cheerio@1.2.0, @crawlee/cheerio@3.17.0) — sin bump necesario.
 ```
 
 ## Alternatives Considered
 
-| Recomendado | Alternativa | Cuándo usar la alternativa |
-|-------------|-------------|------------------------------|
-| SVG nativo + React para el árbol de arquitectura | `d3-hierarchy` (3.1.2, ~8-10kB gzip) | Si el layout jerárquico crece en complejidad real (árboles no balanceados con muchas ramas de ancho variable) y calcular posiciones a mano se vuelve propenso a errores — `d3-hierarchy` sólo aporta el algoritmo de layout (`d3.tree()`), no un componente de render, así que seguiría integrándose con SVG propio, no reemplazándolo. |
-| SVG nativo + React | `@xyflow/react` (12.11.2) | Sólo si el producto evoluciona (fuera de v1.3) hacia un grafo interactivo con pan/zoom/arrastre de nodos y edges persistidas — no es el caso de "árbol jerárquico por profundidad" que es la decisión bloqueada de este milestone. |
-| Heurística propia de clasificación de plantilla (regex sobre segmentos de URL) | Librería de clasificación ML/NLP de tipo de página | No se justifica: la taxonomía es pequeña y conocida (home/categoría/producto/artículo) y determinable con reglas de path, no requiere aprendizaje automático. |
-| Leer `audits[id].details` directamente del JSON de PSI ya obtenido | Librería cliente de Lighthouse (`lighthouse` npm package) para reprocesar | No aplica: el proyecto ya usa la API REST de PSI (no corre Lighthouse localmente para este dato), y el JSON ya contiene todo lo necesario — instalar el paquete `lighthouse` completo sólo para tipos sería mucho peso por cero beneficio funcional. |
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|--------------------------|
+| Motor de firmas propio + dataset de firmas propio curado | `wappalyzer-core` (npm) + traer el `technologies.json` de `enthec/webappanalyzer` en build/runtime | Sólo si Juan decide explícitamente que la cobertura de ~7.500 tecnologías vale (a) sumar código y datos licenciados GPL-3.0 dentro de un producto comercial, y (b) el riesgo de mantenimiento continuo de un fork comunitario no oficial sin paquete npm propio (habría que traer/vendorizar el JSON crudo desde GitHub a mano, sin pinning de versión vía npm). No recomendado para un proyecto cuyo objetivo declarado son 5 categorías puntuales (CMS/builder, CDN, hosting, framework JS, analytics) — la cobertura completa de Wappalyzer resuelve un problema mucho más grande del que tiene este milestone. |
+| Motor de firmas propio | API paga de Wappalyzer (`wappalyzer.com/api`) | Nunca para este proyecto — explícitamente fuera de alcance según el brief del milestone ("sin servicios pagos de terceros"), y reintroduce una dependencia externa por request/costo sobre una herramienta gratuita tipo lead magnet que ya escala a 500 URLs/auditoría. |
+| Motor de firmas propio | `@ryntab/wappalyzer-node` u otros wrappers comunitarios | Estos envuelven el mismo motor/dataset GPL-3.0 de `wappalyzer-core` (algunos además levantan Puppeteer por default en modo "browser") — mismo problema de licencia que arriba, más peso extra (Puppeteer) que la pasada Cheerio-first de este proyecto no necesita. |
+| Curar dataset de firmas propio (~40-60 entradas) | Vendorizar un subconjunto del `technologies.json` de `enthec/webappanalyzer` directamente | Si el tiempo de entrega importa más que la higiene de licenciamiento y Juan está cómodo con las obligaciones de GPL-3.0 sobre ese archivo de datos (una pregunta legal poco clara de "dato vs. código" — vale una consulta rápida a quien maneje temas legales de juan-tech.com si se toma este camino en un producto comercial). El default más seguro es escribir las propias regex desde investigación de primera mano de cada plataforma, usando el dataset público sólo como verificación cruzada, no como fuente de copia. |
 
 ## What NOT to Use
 
-| Evitar | Por qué | Usar en su lugar |
-|--------|---------|-------------------|
-| `@xyflow/react` para el árbol de arquitectura | ~55-70kB gzip, pensado para editores de flujo interactivos con pan/zoom/drag; over-engineered para una jerarquía estática de 4 niveles; riesgo de fricción con el CSP estricto ya confirmado en el proyecto | SVG nativo siguiendo el patrón de `EntityGraphSvg.tsx` |
-| `react-arborist` / `react-d3-tree` para el árbol de arquitectura | Diseñadas para árboles editables/virtualizados de miles de nodos (árboles de archivos, organigramas); traen su propio sistema de theming que no encaja con el design system tokens-only de v1.1 | SVG nativo + estado React simple para expand/collapse |
-| `@visx/hierarchy` + `@visx/group` | Capa de componentes sobre los mismos algoritmos de d3-hierarchy; no aporta nada sobre SVG propio a esta escala (4 niveles, ≤500 nodos) y añade una dependencia más al bundle del reporte | SVG nativo, o `d3-hierarchy` puro si el layout se complica |
-| Instalar el paquete `lighthouse` npm sólo para tipos de `audit-details` | Paquete pesado (incluye Chrome DevTools Protocol driver, Puppeteer-adjacent deps) para obtener únicamente un shape de tipos que se puede declarar a mano en `packages/psi/src/parser.ts` (igual que ya se hizo con `RawPsiResponse`) | Extender `RawPsiResponse`/`RawAudit` manualmente en `packages/psi`, como ya está hecho para las 4 métricas actuales |
-| Reintroducir Lighthouse/Playwright local para diagnósticos | Ya está resuelto: PSI ya devuelve `audits` completo por request pagado; correr Lighthouse local para esto duplicaría costo de cómputo del worker sin necesidad | Leer `lighthouseResult.audits[id]` de la respuesta PSI ya obtenida |
-| Servicio de clasificación de plantillas de terceros o modelo LLM por página | Añade latencia/costo/dependencia externa a una tarea que es determinística con reglas de segmentos de URL para el 90%+ de sitios (WordPress, WooCommerce, Shopify siguen convenciones de path predecibles: `/categoria/`, `/producto/`, `/blog/`, `/`) | Heurística de regex sobre `path.split("/")` + profundidad, con fallback a "otra" si no matchea ningún patrón conocido |
+| Avoid | Why | Use Instead |
+|-------|-----|--------------|
+| `wappalyzer-core` (npm) | Marcado explícitamente `DEPRECATED` en el registro de npm desde la v6.10.66 (sin mantenimiento desde agosto 2023, cuando Wappalyzer puso su API detrás de un paywall); motor y dataset licenciados GPL-3.0, ambos sin actualizaciones upstream desde que el vendor se volvió comercial. Confirmado vía consulta directa `npm view wappalyzer-core` al registro. | Motor de firmas propio (recomendación central de este documento) |
+| Cualquier API paga de detección de tecnología (Wappalyzer API, BuiltWith API, etc.) como dependencia por request de auditoría | El brief del milestone la descarta explícitamente; además reintroduce riesgo de costo/rate-limit por request en una herramienta que ya corre auditorías gratis sobre hasta 500 URLs/semana/email — el mismo razonamiento que ya descartó Domain Rating (Ahrefs) como input puntuado en v1.0. | Motor de firmas propio contra datos ya capturados por el crawl |
+| Correr un navegador headless (Playwright) sólo para fingerprintear stack (ej. leer `window.dataLayer`, `window.gtag`) en cada página | Este proyecto ya restringe Playwright a una muestra chica para el veredicto de render (`MAX_RENDER_PAGES=10`, según `RENDER-01..03`) precisamente porque cuesta 5-10x más que Cheerio. Fingerprintear desde HTML/headers/cookies crudos cubre la gran mayoría de señales de CMS/CDN/hosting/analytics (las URLs de `src` de script y las llamadas inline `gtag(`/`fbq(`/`dataLayer.push(` son visibles en el HTML crudo para la enorme mayoría de sitios) sin tocar el presupuesto de render. | Fingerprintear desde la pasada Cheerio ya existente (headers/html/meta/scriptSrc/cookies) en cada página; recurrir al DOM ya renderizado de la muestra existente (reusando las páginas de veredicto de render, no una pasada nueva de Playwright) sólo para el caso raro de HTML crudo vacío/shell de CSR. |
+| Vendorizar el `technologies.json` de `enthec/webappanalyzer` textual en este repo | Archivo de datos licenciado GPL-3.0; commitearlo en un codebase propietario/comercial levanta una pregunta real (aunque debatida) de copyleft, y no hay paquete npm oficial para pinnearlo/versionarlo de forma limpia de todos modos — habría que scrapear contenido crudo de GitHub para el build. | Escribir firmas propias para las ~40-60 tecnologías que este proyecto puntúa, usando docs públicas/headers/nombres de cookies como insumo de investigación (no como artefacto copiado) |
 
 ## Stack Patterns by Variant
 
-**Si el clasificador de plantillas de la feature #4 detecta con confianza baja (URL no matchea ningún patrón conocido):**
-- Usar categoría fallback `"otra"` en vez de forzar una clasificación incorrecta.
-- Porque una agrupación por plantilla equivocada es peor que "sin clasificar" — el usuario del reporte pierde confianza si ve un artículo agrupado como "producto".
+**Punto de integración del fingerprinting:**
+- Extender el `requestHandler` de `packages/crawler/src/crawl.ts` para capturar `response.headers` (ya disponible en el objeto `response` de Crawlee/got-scraping, hoy descartado) y el header `Set-Cookie` crudo, al menos para el request de la página de inicio/depth-0 — el crawl hoy persiste `title`/`statusCode`/`html`/`contentType`/`redirectChain` pero ningún header ni cookie, así que esto es captura de datos nueva, no sólo procesamiento nuevo.
+- Agregar campos para persistir esto: ya sea una columna `Page.responseHeaders Json?` (si importa la variación por página, ej. distinto CDN detrás de distintos paths) o un único snapshot `Audit.techStack Json?` computado una vez desde la página de inicio (más simple, y encaja con cómo el brief del milestone describe la feature: "tabla de stack detectado al inicio del reporte", una tabla a nivel sitio, no por página). Se recomienda esto último para el alcance de v1.5 — computarlo una vez desde la respuesta + HTML de la home ya resuelta, mantenerlo simple, revisar variación por página sólo si auditorías reales lo muestran (ej. un CDN sólo delante de algunos subpaths).
+- Correr el módulo de fingerprint nuevo como una pasada más dentro del loop por página de `cheerio.load()` que `runAllChecks` ya tiene (`packages/checks/src/registry.ts`), reusando el mismo `$` — no agregar un segundo parseo de HTML.
 
-**Si el árbol de arquitectura (feature #5) recibe un sitio con profundidad >3 en una proporción muy alta de páginas:**
-- Usar un solo bucket "3+" (ya es la decisión tomada: 0/1/2/3+), sin desglosar más niveles.
-- Porque el objetivo es visibilidad de arquitectura general (¿está el sitio muy plano o muy profundo?), no un mapa exhaustivo nivel por nivel — más niveles añaden ruido visual sin más insight accionable para un lead magnet.
+**Patrón del motor de recomendaciones adaptador-por-CMS:**
+- Seguir el mismo idioma que ya usa `packages/checks/src/registry.ts` (arreglos/mapas de objetos tipados con una función `run()`/`recommend()`, no clases) en vez de introducir herencia OOP — el codebase de este proyecto es functional-registry-style de punta a punta (`pageChecks`, `siteChecks`, `networkChecks` como arreglos), y el patrón adaptador debería leerse como "un registry más", no como un paradigma nuevo.
+- Concretamente: un mapa `Record<CmsId, CmsAdapter>` (`wordpress`, `shopify`, `webflow`, `wix`, `squarespace`, `generic`) donde cada `CmsAdapter` implementa `recommend(issue: IssueDraft, ctx: { techStack: TechStack }): string | null` — devolviendo un string de instrucciones específico del CMS (ej. "en WordPress, agregá el alt text desde el editor de medios…") o `null` para dejar pasar al fallback.
+- Dispatch: `(adapters[detectedCms] ?? adapters.generic).recommend(issue, ctx)` — el adapter `generic` no es opcional ni un afterthought, es una entrada de primera clase en el mismo mapa, garantizando que cada issue siempre reciba una recomendación aunque la detección de CMS sea nula o de baja confianza.
+- Como un CMS se detecta una vez por auditoría (no por página), pasar el `TechStack` detectado hacia abajo a través del mismo objeto `siteCtx` que `runAllChecks` ya inyecta en cada check (`{ pages, origin, robotsTxt, sitemapUrls, depthByUrl, renderVerdictByPageId }` → agregar `techStack`), en vez de crear un camino nuevo de parámetros.
+
+**Si el builder de WordPress no se puede identificar con confianza (sin marcadores de Elementor/WPBakery/Divi/Oxygen):**
+- Caer a un nivel de adapter genérico "WordPress" (no al fallback totalmente genérico) — instrucciones específicas de WordPress ("desde el editor de bloques / Gutenberg…") siguen siendo más útiles que el fallback genérico total aunque no haya granularidad a nivel de builder.
 
 ## Version Compatibility
 
-No aplica — no se introducen paquetes nuevos con requisitos de compatibilidad de versión. Todo el trabajo de v1.3 corre sobre las versiones ya fijadas en v1.0-v1.2 (Next.js ^15.1.0, React ^19.0.0, TypeScript ^5.7.2, cheerio ya en `@auditor/crawler`/`@auditor/checks`).
+| Package A | Compatible With | Notes |
+|-----------|------------------|-------|
+| `set-cookie-parser@3.1.2` | Node 18+ (ya es el baseline del proyecto) | Cero dependencias; sin conflictos de peer range. |
+| Paquete nuevo `packages/fingerprint` | `cheerio@1.2.0`, modelos Prisma `Page`/`Audit` existentes | Debe agregarse como paquete de workspace consumido por `packages/checks` y/o `apps/worker`, siguiendo el mismo límite de "sin dependencias de navegador filtrándose al bundle de Vercel" ya reforzado para exports (`assert:web-boundary`) — este módulo no tiene dependencias de navegador/Playwright, así que es seguro en ambos lados, pero mantenerlo en `packages/` (no directo en `apps/web`) para preservar la simplicidad de ese chequeo. |
+| `wappalyzer-core@6.10.66` (si se reconsidera alguna vez) | GPL-3.0, deprecado, sin publicaciones npm activas desde 2023 | Explícitamente no recomendado — listado acá sólo para dejar registro de por qué se descartó (ver What NOT to Use). |
 
 ## Sources
 
-- `apps/web/app/components/EntityGraphSvg.tsx` (código del propio repo) — patrón de referencia SVG-sin-dependencias ya validado en producción, HIGH confidence (evidencia directa del codebase)
-- `packages/checks/src/checks/tech/orphanPages.ts` (código del propio repo) — patrón de parseo de enlaces internos on-demand vía Cheerio, HIGH confidence
-- `packages/psi/src/parser.ts` (código del propio repo) — shape actual de `RawPsiResponse`, punto de extensión para diagnósticos, HIGH confidence
-- npm registry (`npm view <pkg> version`, consultado 2026-07-08): `@xyflow/react@12.11.2`, `d3-hierarchy@3.1.2`, `@visx/hierarchy@4.0.0`, `@visx/group@4.0.0`, `react-arborist@3.13.2`, `react-d3-tree@3.6.6` — HIGH confidence (consulta directa al registro)
-- [GoogleChrome/lighthouse — types/lhr/audit-details.d.ts](https://github.com/GoogleChrome/lighthouse/blob/main/types/lhr/audit-details.d.ts) — shape oficial de `Opportunity`/`overallSavingsMs`/`overallSavingsBytes`, HIGH confidence (tipos oficiales del proyecto)
-- [GoogleChrome/lighthouse — types/lhr/audit-result.d.ts](https://github.com/GoogleChrome/lighthouse/blob/main/types/lhr/audit-result.d.ts) — shape oficial de `AuditResult` (`numericValue`, `numericUnit`, `displayValue`, `details`), HIGH confidence
-- WebSearch sobre deprecación de `overallSavingsMs` en favor de `metricSavings` — MEDIUM confidence (múltiples discusiones de GitHub issues/PRs de Lighthouse convergen, pero requiere verificación puntual contra la versión exacta de Lighthouse que corre PSI v5 en el momento de implementar)
-- `.planning/PROJECT.md` (Current Milestone v1.3 + Key Decisions) — contexto de restricciones ya decididas (CSP estricto, tokens-only, sin migración de storage), HIGH confidence
+- Registro de npm, consulta directa (`npm view wappalyzer-core`, verificado 2026-07-21) — confirma `DEPRECATED`, licencia `GPL-3.0`, última publicación "hace más de un año" (dist-tag `latest` 7.0.3) — HIGH confidence (consulta directa al registro, fuente primaria)
+- Registro de npm, consulta directa (`npm view set-cookie-parser`, `npm view cheerio`, `npm view crawlee`, verificado 2026-07-21) — versiones actuales 3.1.2 / 1.2.0 / 3.17.0, las últimas dos coincidiendo con lo ya pinneado en este proyecto — HIGH confidence (consulta directa al registro)
+- [enthec/webappanalyzer](https://github.com/enthec/webappanalyzer) (README + CONTRIBUTING, consultado 2026-07-21) — licencia GPL-3.0, schema de `technologies.json` (`cats`, `website` requeridos; `headers`/`meta`/`scriptSrc`/`cookies`/`dom`/`js`/`css`/`dns`/`certIssuer`/`implies` como campos de patrón opcionales), sin paquete npm oficial documentado — MEDIUM confidence (docs del repo oficial, pero resumen vía scrape de página, no lectura manual completa)
+- [Wappalyzer Paywalled Itself in 2023 — the OSS-Powered Replacement (DEV Community)](https://dev.to/nexgendata/wappalyzer-paywalled-itself-in-2023-heres-the-oss-powered-replacement-3i01) — contexto del evento de paywall de 2023 y los forks comunitarios (`enthec/webappanalyzer`, `tunetheweb/wappalyzer`, `dochne/wappalyzer`) — MEDIUM confidence (resumen de tercero, cruzado contra el repo oficial directamente para las afirmaciones de schema/licencia)
+- Resultados de búsqueda web sobre firmas de headers de CDN (Cloudflare `Server: cloudflare`/`CF-Ray`/`__cf_bm`; Fastly `X-Served-By`/`X-Cache`; Akamai `X-Check-Cacheable`/`X-Akamai-Transformed`) — MEDIUM confidence (agregado de múltiples fuentes independientes de blogs de herramientas de detección, consistentes entre sí y con el comportamiento de headers públicamente documentado de cada vendor de CDN)
+- Resultados de búsqueda web sobre firmas DOM de builders de WordPress (clases `et_pb_*`/`elementor-*` de Elementor/Divi, clases `vc_row`/`vc_column`/`wpb_wrapper` de WPBakery + path de asset `/js_composer/` + meta tag `generator`, comentario `<!-- Oxygen Builder -->` de Oxygen) — MEDIUM confidence (fuentes de blog/comunidad agregadas; no verificado de forma independiente contra instalaciones de WordPress reales en esta pasada de investigación — marcar para verificación puntual contra 2-3 sitios reales por builder durante la implementación)
+- `packages/crawler/src/crawl.ts`, `packages/checks/src/registry.ts`, `packages/db/prisma/schema.prisma` (leídos directamente de este repo, 2026-07-21) — confirman la arquitectura actual de crawl/checks/persistencia y el gap de integración puntual (hoy no se persisten headers ni cookies) — HIGH confidence (fuente primaria: el codebase real)
 
 ---
-*Stack research for: Auditor Web v1.3 — 5 features nuevas sobre stack existente*
-*Researched: 2026-07-08*
+*Stack research for: fingerprinting de stack técnico + recomendaciones personalizadas por CMS (milestone v1.5)*
+*Researched: 2026-07-21*
