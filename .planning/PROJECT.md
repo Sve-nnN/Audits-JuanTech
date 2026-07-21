@@ -8,9 +8,15 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
-## Current Milestone: Planning next (post-v1.4)
+## Current Milestone: v1.5 Fingerprinting técnico + fixes personalizados por CMS
 
-v1.4 shipped 2026-07-10. Próximo milestone por definir vía `/gsd:new-milestone` — ver "Prior State" abajo para candidatos (deploy a producción, v2 monetización, v2 enriquecimiento).
+**Goal:** Detectar el stack técnico del sitio auditado (CMS, builder de página si es WordPress, CDN/proxy, hosting/servidor, framework JS, analytics/tag manager) vía fingerprint propio (headers HTTP, HTML, paths conocidos — sin servicios pagos de terceros), mostrarlo como tabla al inicio del reporte apenas termina el escaneo, y usar ese stack detectado para generar recomendaciones de fix personalizadas por issue (ej: "falta alt text" explica cómo resolverlo en WordPress vs Shopify vs Webflow vs Wix/Squarespace, con fallback genérico útil para el resto).
+
+**Target features:**
+- Fingerprint de stack: CMS (+ builder si WordPress: Elementor, WPBakery, Divi, etc.), CDN/proxy, hosting/servidor, framework JS, analytics/tag manager.
+- Tabla de stack detectado al inicio del reporte, tras finalizar el crawl.
+- Motor de recomendaciones por CMS: módulo/clase por plataforma (WordPress, Shopify, Webflow, Wix/Squarespace) con patrón adaptador para sumar plataformas a futuro; fallback genérico cuando no hay adaptador específico.
+- Cobertura de fixes personalizados en on-page, SEO técnico y datos estructurados (la mayor cantidad de checks posible en esta primera vuelta).
 
 ## Prior State: v1.4 shipped 2026-07-10
 
