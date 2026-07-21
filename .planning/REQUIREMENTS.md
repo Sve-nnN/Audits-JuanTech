@@ -69,29 +69,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FPRINT-01 | TBD | Pending |
-| FPRINT-02 | TBD | Pending |
-| FPRINT-03 | TBD | Pending |
-| FPRINT-04 | TBD | Pending |
-| FPRINT-05 | TBD | Pending |
-| FPRINT-06 | TBD | Pending |
-| FPRINT-07 | TBD | Pending |
-| FPRINT-08 | TBD | Pending |
-| FPRINT-09 | TBD | Pending |
-| STACKUI-01 | TBD | Pending |
-| STACKUI-02 | TBD | Pending |
-| STACKUI-03 | TBD | Pending |
-| CMSFIX-01 | TBD | Pending |
-| CMSFIX-02 | TBD | Pending |
-| CMSFIX-03 | TBD | Pending |
-| CMSFIX-04 | TBD | Pending |
-| CMSFIX-05 | TBD | Pending |
+| FPRINT-01 | Phase 25 | Pending |
+| FPRINT-02 | Phase 25 | Pending |
+| FPRINT-03 | Phase 25 | Pending |
+| FPRINT-04 | Phase 25 | Pending |
+| FPRINT-05 | Phase 25 | Pending |
+| FPRINT-06 | Phase 25 | Pending |
+| FPRINT-07 | Phase 25 | Pending |
+| FPRINT-08 | Phase 25 | Pending |
+| FPRINT-09 | Phase 26 | Pending |
+| STACKUI-01 | Phase 26 | Pending |
+| STACKUI-02 | Phase 26 | Pending |
+| STACKUI-03 | Phase 26 | Pending |
+| CMSFIX-01 | Phase 27 | Pending |
+| CMSFIX-02 | Phase 27 | Pending |
+| CMSFIX-03 | Phase 27 | Pending |
+| CMSFIX-04 | Phase 27 | Pending |
+| CMSFIX-05 | Phase 27 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 17 ⚠️ (roadmapper fills this next)
+- Mapped to phases: 17/17 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-21*
-*Last updated: 2026-07-21 after initial definition (v1.5)*
+*Last updated: 2026-07-21 after roadmap creation (v1.5) — 17/17 requirements mapped to Phases 25-27*

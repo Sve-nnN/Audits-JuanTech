@@ -7,6 +7,7 @@
 - ✅ **v1.2 Detección de renderizado + exportación de reportes** — Phases 11-15 (shipped 2026-07-08)
 - ✅ **v1.3 Profundizar checks técnicos + visualización de arquitectura** — Phases 16-20 (shipped 2026-07-09)
 - ✅ **v1.4 Visualización avanzada + resolución de URL** — Phases 21-24 (shipped 2026-07-10)
+- 🚧 **v1.5 Fingerprinting técnico + fixes personalizados por CMS** — Phases 25-27 (in progress)
 
 ## Phases
 
@@ -149,13 +150,69 @@ Detalle completo: `.planning/milestones/v1.4-ROADMAP.md`. Audit: `.planning/mile
 
 </details>
 
+### 🚧 v1.5 Fingerprinting técnico + fixes personalizados por CMS (Phases 25-27) - In Progress
+
+**Milestone Goal:** Detectar el stack técnico del sitio auditado (CMS, builder si es WordPress, CDN/proxy, hosting/servidor, framework JS, analytics/tag manager) vía fingerprint propio (headers HTTP, HTML, paths conocidos — sin servicios pagos de terceros), mostrarlo como tabla al inicio del reporte apenas termina el escaneo, y usar ese stack detectado para generar recomendaciones de fix personalizadas por issue, con fallback genérico para el resto de plataformas.
+
+Aditivo sobre v1.0-v1.4 — no toca el pipeline de crawl/checks/scoring existente. Secuencia de riesgo ascendente según research (ARCHITECTURE.md/SUMMARY.md): primero el contrato de datos completo del fingerprint (tipos con `confidence`, captura de headers/cookies sin requests extra, motor de detección por eje independiente) porque cambiarlo después obliga a retocar cada adaptador y cada UI consumidora; luego el wiring end-to-end mínimo (worker + tabla en el reporte) para validar que la detección produce resultados útiles y visibles *antes* de invertir en la pieza más costosa; y por último el motor de recomendaciones por CMS (patrón adaptador + fallback en cadena), el diferenciador central del milestone.
+
+- [ ] **Phase 25: Fingerprint de stack técnico — contrato de datos y motor de detección** - Detecta CMS+builder/CDN/hosting/framework/analytics con confianza tipada por eje, nunca winner-take-all
+- [ ] **Phase 26: Wiring en el worker + tabla de stack en el reporte** - Persiste el stack detectado una vez por auditoría y lo muestra en una tabla tokens-only al inicio del reporte
+- [ ] **Phase 27: Motor de recomendaciones por CMS — patrón adaptador + fallback** - Reescribe el fix de los checks de mayor volumen según el CMS/builder detectado, con fallback genérico garantizado
+
+## Phase Details
+
+### Phase 25: Fingerprint de stack técnico — contrato de datos y motor de detección
+
+**Goal**: El sistema puede determinar, a partir de headers/cookies/HTML ya capturados durante el crawl (sin requests adicionales), el stack técnico de un sitio —CMS+builder, CDN/proxy, hosting, framework JS, analytics— con un nivel de confianza tipado por eje, sin nunca forzar una respuesta cuando la señal es insuficiente.
+**Depends on**: Nada (primera fase de v1.5; se apoya en el pipeline de crawl ya existente de v1.0-v1.4)
+**Requirements**: FPRINT-01, FPRINT-02, FPRINT-03, FPRINT-04, FPRINT-05, FPRINT-06, FPRINT-07, FPRINT-08
+**Success Criteria** (what must be TRUE):
+
+  1. Dado el HTML/headers/cookies ya capturados de una página crawleada (sin llamadas HTTP adicionales), el sistema devuelve un stack detectado tipado con nivel de confianza (alto/medio/bajo/no-detectado) por eje: CMS, builder (si WordPress), CDN/proxy, hosting, framework JS y analytics.
+  2. Para instalaciones WordPress con Elementor, WPBakery, Divi o el editor nativo (Gutenberg), el sistema identifica el builder correcto mediante marcadores propios de cada uno (Gutenberg vía regla positiva explícita, nunca como "default" implícito).
+  3. Ante señal insuficiente (sitio headless/JAMstack, meta generator removido, CDN que oculta headers de origen), el sistema devuelve "no detectado con certeza" en el eje correspondiente en lugar de forzar una respuesta incorrecta.
+  4. Cada eje de detección es independiente entre sí (nunca winner-take-all) y se apoya en más de una señal (headers + cookies + paths de assets), no solo en un header de servidor.
+
+**Plans**: TBD
+
+### Phase 26: Wiring en el worker + tabla de stack en el reporte
+
+**Goal**: El usuario ve, apenas termina el escaneo, una tabla del stack técnico detectado de su sitio, consistente con el design system existente, calculada una sola vez por auditoría.
+**Depends on**: Phase 25 (tipos `DetectedStack` y motor de detección)
+**Requirements**: FPRINT-09, STACKUI-01, STACKUI-02, STACKUI-03
+**Success Criteria** (what must be TRUE):
+
+  1. El worker invoca la detección de stack una sola vez por auditoría (después del crawl) y persiste el resultado asociado a la auditoría; abrir el reporte varias veces no vuelve a ejecutar la detección.
+  2. El reporte muestra una tabla "Stack técnico detectado" visible apenas termina el escaneo, al inicio del reporte, antes del resto de las secciones de contenido.
+  3. La tabla lista cada categoría detectada (CMS+builder, CDN/proxy, hosting, framework JS, analytics) junto a su nivel de confianza, incluyendo un estado visual explícito para "no detectado con certeza".
+  4. La tabla se construye enteramente con tokens del design system existente (cero hex hardcodeado) y se ve correctamente en tema claro y oscuro.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 27: Motor de recomendaciones por CMS — patrón adaptador + fallback
+
+**Goal**: Los issues de los checks de mayor volumen (alt text, title/meta, H1, Open Graph, canonical, JSON-LD, sitemap/robots.txt) muestran instrucciones de fix personalizadas según el CMS y builder detectados del sitio auditado, con un fallback genérico garantizado cuando no aplica un adaptador específico.
+**Depends on**: Phase 25 (tipo `DetectedStack` con builder incluido). Se recomienda ejecutar después de Phase 26 para validar el fingerprint end-to-end antes de invertir en el motor de recomendaciones (ver research SUMMARY.md), aunque no es una dependencia técnica dura.
+**Requirements**: CMSFIX-01, CMSFIX-02, CMSFIX-03, CMSFIX-04, CMSFIX-05
+**Success Criteria** (what must be TRUE):
+
+  1. Existe un adaptador por plataforma (WordPress —con resolución en cadena builder→plataforma→genérico—, Shopify, Webflow, Wix/Squarespace combinado) que implementa una interfaz común para resolver el texto de fix de un check dado.
+  2. Cuando no hay CMS detectado con confianza suficiente, o no existe adaptador para la plataforma detectada, el sistema usa siempre el fallback genérico (ningún issue queda sin recomendación).
+  3. Los issues de alt text, title/meta, H1, Open Graph, canonical, JSON-LD/datos estructurados y sitemap/robots.txt muestran una instrucción de fix específica del CMS (y del builder, cuando es WordPress) detectado para ese sitio.
+  4. Los checks fuera de esa lista (hreflang, mixed content, enlaces rotos, profundidad de clics, etc.) siguen mostrando exactamente la misma recomendación genérica que antes de este milestone, sin regresión.
+  5. La recomendación personalizada se resuelve al construir el modelo de reporte (no se persiste pre-calculada en la base de datos), por lo que aparece también en las exportaciones PDF/Markdown/PPTX sin cambios adicionales en el módulo de export.
+
+**Plans**: TBD
+
 ### 📋 Next (Planned)
 
-Próximo trabajo previsto tras v1.4 (scope por definir vía `/gsd:new-milestone`):
+Próximo trabajo previsto tras v1.5:
 
 - Deploy a producción: web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera.
 - v2 monetización: planes de pago, auditorías/URLs ilimitadas, Stripe.
-- v2 enriquecimiento: agrupación por plantilla del veredicto CSR/SSR (RENDER-04), re-crawl basado en render (RENDER-05), formatos extra de export DOCX/CSV (EXPORT-06), columna persistida `Page.renderVerdict` (REPORT-05), Domain Rating como contexto.
+- v2 enriquecimiento: agrupación por plantilla del veredicto CSR/SSR (RENDER-04), re-crawl basado en render (RENDER-05), formatos extra de export DOCX/CSV (EXPORT-06), columna persistida `Page.renderVerdict` (REPORT-05), Domain Rating como contexto, fingerprint extendido (FPRINT-10..14) y fixes extendidos (CMSFIX-06/07) — ver `.planning/REQUIREMENTS.md`.
 
 ## Progress
 
@@ -185,12 +242,16 @@ Próximo trabajo previsto tras v1.4 (scope por definir vía `/gsd:new-milestone`
 | 22. Árbol de arquitectura estilo octopus | v1.4 | 3/3 | Complete ✅ | 2026-07-09 |
 | 23. Grafo JSON-LD con layout radial | v1.4 | 1/1 | Complete ✅ | 2026-07-09 |
 | 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 3/3 | Complete ✅ | 2026-07-10 |
+| 25. Fingerprint de stack técnico — contrato de datos y motor de detección | v1.5 | 0/TBD | Not started | - |
+| 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 0/TBD | Not started | - |
+| 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-07-05*
-*Granularity: standard (7 phases v1.0 + 3 phases v1.1 + 5 phases v1.2 + 5 phases v1.3 + 4 phases v1.4)*
+*Granularity: standard (7 phases v1.0 + 3 phases v1.1 + 5 phases v1.2 + 5 phases v1.3 + 4 phases v1.4 + 3 phases v1.5)*
 *v1.0 MVP shipped: 2026-07-06 (phases 1-7)*
 *v1.1 UI/UX shipped: 2026-07-06 (phases 8-10)*
 *v1.2 render + exports shipped: 2026-07-08 (phases 11-15) — coverage 19/19 requirements*
 *v1.3 checks + arquitectura shipped: 2026-07-09 (phases 16-20) — coverage 13/13 requirements*
 *v1.4 visualización avanzada + resolución de URL shipped: 2026-07-10 (phases 21-24) — coverage 7/7 requirements*
+*v1.5 roadmap created: 2026-07-21 (phases 25-27) — coverage 17/17 requirements mapped, pending execution*
