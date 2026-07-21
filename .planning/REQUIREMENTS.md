@@ -11,10 +11,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 - [ ] **FPRINT-01**: El sistema captura headers HTTP relevantes y cookies (nombres, no valores) de cada página crawleada, sin requests adicionales
 - [x] **FPRINT-02**: El sistema detecta el CMS principal del sitio (WordPress, Shopify, Webflow, Wix, Squarespace, o "no detectado") con un nivel de confianza (alto/medio/bajo)
-- [ ] **FPRINT-03**: Si el CMS detectado es WordPress, el sistema detecta el builder de página en uso (Elementor, WPBakery, Divi, o Gutenberg/nativo por defecto)
-- [ ] **FPRINT-04**: El sistema detecta CDN/proxy en uso (ej. Cloudflare, Fastly, Akamai) cuando hay señal suficiente
-- [ ] **FPRINT-05**: El sistema detecta hosting/servidor de origen cuando hay señal suficiente (reconociendo que un CDN delante puede ocultar esta señal)
-- [ ] **FPRINT-06**: El sistema detecta el framework JS en uso (ej. React, Next.js, Vue) cuando hay señal suficiente
+- [x] **FPRINT-03**: Si el CMS detectado es WordPress, el sistema detecta el builder de página en uso (Elementor, WPBakery, Divi, o Gutenberg/nativo por defecto)
+- [x] **FPRINT-04**: El sistema detecta CDN/proxy en uso (ej. Cloudflare, Fastly, Akamai) cuando hay señal suficiente
+- [x] **FPRINT-05**: El sistema detecta hosting/servidor de origen cuando hay señal suficiente (reconociendo que un CDN delante puede ocultar esta señal)
+- [x] **FPRINT-06**: El sistema detecta el framework JS en uso (ej. React, Next.js, Vue) cuando hay señal suficiente
 - [x] **FPRINT-07**: El sistema detecta herramientas de analytics/tag manager en uso (ej. GA4, GTM, Meta Pixel)
 - [x] **FPRINT-08**: Cuando la confianza de detección es baja o no hay señal, el sistema muestra "no detectado con certeza" en vez de forzar una respuesta incorrecta
 - [ ] **FPRINT-09**: El resultado del fingerprint se persiste asociado a la auditoría (no requiere re-detección en cada vista del reporte)
@@ -71,10 +71,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | FPRINT-01 | Phase 25 | Pending |
 | FPRINT-02 | Phase 25 | Complete |
-| FPRINT-03 | Phase 25 | Pending |
-| FPRINT-04 | Phase 25 | Pending |
-| FPRINT-05 | Phase 25 | Pending |
-| FPRINT-06 | Phase 25 | Pending |
+| FPRINT-03 | Phase 25 | Complete |
+| FPRINT-04 | Phase 25 | Complete |
+| FPRINT-05 | Phase 25 | Complete |
+| FPRINT-06 | Phase 25 | Complete |
 | FPRINT-07 | Phase 25 | Complete |
 | FPRINT-08 | Phase 25 | Complete |
 | FPRINT-09 | Phase 26 | Pending |

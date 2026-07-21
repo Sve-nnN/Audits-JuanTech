@@ -174,13 +174,13 @@ Aditivo sobre v1.0-v1.4 — no toca el pipeline de crawl/checks/scoring existent
   3. Ante señal insuficiente (sitio headless/JAMstack, meta generator removido, CDN que oculta headers de origen), el sistema devuelve "no detectado con certeza" en el eje correspondiente en lugar de forzar una respuesta incorrecta.
   4. Cada eje de detección es independiente entre sí (nunca winner-take-all) y se apoya en más de una señal (headers + cookies + paths de assets), no solo en un header de servidor.
 
-**Plans**: 1/4 plans executed
+**Plans**: 3/4 plans executed
 
 Plans:
 
 - [x] 25-01-PLAN.md — Scaffold `@auditor/fingerprint` + contrato de datos (DetectedStack/AxisResult/Confidence/Signature/PageFingerprintInput) [wave 1]
-- [ ] 25-02-PLAN.md — Captura de headers curados + nombres de cookie en el crawler + columnas Page.responseHeaders/cookieNames + db:push [wave 1]
-- [ ] 25-03-PLAN.md — Registry de signatures por eje (cms/builder/cdn/hosting/jsFramework/analytics) [wave 2]
+- [x] 25-02-PLAN.md — Captura de headers curados + nombres de cookie en el crawler + columnas Page.responseHeaders/cookieNames + db:push [wave 1]
+- [x] 25-03-PLAN.md — Registry de signatures por eje (cms/builder/cdn/hosting/jsFramework/analytics) [wave 2]
 - [ ] 25-04-PLAN.md — Motor detectStack + suite de tests por eje (FPRINT-02..08) + QA contra sitios reales [wave 3]
 
 ### Phase 26: Wiring en el worker + tabla de stack en el reporte
@@ -249,7 +249,7 @@ Próximo trabajo previsto tras v1.5:
 | 22. Árbol de arquitectura estilo octopus | v1.4 | 3/3 | Complete ✅ | 2026-07-09 |
 | 23. Grafo JSON-LD con layout radial | v1.4 | 1/1 | Complete ✅ | 2026-07-09 |
 | 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 3/3 | Complete ✅ | 2026-07-10 |
-| 25. Fingerprint de stack técnico — contrato de datos y motor de detección | v1.5 | 1/4 | In Progress|  |
+| 25. Fingerprint de stack técnico — contrato de datos y motor de detección | v1.5 | 3/4 | In Progress|  |
 | 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 0/TBD | Not started | - |
 | 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 0/TBD | Not started | - |
 
