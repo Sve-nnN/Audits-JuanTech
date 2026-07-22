@@ -19,7 +19,8 @@ export type BadgeVariant =
   | "persistent"
   | "resolved"
   | "info"
-  | "neutral";
+  | "neutral"
+  | "warningSubtle";
 
 interface BadgeProps {
   /** Eje visual: mapea a foreground + soft-fill por token. */
@@ -40,6 +41,7 @@ const VARIANT_CLASS: Record<BadgeVariant, string | undefined> = {
   resolved: styles.resolved,
   info: styles.info,
   neutral: styles.neutral,
+  warningSubtle: styles.warningSubtle,
 };
 
 /**
@@ -47,7 +49,7 @@ const VARIANT_CLASS: Record<BadgeVariant, string | undefined> = {
  *
  * Primitivo self-contained: los soft-fills `--sev-*` se definen locales en la
  * clase `.badge` (no en scope global), así el badge funciona en cualquier
- * pantalla sin depender de variables de la página. Ocho variantes mapeadas a
+ * pantalla sin depender de variables de la página. Nueve variantes mapeadas a
  * foreground/background por token semántico (DS-01), cero hex crudo.
  *
  * Accesibilidad:
