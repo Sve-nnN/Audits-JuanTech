@@ -51,6 +51,24 @@
   border: 0;
 }
 
+/*
+ * Texto solo para lectores de pantalla (mismo patrón que .caption). Los chips
+ * de analytics muestran el nombre de la herramienta como texto visible y su
+ * confianza solo por color+icono; este span la vuelve a exponer como texto
+ * accesible, igual que las filas single-value (WR-02: color nunca señal única).
+ */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .row {
   display: block;
   padding: var(--space-4);

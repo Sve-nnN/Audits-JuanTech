@@ -111,6 +111,20 @@ describe("StackTable", () => {
     expect(within(row).getByText("Meta Pixel")).toBeInTheDocument();
   });
 
+  it("cada chip de analytics expone su confianza como texto accesible (WR-02: color nunca señal única)", () => {
+    render(
+      <StackTable
+        stack={makeStack({
+          analytics: [axis("GA4", "alto"), axis("Meta Pixel", "medio")],
+        })}
+      />,
+    );
+    const row = screen.getByRole("rowheader", { name: "Analytics" }).closest("tr")!;
+    // El texto de confianza acompaña al nombre en el mismo chip, no solo color+icono.
+    expect(within(row).getByText(/\(Confianza alta\)/)).toBeInTheDocument();
+    expect(within(row).getByText(/\(Confianza media\)/)).toBeInTheDocument();
+  });
+
   it("renderiza los value como texto plano (React escapa, sin inyección de HTML)", () => {
     const payload = '<img src=x onerror="alert(1)">';
     const { container } = render(

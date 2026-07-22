@@ -4,6 +4,7 @@ import {
   runCrawl,
   discoverSitemapUrls,
   resolveCanonicalUrl,
+  normalizeUrl,
   DEFAULT_USER_AGENT,
 } from "@auditor/crawler";
 import { runAllChecks } from "@auditor/checks";
@@ -608,12 +609,19 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
     // cookies, picks the home HTML with fallback, and truncates defensively to
     // 256KB), so the worker only maps and must NOT re-implement any of that.
     // `isHome` is derived from `startUrl` (Pitfall 6): without it detectStack
-    // falls back to the first page and the CMS precision drops.
+    // falls back to the first page and the CMS precision drops. Compare through
+    // `normalizeUrl` (same helper buildLinkGraph uses to locate its BFS root):
+    // raw string equality would miss the home on a trailing-slash / case /
+    // http-vs-https / default-port variant and silently fall back (WR-01).
+    const normalizedStart = normalizeUrl(startUrl);
     const fpInput: PageFingerprintInput[] = pages
       .filter((p) => p.html != null && p.html !== "")
       .map((p) => ({
         url: p.url,
-        isHome: p.url === startUrl || p.finalUrl === startUrl,
+        isHome:
+          normalizedStart != null &&
+          (normalizeUrl(p.url) === normalizedStart ||
+            normalizeUrl(p.finalUrl ?? p.url) === normalizedStart),
         html: p.html,
         responseHeaders: (p.responseHeaders ?? {}) as Record<string, string>,
         cookieNames: p.cookieNames ?? [],

@@ -113,6 +113,10 @@ export function StackTable({ stack }: { stack: ReportStack }) {
                         icon={CONFIDENCE_ICON[tool.confidence]}
                       >
                         {tool.value}
+                        <span className={styles.srOnly}>
+                          {" "}
+                          ({CONFIDENCE_LABEL[tool.confidence]})
+                        </span>
                       </Badge>
                     ))
                   )}

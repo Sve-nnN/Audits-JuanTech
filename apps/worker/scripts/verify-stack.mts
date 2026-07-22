@@ -23,6 +23,7 @@
  */
 
 import { prisma } from "@auditor/db";
+import { normalizeUrl } from "@auditor/crawler";
 import {
   detectStack,
   type PageFingerprintInput,
@@ -76,12 +77,18 @@ async function main(): Promise<void> {
   );
 
   // Replicate the worker's mapping VERBATIM (apps/worker/src/index.ts
-  // crawlAndCheck): filter pages with html, derive isHome from startUrl.
+  // crawlAndCheck): filter pages with html, derive isHome from startUrl through
+  // normalizeUrl (WR-01) — raw equality would miss the home on a normalized
+  // variant and this verification would silently pass on the fallback page.
+  const normalizedStart = normalizeUrl(startUrl);
   const fpInput: PageFingerprintInput[] = pages
     .filter((p) => p.html != null && p.html !== "")
     .map((p) => ({
       url: p.url,
-      isHome: p.url === startUrl || p.finalUrl === startUrl,
+      isHome:
+        normalizedStart != null &&
+        (normalizeUrl(p.url) === normalizedStart ||
+          normalizeUrl(p.finalUrl ?? p.url) === normalizedStart),
       html: p.html,
       responseHeaders: (p.responseHeaders ?? {}) as Record<string, string>,
       cookieNames: p.cookieNames ?? [],
