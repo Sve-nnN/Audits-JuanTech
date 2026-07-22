@@ -322,20 +322,19 @@ No aplica: no hay tecnología de dominio externo evolucionando. El "estado del a
 | A3 | La confianza mostrada para la fila CMS es la del eje `cms`, no la del `builder`. | Pitfall 5 | Bajo — coherente con que builder es refinamiento; validar visualmente. |
 | A4 | `isHome` derivable por igualdad exacta `url/finalUrl === startUrl`. | Pitfall 6 | Medio — si el crawler normaliza URLs distinto (barra final, etc.) el match puede fallar y caer al fallback. Verificar contra un audit real (aprendoclub) que el CMS se detecte. El fallback interno evita rotura, solo baja precisión. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **¿"bajo" → `info` o → `warning`?** — **RESUELTO: `bajo → warningSubtle`** (variante nueva del UI-SPEC).
    - Lo que sabemos: CONTEXT pide 4 estados visuales distinguibles; NUNCA critical.
    - Lo que falta: no hay variante `outline` en `Badge`.
    - Resolución (orquestador): el CONTEXT bloquea literalmente "bajo → warning **tenue/outline**" (familia ámbar). `info` es azul/accent y cambia la tonalidad, incumpliendo esa decisión. El UI-SPEC (contrato de diseño autoritativo, aguas abajo del CONTEXT) implementa la lectura fiel con la variante nueva **`warningSubtle`**: ámbar en outline tenue (fondo transparente + borde `color-mix(--warning 35%)`), token-only y CSP-safe. La sugerencia previa `info` de esta sección queda **superada**; el planner debe usar `warningSubtle` y agregar esa única variante a `Badge.tsx`/`Badge.module.css`.
 
-2. **¿Se localizan los `value` de tecnología (p.ej. "Google Tag Manager") o se muestran verbatim?**
+2. **¿Se localizan los `value` de tecnología (p.ej. "Google Tag Manager") o se muestran verbatim?** — **RESUELTO: verbatim.**
    - Lo que sabemos: los value strings del motor son "WordPress", "Cloudflare", "GA4", "Google Tag Manager", "Meta Pixel", etc. `[VERIFIED: signatures/*.ts]`
-   - Lo que falta: si Juan quiere "GTM" corto vs "Google Tag Manager".
-   - Recomendación: mostrar los value del motor verbatim (son nombres propios de producto); solo los **labels de eje** y de **confianza** se localizan en `labels.ts`.
+   - Resolución: se muestran **verbatim** los value del motor (son nombres propios de producto); solo los **labels de eje** y de **confianza** se localizan en `labels.ts`.
 
-3. **¿El transform CMS+builder ("WordPress (Elementor)") vive en `report-model` o en el componente?**
-   - Recomendación: en `report-model` (`toReportStack`), así queda en el single-source-of-truth y un futuro export lo reutiliza sin re-derivar. El componente solo pinta.
+3. **¿El transform CMS+builder ("WordPress (Elementor)") vive en `report-model` o en el componente?** — **RESUELTO: `report-model`.**
+   - Resolución: vive en `report-model` (`toReportStack`), así queda en el single-source-of-truth y un futuro export lo reutiliza sin re-derivar. El componente solo pinta.
 
 ## Environment Availability
 
