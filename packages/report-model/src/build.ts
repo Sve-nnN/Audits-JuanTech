@@ -143,7 +143,9 @@ function toReportStackAxis(axis: AxisResult): ReportStackAxis {
 export function toReportStack(rawStack: DetectedStack): ReportStack {
   const cms = toReportStackAxis(rawStack.cms);
   // Fold the builder into the CMS label only for WordPress: "WordPress (Elementor)".
-  if (rawStack.cms.value === "WordPress" && rawStack.builder.value != null) {
+  // Guard on a truthy value (not just `!= null`) so an empty builder value never
+  // yields "WordPress ()" (IN-01).
+  if (rawStack.cms.value === "WordPress" && rawStack.builder.value) {
     cms.value = `${rawStack.cms.value} (${rawStack.builder.value})`;
   }
   return {
