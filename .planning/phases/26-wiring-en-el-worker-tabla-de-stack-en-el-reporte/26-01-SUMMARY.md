@@ -5,7 +5,7 @@ subsystem: db + workspace foundation
 tags: [prisma, schema, workspace-deps, fingerprint, FPRINT-09]
 requires: []
 provides:
-  - "Audit.stack Json? column (schema, pendiente push a Neon)"
+  - "Audit.stack Json? column (schema + pusheada a Neon, cliente Prisma regenerado con el campo)"
   - "@auditor/fingerprint declarado como dep en apps/worker y packages/report-model"
 affects:
   - packages/db/prisma/schema.prisma
@@ -26,20 +26,20 @@ decisions:
   - "stack Json? nullable sin backfill: audits pre-v1.5 quedan null por diseño"
 metrics:
   duration: ~5m
-  completed: 2026-07-21
-status: blocked
+  completed: 2026-07-22
+status: complete
 ---
 
 # Phase 26 Plan 01: Fundación de datos y workspace para el wiring del fingerprint — Summary
 
-Columna aditiva `Audit.stack Json?` agregada al schema Prisma y dep `@auditor/fingerprint` declarada en `apps/worker` y `packages/report-model` con workspace relinkeado; el push a Neon (Task 2) quedó BLOQUEADO por falta de red saliente (P1001) y requiere ejecución manual de Juan.
+Columna aditiva `Audit.stack Json?` agregada al schema Prisma y dep `@auditor/fingerprint` declarada en `apps/worker` y `packages/report-model` con workspace relinkeado. El push a Neon (Task 2) se corrió fuera de este entorno (Juan, desde su máquina con red a Neon) con éxito: la columna está aplicada en Neon y el cliente Prisma quedó regenerado con `Audit.stack` tipado, desbloqueando la Wave 2.
 
 ## Task Status
 
 | Task | Nombre | Estado | Commit |
 | ---- | ------ | ------ | ------ |
 | 1 | Audit.stack + dep @auditor/fingerprint + pnpm install | DONE | 810568d |
-| 2 | [BLOCKING] db:push a Neon — regenerar cliente Prisma | BLOCKED (P1001) | — |
+| 2 | [BLOCKING] db:push a Neon — regenerar cliente Prisma | DONE (Juan, fuera de sandbox) | — |
 
 ## Task 1 — DONE
 
@@ -49,25 +49,17 @@ Columna aditiva `Audit.stack Json?` agregada al schema Prisma y dep `@auditor/fi
 - `pnpm install --frozen-lockfile=false`: exit 0, "Already up to date", 16 workspace projects. Lockfile actualizado con los links `link:../../packages/fingerprint` (worker) y `link:../fingerprint` (report-model).
 - Symlinks verificados: `apps/worker/node_modules/@auditor/fingerprint -> ../../../../packages/fingerprint` y equivalente en report-model.
 
-## Task 2 — BLOCKED (P1001, sin red a Neon)
+## Task 2 — DONE (push corrido por Juan fuera del sandbox)
 
-El push se corrió UNA sola vez para dejar constancia. Salida real:
+En este entorno de ejecución NO hay red saliente a Neon: el push se intentó una vez y falló con `P1001: Can't reach database server at ep-patient-smoke-atcb3b0c-pooler.c-9.us-east-1.aws.neon.tech:5432`. Conforme al plan (schema-gate), NO se regeneró el cliente desde stub como falso-pass: se detuvo y se escaló a Juan.
 
-```
-Error: P1001: Can't reach database server at `ep-patient-smoke-atcb3b0c-pooler.c-9.us-east-1.aws.neon.tech:5432`
-ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @auditor/db@0.1.0 db:push: `prisma db push`
-Exit status 1
-```
-
-Este entorno de ejecución NO tiene red saliente a Neon. Conforme al plan (Task 2, schema-gate), NO se regeneró el cliente desde stub ni se corrió `prisma generate` como sustituto: eso produciría un cliente con el campo pero una base sin la columna, y la verificación pasaría en falso. La task se detiene ruidosamente y requiere ejecución manual.
-
-### Acción requerida de Juan (desde su máquina, con red a Neon)
+Juan corrió el gate desde su máquina con red a Neon:
 
 ```bash
 pnpm --filter @auditor/db db:push && pnpm --filter @auditor/db db:generate
 ```
 
-Esto aplica la columna `Audit.stack` en Neon y regenera el cliente Prisma con el campo tipado. Hasta que esto corra, la wave 2 (planes 26-02/26-03) queda bloqueada: sus typechecks de `prisma.audit.update({ data: { stack } })` y lecturas de `audit.stack` fallarían sin el cliente regenerado.
+Resultado: exitoso, DB en sync, columna `Audit.stack` aplicada en Neon. En el sandbox se corrió a continuación `pnpm --filter @auditor/db db:generate` (solo `prisma generate`, lee el schema local, no toca red) para alinear el cliente Prisma local — ahora expone `stack: JsonValue | null` en el modelo `Audit` (verificado en `.prisma/client/index.d.ts`), desbloqueando los typecheck de la Wave 2 (`prisma.audit.update({ data: { stack } })` y lecturas de `audit.stack`).
 
 ## Deviations from Plan
 
@@ -77,4 +69,4 @@ None — el plan se ejecutó exactamente como está escrito. Task 2 falló por l
 
 - Archivos modificados existen: schema.prisma (L86 `stack Json?`), apps/worker/package.json (L16), packages/report-model/package.json (L17) — verificados por grep.
 - Commit 810568d existe en `git log`.
-- Task 2 correctamente marcada BLOCKED sin fabricar resultado.
+- Task 2 completada vía gate manual de Juan (push a Neon) + `db:generate` local; cliente regenerado con `Audit.stack` verificado en `.prisma/client/index.d.ts`.
