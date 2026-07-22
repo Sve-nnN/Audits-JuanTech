@@ -1,0 +1,151 @@
+/*
+ * StackTable.module.css — tabla "Stack técnico detectado" (STACKUI-01/02/03).
+ * Solo tokens semánticos (DS-01), cero hex crudo, ambos temas. Superficie y
+ * padding portados de IssuesTable; a diferencia de esta, NO usa scroll
+ * horizontal: es una tabla clave/valor de 2 columnas que colapsa a lista
+ * vertical apilada bajo --bp-sm (mobile-first). Los roles ARIA explícitos en
+ * el TSX preservan la semántica de tabla cuando el display se vuelve block.
+ */
+
+/*
+ * Título de sección: mismos tokens que .sectionTitle de report.module.css
+ * (Khand 24px semibold). Replicado local para mantener el componente
+ * self-contained; tokens idénticos → cero drift visual.
+ */
+.title {
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-heading);
+  color: var(--text);
+  margin: 0 0 var(--space-4);
+}
+
+/* Contenedor: borde + radio recortan el contenido (como el .scroll de IssuesTable). */
+.container {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  /* Mobile-first: cada fila es un bloque apilado (etiqueta arriba, detección abajo). */
+  display: block;
+}
+
+/* Caption visually-hidden para lectores de pantalla. */
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.row {
+  display: block;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: var(--surface-hover);
+}
+
+/* Etiqueta de eje: mobile arriba del valor, en --text-secondary. */
+.axis {
+  display: block;
+  text-align: left;
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-semibold);
+  line-height: 1.4;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.detection {
+  display: block;
+  color: var(--text);
+}
+
+/*
+ * Contenedor flex del valor + Badge/chips. Permite wrap (long-text): el Badge
+ * cae a la línea siguiente; los chips de analytics envuelven con gap.
+ */
+.detectionInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.value {
+  line-height: 1.5;
+}
+
+.muted {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Desktop (≥ --bp-sm 640px): tabla real de 2 columnas. */
+@media (min-width: 640px) {
+  .table {
+    display: table;
+  }
+
+  .table tbody {
+    display: table-row-group;
+  }
+
+  .row {
+    display: table-row;
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .axis {
+    display: table-cell;
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: top;
+    margin-bottom: 0;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detection {
+    display: table-cell;
+    vertical-align: top;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .row:last-child .axis,
+  .row:last-child .detection {
+    border-bottom: none;
+  }
+
+  /* Hover de fila sobre las celdas (el background de table-row es inconsistente). */
+  .row:hover {
+    background: transparent;
+  }
+
+  .row:hover .axis,
+  .row:hover .detection {
+    background: var(--surface-hover);
+  }
+}
