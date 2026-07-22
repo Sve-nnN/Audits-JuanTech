@@ -1,4 +1,5 @@
 import type { Category, ScoreStatus, CategoryScoreResult } from "@auditor/scoring";
+import type { Confidence } from "@auditor/fingerprint";
 import type { PageTemplate } from "./template";
 
 /**
@@ -116,6 +117,38 @@ export interface ReportArchitecture {
   orphans: ArchNode[];
 }
 
+/**
+ * A single detected stack axis rendered in the report's tech-stack table
+ * (Phase 26, STACKUI-02). Pure serializable data derived from the persisted
+ * `Audit.stack` (Phase 25 `AxisResult`): it carries ONLY `value` + `confidence`
+ * — the detection `signals`/`evidence` are dropped by `toReportStack` so no
+ * internal detection detail (matched needles/headers) leaks to the client
+ * (T-26-03-01). `value` is `null` when the axis has no detected technology.
+ */
+export interface ReportStackAxis {
+  /** "WordPress (Elementor)", "Cloudflare", ... o `null` cuando no hay tecnología. */
+  value: string | null;
+  confidence: Confidence;
+}
+
+/**
+ * The serializable tech-stack model the report table (Plan 26-05) renders,
+ * built from `Audit.stack` by `toReportStack`. Each single-value axis is a
+ * {@link ReportStackAxis}; `cms` ALREADY combines the WordPress builder into its
+ * value ("WordPress (Elementor)") — there is no separate builder axis. Only
+ * `analytics` is an array, because tools coexist (GA4 + GTM + Meta Pixel a la
+ * vez); an empty array is the "no detectado" state the UI paints as a row.
+ */
+export interface ReportStack {
+  /** Ya combina builder → "WordPress (Elementor)" (confianza = la del CMS). */
+  cms: ReportStackAxis;
+  cdn: ReportStackAxis;
+  hosting: ReportStackAxis;
+  jsFramework: ReportStackAxis;
+  /** ARRAY: coexistencia GA4/GTM/Meta Pixel; `[]` → fila "no detectado" en la UI. */
+  analytics: ReportStackAxis[];
+}
+
 export interface ReportModel {
   audit: ReportAuditMeta;
   /** Whether the audit persisted a scoring snapshot (drives the status badge). */
@@ -150,4 +183,11 @@ export interface ReportModel {
    * the UI hides the whole architecture section when absent (degradation-safe).
    */
   architecture?: ReportArchitecture;
+  /**
+   * Detected tech stack built from the persisted `Audit.stack` (Phase 25/26,
+   * FPRINT-09). `undefined` when `Audit.stack` is null (audits pre-v1.5) — the
+   * UI hides the whole stack section, never renders an empty table. Mismo patrón
+   * degradation-safe que `perf?`/`architecture?`.
+   */
+  stack?: ReportStack;
 }

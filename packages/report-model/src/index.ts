@@ -18,4 +18,10 @@ export type {
   ArchNode,
   ArchTreeNode,
   ReportArchitecture,
+  ReportStack,
+  ReportStackAxis,
 } from "./model";
+// Re-export Confidence so apps/web (labels.ts, StackTable.tsx) imports it from
+// @auditor/report-model without a direct dep on @auditor/fingerprint (same
+// pattern by which labels.ts already imports PageTemplate from here).
+export type { Confidence } from "@auditor/fingerprint";
