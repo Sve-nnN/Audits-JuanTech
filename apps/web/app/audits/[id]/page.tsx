@@ -11,6 +11,7 @@ import {
   AccordionSubgroup,
 } from "../../components/ui/CategoryAccordion";
 import { IssueTypeGroup } from "../../components/ui/IssueTypeGroup";
+import { StackTable } from "../../components/ui/StackTable";
 import { Badge, DiffBadge } from "../../components/ui/Badge";
 import { EmptyState, ErrorState } from "../../components/ui/EmptyState";
 import { ExportMenu } from "../../components/ui/ExportMenu";
@@ -176,6 +177,15 @@ export default async function AuditReportPage({ params }: PageProps) {
             </div>
           </div>
         </Reveal>
+
+        {/* Stack técnico detectado — solo cuando el audit trae stack (Phase 26).
+            El guard vive acá: con model.stack undefined (audits pre-v1.5) la
+            sección entera se omite; nunca se pinta una tabla vacía. */}
+        {model.stack && (
+          <Reveal as="section" className={styles.section} delay={30}>
+            <StackTable stack={model.stack} />
+          </Reveal>
+        )}
 
         {/* Scores por categoría */}
         <Reveal as="section" className={styles.section} delay={60}>
