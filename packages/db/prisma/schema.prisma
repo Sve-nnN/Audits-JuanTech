@@ -79,6 +79,11 @@ model Audit {
    * diff: { newCount, persistentCount, resolvedCount, resolvedFingerprints } }.
    */
   scores    Json?
+  /**
+   * DetectedStack del fingerprinting técnico (Phase 26, FPRINT-09).
+   * Nullable/aditivo: null en audits pre-v1.5 (sin backfill por diseño).
+   */
+  stack     Json?
   error     String?
   /**
    * URL canónica efectivamente auditada, resuelta desde `site.domain` antes

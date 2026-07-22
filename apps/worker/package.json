@@ -13,6 +13,7 @@
     "@auditor/checks": "workspace:*",
     "@auditor/crawler": "workspace:*",
     "@auditor/db": "workspace:*",
+    "@auditor/fingerprint": "workspace:*",
     "@auditor/graph": "workspace:*",
     "@auditor/psi": "workspace:*",
     "@auditor/queue": "workspace:*",

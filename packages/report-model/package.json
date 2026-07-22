@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@auditor/db": "workspace:*",
+    "@auditor/fingerprint": "workspace:*",
     "@auditor/scoring": "workspace:*"
   },
   "devDependencies": {
