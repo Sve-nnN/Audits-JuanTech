@@ -11,7 +11,10 @@ import type {
   ArchNode,
   ArchTreeNode,
   ReportArchitecture,
+  ReportStack,
+  ReportStackAxis,
 } from "./model";
+import type { AxisResult, DetectedStack } from "@auditor/fingerprint";
 import { classifyTemplate, TEMPLATE_ORDER } from "./template";
 import type { PageTemplate } from "./template";
 
@@ -121,6 +124,38 @@ function toReportIssue(issue: IssueRow): ReportIssue {
 }
 
 /**
+ * Map a detection `AxisResult` to a serializable `ReportStackAxis`, keeping ONLY
+ * `value` + `confidence`. The `signals`/`evidence` (matched needles, headers)
+ * are dropped so no internal detection detail reaches the client (T-26-03-01).
+ */
+function toReportStackAxis(axis: AxisResult): ReportStackAxis {
+  return { value: axis.value, confidence: axis.confidence };
+}
+
+/**
+ * Transform the persisted `DetectedStack` (Phase 25) into the serializable
+ * `ReportStack` the report table renders (STACKUI-02). Pure — no re-detection.
+ * The WordPress builder is folded into the CMS axis as a combined label
+ * ("WordPress (Elementor)"); the confidence shown is the CMS one (the builder is
+ * a refinement, not a separate axis). `analytics` stays an ordered array so the
+ * GA4 + GTM + Meta Pixel coexistence survives. Debug `signals` are discarded.
+ */
+export function toReportStack(rawStack: DetectedStack): ReportStack {
+  const cms = toReportStackAxis(rawStack.cms);
+  // Fold the builder into the CMS label only for WordPress: "WordPress (Elementor)".
+  if (rawStack.cms.value === "WordPress" && rawStack.builder.value != null) {
+    cms.value = `${rawStack.cms.value} (${rawStack.builder.value})`;
+  }
+  return {
+    cms,
+    cdn: toReportStackAxis(rawStack.cdn),
+    hosting: toReportStackAxis(rawStack.hosting),
+    jsFramework: toReportStackAxis(rawStack.jsFramework),
+    analytics: rawStack.analytics.map(toReportStackAxis),
+  };
+}
+
+/**
  * Assemble the shared, serializable `ReportModel` for an audit from persisted
  * data only (Audit.scores/stats, Issue rows) — no checks are recomputed. Returns
  * `null` when the audit does not exist or is not yet `done`; the caller handles
@@ -137,6 +172,13 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
   const scores = audit.scores as unknown as AuditScores | null;
   const stats = audit.stats as unknown as AuditStats | null;
   const perf = stats?.perf;
+
+  // Read the persisted scalar Json field `Audit.stack` — it already comes from
+  // the findUnique above (no parallel query, no re-detection: FPRINT-09). Null
+  // for pre-v1.5 audits → model.stack stays undefined and the UI hides the
+  // section entirely.
+  const rawStack = audit.stack as unknown as DetectedStack | null;
+  const stack: ReportStack | undefined = rawStack ? toReportStack(rawStack) : undefined;
   const graph = stats?.graph;
   const hasGraph = !!graph && graph.nodes.length > 0;
 
@@ -318,5 +360,6 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     issuesByTemplate,
     perf,
     architecture,
+    stack,
   };
 }

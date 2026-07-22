@@ -11,7 +11,8 @@ vi.mock("@auditor/db", () => ({
 }));
 
 import { prisma } from "@auditor/db";
-import { buildReportModel, MAX_PRIORITY_ROWS } from "./build";
+import { buildReportModel, toReportStack, MAX_PRIORITY_ROWS } from "./build";
+import type { AxisResult, DetectedStack } from "@auditor/fingerprint";
 
 const auditFindUnique = vi.mocked(prisma.audit.findUnique);
 const issueFindMany = vi.mocked(prisma.issue.findMany);
@@ -76,6 +77,34 @@ function makeAudit(overrides: Partial<Record<string, unknown>> = {}) {
     startedAt: new Date("2026-07-01T00:01:00Z"),
     finishedAt: new Date("2026-07-01T00:05:00Z"),
     site: { id: "site-1", domain: "example.com" },
+    ...overrides,
+  };
+}
+
+/** A resolved AxisResult fixture. Signals carry debug detail toReportStack must drop. */
+function axis(
+  value: string | null,
+  confidence: AxisResult["confidence"] = "alto"
+): AxisResult {
+  return {
+    value,
+    confidence,
+    signals:
+      value == null
+        ? []
+        : [{ id: "sig-1", axis: "cms", strength: "fuerte", evidence: `detected ${value}` }],
+  };
+}
+
+/** DetectedStack fixture: WordPress+Elementor, Cloudflare CDN, no hosting, GA4. */
+function makeDetectedStack(overrides: Partial<DetectedStack> = {}): DetectedStack {
+  return {
+    cms: axis("WordPress", "alto"),
+    builder: axis("Elementor", "medio"),
+    cdn: axis("Cloudflare", "alto"),
+    hosting: axis(null, "no-detectado"),
+    jsFramework: axis("Next.js", "medio"),
+    analytics: [axis("Google Analytics 4", "alto")],
     ...overrides,
   };
 }
@@ -536,5 +565,118 @@ describe("buildReportModel", () => {
     const model = await buildReportModel("audit-1");
     expect(model!.architecture).toBeUndefined();
     expect(pageFindMany).not.toHaveBeenCalled();
+  });
+
+  // --- Stack (Plan 26-03, FPRINT-09 / STACKUI-02) ---------------------------
+
+  it("builds model.stack from the persisted Audit.stack (no re-detection)", async () => {
+    // audit.stack is present; no page HTML is provided. If stack still populates,
+    // buildReportModel read the persisted value instead of re-running detection.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit({ stack: makeDetectedStack() }) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+
+    const model = await buildReportModel("audit-1");
+    expect(model!.stack).toBeDefined();
+    // CMS+builder combined into the CMS axis; no separate builder axis exists.
+    expect(model!.stack!.cms.value).toBe("WordPress (Elementor)");
+    expect(model!.stack!.cdn.value).toBe("Cloudflare");
+    // Debug detection signals are never carried into the serialized model.
+    expect(JSON.stringify(model!.stack)).not.toContain("signals");
+    expect(JSON.stringify(model!.stack)).not.toContain("evidence");
+  });
+
+  it("leaves model.stack undefined when Audit.stack is null (pre-v1.5 audits)", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit({ stack: null }) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any);
+
+    const model = await buildReportModel("audit-1");
+    expect(model!.stack).toBeUndefined();
+  });
+});
+
+describe("toReportStack", () => {
+  it("maps the 5 axes carrying only { value, confidence } (drops signals)", () => {
+    const stack = toReportStack(makeDetectedStack());
+
+    // Single-value axes are present with just value + confidence.
+    for (const axis of [stack.cms, stack.cdn, stack.hosting, stack.jsFramework]) {
+      expect(Object.keys(axis).sort()).toEqual(["confidence", "value"]);
+      expect(axis).not.toHaveProperty("signals");
+    }
+    for (const axis of stack.analytics) {
+      expect(Object.keys(axis).sort()).toEqual(["confidence", "value"]);
+      expect(axis).not.toHaveProperty("signals");
+    }
+    expect(stack.cdn.value).toBe("Cloudflare");
+    expect(stack.cdn.confidence).toBe("alto");
+    // A non-detected axis keeps null value + no-detectado confidence.
+    expect(stack.hosting.value).toBeNull();
+    expect(stack.hosting.confidence).toBe("no-detectado");
+  });
+
+  it("combines CMS + builder into a single value with the CMS confidence", () => {
+    const stack = toReportStack(
+      makeDetectedStack({
+        cms: axis("WordPress", "alto"),
+        builder: axis("Elementor", "bajo"),
+      })
+    );
+    expect(stack.cms.value).toBe("WordPress (Elementor)");
+    // Confidence shown is the CMS one, NOT the builder's (builder is a refinement).
+    expect(stack.cms.confidence).toBe("alto");
+  });
+
+  it("keeps the plain CMS value when there is no builder", () => {
+    const stack = toReportStack(
+      makeDetectedStack({
+        cms: axis("WordPress", "alto"),
+        builder: axis(null, "no-detectado"),
+      })
+    );
+    expect(stack.cms.value).toBe("WordPress");
+  });
+
+  it("does not combine a builder when the CMS is not WordPress", () => {
+    const stack = toReportStack(
+      makeDetectedStack({
+        cms: axis("Shopify", "alto"),
+        // A stray builder value must never leak into a non-WordPress CMS label.
+        builder: axis("Elementor", "medio"),
+      })
+    );
+    expect(stack.cms.value).toBe("Shopify");
+  });
+
+  it("maps analytics as an ordered array preserving coexistence", () => {
+    const stack = toReportStack(
+      makeDetectedStack({
+        analytics: [
+          axis("Google Analytics 4", "alto"),
+          axis("Google Tag Manager", "alto"),
+          axis("Meta Pixel", "medio"),
+        ],
+      })
+    );
+    expect(stack.analytics.map((a) => a.value)).toEqual([
+      "Google Analytics 4",
+      "Google Tag Manager",
+      "Meta Pixel",
+    ]);
+    expect(stack.analytics[2]!.confidence).toBe("medio");
+  });
+
+  it("maps an empty analytics array to []", () => {
+    const stack = toReportStack(makeDetectedStack({ analytics: [] }));
+    expect(stack.analytics).toEqual([]);
   });
 });
