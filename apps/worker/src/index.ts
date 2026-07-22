@@ -38,6 +38,11 @@ import {
   type RenderSamplePage,
   type RenderVerdict,
 } from "@auditor/render";
+import {
+  detectStack,
+  type PageFingerprintInput,
+  type DetectedStack,
+} from "@auditor/fingerprint";
 
 // Phase 2: the worker now runs a real bounded crawl (Crawlee CheerioCrawler,
 // see @auditor/crawler) for each audit job — discover URLs (sitemap or
@@ -342,6 +347,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       };
     };
     graph: LinkGraph;
+    stack: DetectedStack;
   }> {
     const summary = await runCrawl({ auditId, startUrl, urlLimit: audit.urlLimit, onProgress });
 
@@ -595,10 +601,29 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
       },
     };
 
-    return { summary, issueCounts, perfSummary, scores, graph };
+    // FPRINT-09 (SC#1): detect the technical stack exactly once per audit,
+    // here — where `pages` already carries html/responseHeaders/cookieNames —
+    // never at report-read time. `detectStack` is pure (no I/O, no extra
+    // requests): it aggregates internally (lowercases header keys, dedups
+    // cookies, picks the home HTML with fallback, and truncates defensively to
+    // 256KB), so the worker only maps and must NOT re-implement any of that.
+    // `isHome` is derived from `startUrl` (Pitfall 6): without it detectStack
+    // falls back to the first page and the CMS precision drops.
+    const fpInput: PageFingerprintInput[] = pages
+      .filter((p) => p.html != null && p.html !== "")
+      .map((p) => ({
+        url: p.url,
+        isHome: p.url === startUrl || p.finalUrl === startUrl,
+        html: p.html,
+        responseHeaders: (p.responseHeaders ?? {}) as Record<string, string>,
+        cookieNames: p.cookieNames ?? [],
+      }));
+    const stack = detectStack({ pages: fpInput });
+
+    return { summary, issueCounts, perfSummary, scores, graph, stack };
   }
 
-  const { summary, issueCounts, perfSummary, scores, graph } = await withTimeout(
+  const { summary, issueCounts, perfSummary, scores, graph, stack } = await withTimeout(
     crawlAndCheck(),
     JOB_TIMEOUT_MS,
     `audit ${auditId} crawl+checks+perf`
@@ -620,6 +645,7 @@ async function processAuditJob(job: Job<AuditJobData, AuditJobResult>): Promise<
         graph,
       } as unknown as Prisma.InputJsonValue,
       scores: scores as unknown as Prisma.InputJsonValue,
+      stack: stack as unknown as Prisma.InputJsonValue,
     },
   });
 
