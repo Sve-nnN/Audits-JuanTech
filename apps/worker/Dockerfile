@@ -39,6 +39,8 @@ COPY apps/worker/package.json apps/worker/package.json
 COPY packages/checks/package.json packages/checks/package.json
 COPY packages/crawler/package.json packages/crawler/package.json
 COPY packages/db/package.json packages/db/package.json
+COPY packages/fingerprint/package.json packages/fingerprint/package.json
+COPY packages/graph/package.json packages/graph/package.json
 COPY packages/psi/package.json packages/psi/package.json
 COPY packages/queue/package.json packages/queue/package.json
 COPY packages/render/package.json packages/render/package.json
@@ -56,6 +58,8 @@ COPY apps/worker apps/worker
 COPY packages/checks packages/checks
 COPY packages/crawler packages/crawler
 COPY packages/db packages/db
+COPY packages/fingerprint packages/fingerprint
+COPY packages/graph packages/graph
 COPY packages/psi packages/psi
 COPY packages/queue packages/queue
 COPY packages/render packages/render
