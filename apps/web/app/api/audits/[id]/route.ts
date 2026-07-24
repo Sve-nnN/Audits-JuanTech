@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@auditor/db";
 
+// Self-hosted deploy (Dokploy/Nixpacks-or-custom-Dockerfile) builds may run
+// isolated from the DB/Redis network -- force dynamic (request-time)
+// rendering defensively so `next build` never attempts to touch Prisma/Redis
+// during static generation.
+export const dynamic = 'force-dynamic'
+
 export const runtime = "nodejs";
 
 export async function GET(

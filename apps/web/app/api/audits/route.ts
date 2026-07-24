@@ -4,6 +4,12 @@ import { getAuditQueue } from "@auditor/queue";
 import { normalizeEmail } from "@auditor/email";
 import { canRunAudit, PrismaAuditCountStore, FREE_URL_LIMIT } from "@auditor/quota";
 
+// Self-hosted deploy (Dokploy/Nixpacks-or-custom-Dockerfile) builds may run
+// isolated from the DB/Redis network -- force dynamic (request-time)
+// rendering defensively so `next build` never attempts to touch Prisma/Redis
+// during static generation.
+export const dynamic = 'force-dynamic'
+
 // Force the Node.js runtime: this route touches Postgres (Prisma) and
 // Redis (BullMQ), neither of which run on the Edge runtime.
 export const runtime = "nodejs";
@@ -86,12 +92,20 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // Quota gate (QUOTA-01/03): 1 free audit per rolling 7-day window.
-  const quota = await canRunAudit(email.id, new PrismaAuditCountStore());
-  if (!quota.allowed) {
-    return NextResponse.json(
-      { error: quota.reason, nextAllowedAt: quota.nextAllowedAt },
-      { status: 429 }
-    );
+  // Local-dev escape hatch: set DISABLE_QUOTA=1 to skip the weekly limit so
+  // you can test against many sites with one email. Double-guarded — it is
+  // ignored in production (NODE_ENV === "production") even if the env is set.
+  const quotaDisabled =
+    process.env.DISABLE_QUOTA === "1" && process.env.NODE_ENV !== "production";
+
+  if (!quotaDisabled) {
+    const quota = await canRunAudit(email.id, new PrismaAuditCountStore());
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: quota.reason, nextAllowedAt: quota.nextAllowedAt },
+        { status: 429 }
+      );
+    }
   }
 
   let urlLimit = DEFAULT_URL_LIMIT;

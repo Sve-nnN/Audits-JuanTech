@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@auditor/db";
 import { normalizeEmail, createVerification, PrismaVerificationStore } from "@auditor/email";
 
+// Self-hosted deploy (Dokploy/Nixpacks-or-custom-Dockerfile) builds may run
+// isolated from the DB/Redis network -- force dynamic (request-time)
+// rendering defensively so `next build` never attempts to touch Prisma/Redis
+// during static generation.
+export const dynamic = 'force-dynamic'
+
 // Touches Postgres (Prisma) and, in production, the Resend API — neither
 // runs on the Edge runtime.
 export const runtime = "nodejs";

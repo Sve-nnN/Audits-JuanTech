@@ -9,6 +9,12 @@ import { SeverityBadge } from "../../../../components/ui/Badge";
 import { EmptyState } from "../../../../components/ui/EmptyState";
 import styles from "../pages.module.css";
 
+// Self-hosted deploy (Dokploy/Nixpacks-or-custom-Dockerfile) builds may run
+// isolated from the DB/Redis network -- force dynamic (request-time)
+// rendering defensively so `next build` never attempts to touch Prisma/Redis
+// during static generation.
+export const dynamic = 'force-dynamic'
+
 const EMPTY_GRAPH: EntityGraph = { nodes: [], edges: [] };
 
 interface PageProps {

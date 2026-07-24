@@ -12,6 +12,12 @@ import { STATUS_LABEL } from "../components/ui/labels";
 import { Reveal } from "../components/motion/useReveal";
 import styles from "./history.module.css";
 
+// Self-hosted deploy (Dokploy/Nixpacks-or-custom-Dockerfile) builds may run
+// isolated from the DB/Redis network -- force dynamic (request-time)
+// rendering defensively so `next build` never attempts to touch Prisma/Redis
+// during static generation.
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   searchParams: Promise<{ email?: string }>;
 }
