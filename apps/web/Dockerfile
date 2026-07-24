@@ -25,14 +25,20 @@ WORKDIR /app
 RUN corepack enable
 
 # Workspace manifests first for a cacheable install layer. @auditor/web's
-# own dependency closure (see apps/web/package.json): checks, db, email,
-# export, queue, quota, report-model, scoring.
+# full TRANSITIVE workspace closure (not just its own direct deps): checks
+# depends on crawler + scoring; report-model depends on fingerprint +
+# scoring; export depends on report-model + scoring. All of crawler, db,
+# email, export, fingerprint, queue, quota, report-model, scoring, checks
+# must have their source copied below, not just the ones @auditor/web lists
+# directly -- confirmed the hard way the first time this actually built.
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/checks/package.json packages/checks/package.json
+COPY packages/crawler/package.json packages/crawler/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/email/package.json packages/email/package.json
 COPY packages/export/package.json packages/export/package.json
+COPY packages/fingerprint/package.json packages/fingerprint/package.json
 COPY packages/queue/package.json packages/queue/package.json
 COPY packages/quota/package.json packages/quota/package.json
 COPY packages/report-model/package.json packages/report-model/package.json
@@ -40,15 +46,17 @@ COPY packages/scoring/package.json packages/scoring/package.json
 
 RUN pnpm install --frozen-lockfile --filter @auditor/web...
 
-# Copy only the sources @auditor/web actually needs (not apps/worker or the
-# Playwright/crawler-only packages — keeps this image lean and unrelated to
-# the worker's browser dependency).
+# Copy only the sources @auditor/web's dependency graph actually needs (not
+# apps/worker or packages/render — keeps this image unrelated to the
+# worker's Playwright/browser dependency).
 COPY tsconfig.base.json ./tsconfig.base.json
 COPY apps/web apps/web
 COPY packages/checks packages/checks
+COPY packages/crawler packages/crawler
 COPY packages/db packages/db
 COPY packages/email packages/email
 COPY packages/export packages/export
+COPY packages/fingerprint packages/fingerprint
 COPY packages/queue packages/queue
 COPY packages/quota packages/quota
 COPY packages/report-model packages/report-model
