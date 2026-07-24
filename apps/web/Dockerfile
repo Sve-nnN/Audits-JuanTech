@@ -24,6 +24,13 @@ FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 RUN corepack enable
 
+# Prisma's query engine needs libssl; node:20-bookworm-slim doesn't include
+# it, so without this Prisma silently falls back to a guessed engine target
+# ("openssl-1.1.x") which may not match what's actually on the system and
+# can fail to load at runtime. Confirmed via the "Prisma failed to detect
+# the libssl/openssl version" warning on the first real build.
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 # Workspace manifests first for a cacheable install layer. @auditor/web's
 # full TRANSITIVE workspace closure (not just its own direct deps): checks
 # depends on crawler + scoring; report-model depends on fingerprint +
@@ -76,6 +83,10 @@ FROM node:20-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 RUN corepack enable
+
+# Same reason as the builder stage: Prisma's query engine needs libssl at
+# runtime too, not just at generate-time.
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 # pnpm's symlinked store makes selective copying brittle — bring the
 # resolved tree wholesale, same rationale as apps/worker/Dockerfile.

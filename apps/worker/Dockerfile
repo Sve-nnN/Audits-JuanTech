@@ -98,4 +98,11 @@ COPY --from=builder /app /app
 # actually ran. `pnpm --filter @auditor/worker exec` runs with the correct
 # cwd/resolution context (apps/worker), same as the package's own `dev`
 # script does locally.
-CMD ["pnpm", "--filter", "@auditor/worker", "exec", "node", "--import", "tsx", "dist/index.js"]
+#
+# `dist/src/index.js`, NOT `dist/index.js`: apps/worker/tsconfig.json's
+# `include` covers both `src` and `scripts`, so tsc's inferred `rootDir` is
+# their common parent (apps/worker itself), and `outDir: "dist"` preserves
+# that structure -- confirmed by actually running `tsc` and inspecting the
+# output tree, since apps/worker/package.json's own `start` script had the
+# same wrong flat path and had apparently never been run for real either.
+CMD ["pnpm", "--filter", "@auditor/worker", "exec", "node", "--import", "tsx", "dist/src/index.js"]
