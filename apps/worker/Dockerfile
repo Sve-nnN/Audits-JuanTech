@@ -91,4 +91,11 @@ RUN corepack enable
 COPY --from=builder /app /app
 
 # Background worker: no EXPOSE (no HTTP port).
-CMD ["node", "--import", "tsx", "apps/worker/dist/index.js"]
+#
+# `tsx` is apps/worker's own devDependency, placed in its own pnpm-managed
+# node_modules -- resolving `--import tsx` from cwd `/app` (the monorepo
+# root) fails with ERR_MODULE_NOT_FOUND, confirmed the first time this image
+# actually ran. `pnpm --filter @auditor/worker exec` runs with the correct
+# cwd/resolution context (apps/worker), same as the package's own `dev`
+# script does locally.
+CMD ["pnpm", "--filter", "@auditor/worker", "exec", "node", "--import", "tsx", "dist/index.js"]

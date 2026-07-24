@@ -44,7 +44,7 @@ function ConfidenceValue({ value, confidence }: ReportStackAxis) {
   return (
     <>
       <span className={styles.value}>{value}</span>
-      <Badge variant={CONFIDENCE_BADGE[confidence]} icon={CONFIDENCE_ICON[confidence]}>
+      <Badge variant={CONFIDENCE_BADGE[confidence]!} icon={CONFIDENCE_ICON[confidence]}>
         {CONFIDENCE_LABEL[confidence]}
       </Badge>
     </>
@@ -109,7 +109,7 @@ export function StackTable({ stack }: { stack: ReportStack }) {
                     stack.analytics.map((tool, i) => (
                       <Badge
                         key={`${tool.value}-${i}`}
-                        variant={CONFIDENCE_BADGE[tool.confidence]}
+                        variant={CONFIDENCE_BADGE[tool.confidence]!}
                         icon={CONFIDENCE_ICON[tool.confidence]}
                       >
                         {tool.value}
