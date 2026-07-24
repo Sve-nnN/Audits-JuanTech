@@ -8,7 +8,9 @@ import {
   Circle,
   Sparkle,
 } from "lucide-react";
+import type { Confidence } from "@auditor/report-model";
 import { DIFF_LABEL, SEVERITY_LABEL } from "./labels";
+import { CONFIDENCE_BADGE } from "./StackTable";
 import styles from "./Badge.module.css";
 
 export type BadgeVariant =
@@ -120,6 +122,42 @@ export function DiffBadge({ diff, icon = true }: DiffBadgeProps) {
   return (
     <Badge variant={diff} icon={icon ? DIFF_ICON[diff] : undefined}>
       {DIFF_LABEL[diff]}
+    </Badge>
+  );
+}
+
+/**
+ * Icono redundante por confianza (aria-hidden); `no-detectado` sin icono.
+ *
+ * Lives here (not in StackTable.tsx, a Server Component) because a Lucide
+ * icon is a component reference (a function) — React cannot serialize
+ * functions passed as props from a Server Component into a Client Component
+ * like `Badge`. Confirmed at runtime ("Functions cannot be passed directly
+ * to Client Components") the first time a real audit rendered this table.
+ */
+const CONFIDENCE_ICON: Record<Confidence, LucideIcon | undefined> = {
+  alto: CheckCircle2,
+  medio: AlertTriangle,
+  bajo: AlertTriangle,
+  "no-detectado": undefined,
+};
+
+interface ConfidenceBadgeProps {
+  confidence: Confidence;
+  children: React.ReactNode;
+}
+
+/**
+ * ConfidenceBadge (STACKUI-02/FPRINT-08) — wrapper tipado del eje confianza.
+ *
+ * Resuelve variante + icono enteramente del lado cliente a partir de
+ * `confidence` (un string, serializable) en vez de recibir el icono ya
+ * resuelto como prop desde un Server Component.
+ */
+export function ConfidenceBadge({ confidence, children }: ConfidenceBadgeProps) {
+  return (
+    <Badge variant={CONFIDENCE_BADGE[confidence]} icon={CONFIDENCE_ICON[confidence]}>
+      {children}
     </Badge>
   );
 }

@@ -1,6 +1,5 @@
-import { AlertTriangle, CheckCircle2, type LucideIcon } from "lucide-react";
 import type { Confidence, ReportStack, ReportStackAxis } from "@auditor/report-model";
-import { Badge, type BadgeVariant } from "./Badge";
+import { Badge, ConfidenceBadge, type BadgeVariant } from "./Badge";
 import { AXIS_LABEL, CONFIDENCE_LABEL } from "./labels";
 import styles from "./StackTable.module.css";
 
@@ -10,20 +9,18 @@ import styles from "./StackTable.module.css";
  * `critical` (rojo) queda EXCLUIDO por contrato: la confianza no es una
  * severidad de error de auditoría. Exportado para que el test asegure el
  * mapeo y que ninguna variante emitida sea "critical".
+ *
+ * Solo la variante (un string) vive acá — el ícono lucide correspondiente
+ * vive en Badge.tsx (Client Component). Un componente de ícono es una
+ * función; este archivo es un Server Component, y React no puede serializar
+ * funciones pasadas como prop hacia un Client Component (confirmado en
+ * runtime: "Functions cannot be passed directly to Client Components").
  */
 export const CONFIDENCE_BADGE: Record<Confidence, BadgeVariant> = {
   alto: "ok",
   medio: "warning",
   bajo: "warningSubtle",
   "no-detectado": "neutral",
-};
-
-/** Icono redundante por confianza (aria-hidden); `no-detectado` sin icono. */
-const CONFIDENCE_ICON: Record<Confidence, LucideIcon | undefined> = {
-  alto: CheckCircle2,
-  medio: AlertTriangle,
-  bajo: AlertTriangle,
-  "no-detectado": undefined,
 };
 
 /** Texto de la celda cuando un eje no tiene señal (no es un error, es informativo). */
@@ -44,9 +41,7 @@ function ConfidenceValue({ value, confidence }: ReportStackAxis) {
   return (
     <>
       <span className={styles.value}>{value}</span>
-      <Badge variant={CONFIDENCE_BADGE[confidence]!} icon={CONFIDENCE_ICON[confidence]}>
-        {CONFIDENCE_LABEL[confidence]}
-      </Badge>
+      <ConfidenceBadge confidence={confidence}>{CONFIDENCE_LABEL[confidence]}</ConfidenceBadge>
     </>
   );
 }
@@ -107,17 +102,13 @@ export function StackTable({ stack }: { stack: ReportStack }) {
                     <NotDetected />
                   ) : (
                     stack.analytics.map((tool, i) => (
-                      <Badge
-                        key={`${tool.value}-${i}`}
-                        variant={CONFIDENCE_BADGE[tool.confidence]!}
-                        icon={CONFIDENCE_ICON[tool.confidence]}
-                      >
+                      <ConfidenceBadge key={`${tool.value}-${i}`} confidence={tool.confidence}>
                         {tool.value}
                         <span className={styles.srOnly}>
                           {" "}
                           ({CONFIDENCE_LABEL[tool.confidence]})
                         </span>
-                      </Badge>
+                      </ConfidenceBadge>
                     ))
                   )}
                 </div>

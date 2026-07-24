@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, CheckCircle2, Network } from "lucide-react";
+import { ArrowLeft, ArrowRight, Network } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@auditor/db";
 import type { Category, ScoreStatus } from "@auditor/scoring";
@@ -258,8 +258,7 @@ export default async function AuditReportPage({ params }: PageProps) {
           <h3 className={styles.sectionTitle}>Issues prioritarios</h3>
           {priorityCandidates.length === 0 ? (
             <EmptyState
-              variant="empty"
-              icon={CheckCircle2}
+              variant="success"
               title="Sin issues críticos ni de advertencia. Buen trabajo."
             />
           ) : (

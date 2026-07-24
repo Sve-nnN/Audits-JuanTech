@@ -37,6 +37,20 @@ describe("StackTable", () => {
     expect(Object.values(CONFIDENCE_BADGE)).not.toContain("critical");
   });
 
+  it("REGRESIÓN: CONFIDENCE_BADGE (exportado de un Server Component) nunca contiene un ícono/función", () => {
+    // StackTable.tsx no lleva "use client" -- cualquier valor exportado de acá
+    // que termine pasado como prop a un Client Component (Badge) debe ser
+    // serializable (string, number, plain object/array). Un componente lucide
+    // es una función; pasarlo así rompía en runtime con "Functions cannot be
+    // passed directly to Client Components" la primera vez que una auditoría
+    // real renderizó esta tabla. El ícono correspondiente ahora vive
+    // enteramente en Badge.tsx (Client Component) vía ConfidenceBadge — este
+    // test evita que alguien reintroduzca un ícono acá por error.
+    for (const value of Object.values(CONFIDENCE_BADGE)) {
+      expect(typeof value).toBe("string");
+    }
+  });
+
   it("renderiza siempre 5 filas en orden con th scope=row", () => {
     render(<StackTable stack={makeStack()} />);
     const headers = screen.getAllByRole("rowheader").map((el) => el.textContent);

@@ -2,12 +2,12 @@
 
 import type { Ref } from "react";
 import Link from "next/link";
-import { AlertTriangle, Inbox, type LucideIcon } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Inbox, type LucideIcon } from "lucide-react";
 import { Button } from "./Button";
 import buttonStyles from "./Button.module.css";
 import styles from "./EmptyState.module.css";
 
-type StateVariant = "empty" | "error";
+type StateVariant = "empty" | "error" | "success";
 
 interface StateAction {
   /** Texto visible de la acción. */
@@ -21,7 +21,19 @@ interface StateAction {
 interface StateMessageProps {
   /** Eje visual y semántico. Default "empty". */
   variant?: StateVariant;
-  /** Ícono lucide (aria-hidden). Default: empty→Inbox, error→AlertTriangle. */
+  /**
+   * Ícono lucide (aria-hidden). Default: empty→Inbox, error→AlertTriangle,
+   * success→CheckCircle2.
+   *
+   * SOLO pásalo explícito desde un Client Component ("use client"). Un
+   * Server Component NUNCA debe pasar esto -- un componente lucide es una
+   * función, y React no puede serializar funciones como prop hacia un Client
+   * Component como este. Si necesitas otro ícono por defecto desde un Server
+   * Component, usa `variant="success"` (o agrega un variant nuevo) en vez de
+   * pasar `icon`. Confirmado en runtime ("Functions cannot be passed
+   * directly to Client Components") la primera vez que una auditoría real
+   * renderizó el caso "sin issues" de audits/[id]/page.tsx.
+   */
   icon?: LucideIcon;
   /** Título. Si se omite, usa el placeholder voceo-free por variante. */
   title?: string;
@@ -64,6 +76,11 @@ const DEFAULT_COPY: Record<
     title: "Algo salio mal",
     description:
       "No pudimos cargar esta informacion. Recarga e intentalo de nuevo; si sigue fallando, escribenos.",
+  },
+  success: {
+    icon: CheckCircle2,
+    title: "Todo en orden",
+    description: "",
   },
 };
 
