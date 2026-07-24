@@ -157,7 +157,7 @@ Detalle completo: `.planning/milestones/v1.4-ROADMAP.md`. Audit: `.planning/mile
 Aditivo sobre v1.0-v1.4 — no toca el pipeline de crawl/checks/scoring existente. Secuencia de riesgo ascendente según research (ARCHITECTURE.md/SUMMARY.md): primero el contrato de datos completo del fingerprint (tipos con `confidence`, captura de headers/cookies sin requests extra, motor de detección por eje independiente) porque cambiarlo después obliga a retocar cada adaptador y cada UI consumidora; luego el wiring end-to-end mínimo (worker + tabla en el reporte) para validar que la detección produce resultados útiles y visibles *antes* de invertir en la pieza más costosa; y por último el motor de recomendaciones por CMS (patrón adaptador + fallback en cadena), el diferenciador central del milestone.
 
 - [x] **Phase 25: Fingerprint de stack técnico — contrato de datos y motor de detección** - Detecta CMS+builder/CDN/hosting/framework/analytics con confianza tipada por eje, nunca winner-take-all (completed 2026-07-21)
-- [ ] **Phase 26: Wiring en el worker + tabla de stack en el reporte** - Persiste el stack detectado una vez por auditoría y lo muestra en una tabla tokens-only al inicio del reporte
+- [x] **Phase 26: Wiring en el worker + tabla de stack en el reporte** - Persiste el stack detectado una vez por auditoría y lo muestra en una tabla tokens-only al inicio del reporte (completed 2026-07-22, verification: human_needed)
 - [ ] **Phase 27: Motor de recomendaciones por CMS — patrón adaptador + fallback** - Reescribe el fix de los checks de mayor volumen según el CMS/builder detectado, con fallback genérico garantizado
 
 ## Phase Details
@@ -195,7 +195,16 @@ Plans:
   3. La tabla lista cada categoría detectada (CMS+builder, CDN/proxy, hosting, framework JS, analytics) junto a su nivel de confianza, incluyendo un estado visual explícito para "no detectado con certeza".
   4. La tabla se construye enteramente con tokens del design system existente (cero hex hardcodeado) y se ve correctamente en tema claro y oscuro.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+
+- [x] 26-01-PLAN.md — Schema Audit.stack (Json?) + deps @auditor/fingerprint + db:push [wave 1]
+- [x] 26-02-PLAN.md — Worker: invoca detectStack una vez y persiste Audit.stack + verificación tsx [wave 2]
+- [x] 26-03-PLAN.md — report-model: ReportStack + toReportStack (CMS+builder, sin señales) + tests [wave 2]
+- [x] 26-04-PLAN.md — Badge: variante warningSubtle (ámbar outline tenue, tokens-only) [wave 1]
+- [x] 26-05-PLAN.md — labels + StackTable (RSC, 5 filas, responsive) + render en el reporte [wave 3]
+
 **UI hint**: yes
 
 ### Phase 27: Motor de recomendaciones por CMS — patrón adaptador + fallback
@@ -249,8 +258,8 @@ Próximo trabajo previsto tras v1.5:
 | 22. Árbol de arquitectura estilo octopus | v1.4 | 3/3 | Complete ✅ | 2026-07-09 |
 | 23. Grafo JSON-LD con layout radial | v1.4 | 1/1 | Complete ✅ | 2026-07-09 |
 | 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 3/3 | Complete ✅ | 2026-07-10 |
-| 25. Fingerprint de stack técnico — contrato de datos y motor de detección | v1.5 | 4/4 | In Progress|  |
-| 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 0/TBD | Not started | - |
+| 25. Fingerprint de stack técnico — contrato de datos y motor de detección | v1.5 | 4/4 | Complete ✅ | 2026-07-21 |
+| 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 5/5 | Complete ✅ (human check pendiente) | 2026-07-22 |
 | 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 0/TBD | Not started | - |
 
 ---

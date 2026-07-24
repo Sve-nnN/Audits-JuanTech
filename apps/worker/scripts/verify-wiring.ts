@@ -3,7 +3,7 @@
  *
  * Documents (and automates) the manual check described in
  * `.planning/phases/01-fundamentos-monorepo-esquema-de-datos-y-cola/01-PLAN.md`
- * task 6. Requires DATABASE_URL (Neon) and REDIS_URL (Upstash) to be set,
+ * task 6. Requires DATABASE_URL (Postgres) and REDIS_URL (Upstash) to be set,
  * and the worker (`pnpm --filter @auditor/worker dev`) to be running
  * separately. NOT executed automatically by this plan — run manually once
  * real connection strings are available.
