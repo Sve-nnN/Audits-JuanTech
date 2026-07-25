@@ -15,6 +15,7 @@ import type {
   ReportStackAxis,
 } from "./model";
 import type { AxisResult, DetectedStack } from "@auditor/fingerprint";
+import { resolveCmsRecommendation } from "@auditor/cms-adapters";
 import { classifyTemplate, TEMPLATE_ORDER } from "./template";
 import type { PageTemplate } from "./template";
 
@@ -106,7 +107,25 @@ function issueUrl(issue: { source: string | null; scope: string | null }): strin
   return firstToken;
 }
 
-function toReportIssue(issue: IssueRow): ReportIssue {
+/**
+ * Map a persisted `IssueRow` to the serializable `ReportIssue`, resolving the
+ * CMS-specific recommendation at read time (CMSFIX-05) — nothing is persisted.
+ *
+ * The `stack` argument is the RAW `DetectedStack` (`rawStack`, not the merged
+ * `ReportStack`): `resolveCmsRecommendation` needs the separate `builder` axis
+ * and the unfolded `cms.value`/`cms.confidence` to match builder + label
+ * (design_resolution 27-03). A check outside the 10 supported ids resolves to
+ * `null` inside the engine and the generic is returned byte-identical (CMSFIX-04).
+ *
+ * Guard (Pitfall 1): issues with severity `ok` are correct-by-definition — their
+ * recommendation ("Sin acción necesaria.") is kept verbatim and NEVER routed
+ * through the engine, so we never show a "fix" on a passing check.
+ */
+function toReportIssue(issue: IssueRow, stack: DetectedStack | null): ReportIssue {
+  const recommendation =
+    issue.severity === "ok"
+      ? issue.recommendation
+      : resolveCmsRecommendation(stack, issue.checkId, issue.recommendation);
   return {
     id: issue.id,
     checkId: issue.checkId,
@@ -116,7 +135,7 @@ function toReportIssue(issue: IssueRow): ReportIssue {
     measuredValue: issue.measuredValue,
     source: issue.source,
     criterion: issue.criterion,
-    recommendation: issue.recommendation,
+    recommendation,
     fingerprint: issue.fingerprint,
     diffStatus: (issue.diffStatus as ReportDiffStatus | null) ?? null,
     url: issueUrl({ source: issue.source, scope: issue.scope }),
@@ -215,7 +234,9 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
       : Promise.resolve([]),
   ]);
 
-  const priorityCandidates = (priorityCandidatesRaw as unknown as IssueRow[]).map(toReportIssue);
+  const priorityCandidates = (priorityCandidatesRaw as unknown as IssueRow[]).map((i) =>
+    toReportIssue(i, rawStack)
+  );
   const priorityIssues = priorityCandidates.slice(0, MAX_PRIORITY_ROWS);
   const totalPriorityCandidates = priorityCandidates.length;
 
@@ -224,14 +245,14 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
   ) as Record<Category, ReportIssue[]>;
   for (const issue of issuesForDetail as unknown as IssueRow[]) {
     const bucket = issuesByCategory[issue.category as Category];
-    if (bucket) bucket.push(toReportIssue(issue));
+    if (bucket) bucket.push(toReportIssue(issue, rawStack));
   }
 
   const issuesByTemplate = Object.fromEntries(
     TEMPLATE_ORDER.map((t) => [t, [] as ReportIssue[]])
   ) as Record<PageTemplate, ReportIssue[]>;
   for (const issue of issuesForDetail as unknown as IssueRow[]) {
-    const reportIssue = toReportIssue(issue);
+    const reportIssue = toReportIssue(issue, rawStack);
     if (reportIssue.url != null) {
       issuesByTemplate[classifyTemplate(reportIssue.url)].push(reportIssue);
     }

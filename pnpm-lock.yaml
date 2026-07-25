@@ -99,6 +99,9 @@ importers:
       '@auditor/checks':
         specifier: workspace:*
         version: link:../../packages/checks
+      '@auditor/cms-adapters':
+        specifier: workspace:*
+        version: link:../../packages/cms-adapters
       '@auditor/crawler':
         specifier: workspace:*
         version: link:../../packages/crawler
@@ -120,6 +123,9 @@ importers:
       '@auditor/render':
         specifier: workspace:*
         version: link:../../packages/render
+      '@auditor/report-model':
+        specifier: workspace:*
+        version: link:../../packages/report-model
       '@auditor/scoring':
         specifier: workspace:*
         version: link:../../packages/scoring
@@ -388,6 +394,9 @@ importers:
 
   packages/report-model:
     dependencies:
+      '@auditor/cms-adapters':
+        specifier: workspace:*
+        version: link:../cms-adapters
       '@auditor/db':
         specifier: workspace:*
         version: link:../db

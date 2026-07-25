@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@auditor/checks": "workspace:*",
+    "@auditor/cms-adapters": "workspace:*",
     "@auditor/crawler": "workspace:*",
     "@auditor/db": "workspace:*",
     "@auditor/fingerprint": "workspace:*",
@@ -18,6 +19,7 @@
     "@auditor/psi": "workspace:*",
     "@auditor/queue": "workspace:*",
     "@auditor/render": "workspace:*",
+    "@auditor/report-model": "workspace:*",
     "@auditor/scoring": "workspace:*",
     "bullmq": "^5.34.0",
     "ioredis": "5.10.1"

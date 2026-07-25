@@ -602,6 +602,102 @@ describe("buildReportModel", () => {
     const model = await buildReportModel("audit-1");
     expect(model!.stack).toBeUndefined();
   });
+
+  // --- CMS recommendation integration (Plan 27-03, CMSFIX-04/05) -------------
+  // The real persisted `Issue.checkId` is the bare id (e.g. "ONPAGE-04",
+  // "TECH-10") — matching @auditor/cms-adapters SUPPORTED_CHECK_IDS exactly.
+  // These generics are the verbatim strings the checks package emits today; the
+  // engine returns them byte-identical whenever it does not personalize.
+  const GENERIC_ONPAGE04 =
+    "Agrega texto alternativo descriptivo a las imágenes que faltan, para accesibilidad y para que los buscadores entiendan su contenido.";
+  const GENERIC_TECH10 = "Añade etiquetas hreflang para las variantes de idioma.";
+  const OK_RECOMMENDATION = "Sin acción necesaria.";
+
+  it("keeps the ok-severity recommendation verbatim even under an activating stack (guard)", async () => {
+    // ONPAGE-01 is a supported checkId; were the guard absent, the WordPress
+    // adapter WOULD rewrite it. Severity "ok" must short-circuit before the engine.
+    const okIssue = makeIssue({
+      checkId: "ONPAGE-01",
+      category: "onpage",
+      severity: "ok",
+      recommendation: OK_RECOMMENDATION,
+      source: "https://example.com/",
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit({ stack: makeDetectedStack() }) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any) // priority: no critical/warning
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([okIssue] as any); // detail
+
+    const model = await buildReportModel("audit-1");
+    expect(model!.issuesByCategory.onpage[0]!.recommendation).toBe(OK_RECOMMENDATION);
+  });
+
+  it("personalizes an ONPAGE-04 warning under a WordPress stack (≠ generic, starts with 'En WordPress')", async () => {
+    const issue = makeIssue({
+      checkId: "ONPAGE-04",
+      category: "onpage",
+      severity: "warning",
+      recommendation: GENERIC_ONPAGE04,
+      source: "https://example.com/",
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit({ stack: makeDetectedStack() }) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([issue] as any) // priorityCandidates
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([issue] as any); // issuesForDetail
+
+    const model = await buildReportModel("audit-1");
+    const rec = model!.priorityIssues[0]!.recommendation!;
+    expect(rec).not.toBe(GENERIC_ONPAGE04);
+    expect(rec.startsWith("En WordPress")).toBe(true);
+    // Same resolution flows into the per-category detail (single source of truth).
+    expect(model!.issuesByCategory.onpage[0]!.recommendation).toBe(rec);
+  });
+
+  it("leaves a check outside the 10 (TECH-10) byte-identical to its generic (CMSFIX-04)", async () => {
+    const issue = makeIssue({
+      checkId: "TECH-10",
+      category: "tech",
+      severity: "warning",
+      recommendation: GENERIC_TECH10,
+      source: "https://example.com/",
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit({ stack: makeDetectedStack() }) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([issue] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([issue] as any);
+
+    const model = await buildReportModel("audit-1");
+    expect(model!.priorityIssues[0]!.recommendation).toBe(GENERIC_TECH10);
+  });
+
+  it("falls back to the generic for a supported check when Audit.stack is null", async () => {
+    const issue = makeIssue({
+      checkId: "ONPAGE-04",
+      category: "onpage",
+      severity: "warning",
+      recommendation: GENERIC_ONPAGE04,
+      source: "https://example.com/",
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit({ stack: null }) as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([issue] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([issue] as any);
+
+    const model = await buildReportModel("audit-1");
+    expect(model!.priorityIssues[0]!.recommendation).toBe(GENERIC_ONPAGE04);
+  });
 });
 
 describe("toReportStack", () => {

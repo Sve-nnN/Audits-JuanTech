@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@auditor/cms-adapters": "workspace:*",
     "@auditor/db": "workspace:*",
     "@auditor/fingerprint": "workspace:*",
     "@auditor/scoring": "workspace:*"
