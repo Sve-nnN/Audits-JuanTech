@@ -23,7 +23,8 @@ Seis milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca),
 - **Nyquist retroactivo** para Phase 25/26 (`/gsd-validate-phase 25` y `26`) — coverage TODO opcional, no bloqueante.
 - **Deploy a producción:** web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera. Incluye las 2 verificaciones humanas diferidas de v1.2 (runtime Docker del render + render visual del PDF).
 - **v2 monetización:** planes de pago, auditorías/URLs ilimitadas, Stripe.
-- **v2 enriquecimiento:** RENDER-04/05, EXPORT-06 (DOCX/CSV), REPORT-05 (`Page.renderVerdict` persistido), Domain Rating como contexto.
+- **v2 enriquecimiento:** RENDER-04/05, EXPORT-06 (DOCX/CSV), REPORT-05 (`Page.renderVerdict` persistido), Domain Rating como contexto, detección extendida de fingerprint (FPRINT-10..14: plugins SEO de WordPress, Squarespace separado de Wix, builders adicionales, historial de cambios de stack, confianza cuantitativa) y fixes por CMS extendidos (CMSFIX-06/07).
+- **Idea nueva (Juan, 2026-07-25):** para sitios "hechos a código" (sin CMS detectado), detectar stack de frontend — Tailwind CSS, librerías de componentes tipo shadcn/ui, etc. Candidato a requirement nuevo (FPRINT-15+) para el próximo milestone; no iniciado, solo capturado en backlog.
 - **Tech debt no bloqueante de v1.4:** SD-07 sin dedupe/cap de mensajes; `SchemaEntities.tsx` usa índice de array como key de React (bajo riesgo, ver `24-REVIEW.md`).
 - **Debug abierto (no relacionado a v1.4):** `pdf-export-crash-reading-s` — crash de export PDF en runtime Next server (`TypeError: Cannot read properties of undefined (reading 'S')`); hipótesis confirmada apunta a exportar `@react-pdf/renderer` vía `serverExternalPackages`; próxima acción pendiente de ejecutar (ver `.planning/debug/pdf-export-crash-reading-s.md` y `STATE.md` → Deferred Items).
 
