@@ -73,15 +73,14 @@ Cinco milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca)
 - ✓ Grafo JSON-LD radial: raíz de cada componente conexo al centro con hijos alrededor — v1.4 (SDVIZ-01, Phase 23)
 - ✓ Código JSON-LD formateado por entidad + validación por propiedad/tipo contra schema.org (Classy Schema, subconjunto de alto valor, nunca falla dura del score) — v1.4 (SDVIZ-02/03, Phase 24)
 - ✓ Fingerprint de stack técnico: captura de headers curados + nombres de cookie sin requests adicionales, motor `detectStack` propio (registry de signatures por eje, sin dependencias externas pagas/GPL) con detección independiente por eje (CMS, builder WordPress, CDN/proxy, hosting, framework JS, analytics) tipada por confianza (alto/medio/bajo/no-detectado), nunca forzando una respuesta sin señal — v1.5 (FPRINT-01..08, Phase 25)
+- ✓ Persistencia del stack detectado (una detección por auditoría, sin re-detectar por vista) + tabla "Stack técnico detectado" al inicio del reporte, tokens-only, ambos temas — v1.5 (FPRINT-09, STACKUI-01..03, Phase 26)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-v1.5 en curso (Phase 25 shipped 2026-07-21, Phases 26-27 pendientes):
+v1.5 en curso (Phases 25-26 shipped, Phase 27 pendiente):
 
-- [ ] FPRINT-09: persistencia del stack detectado asociado a la auditoría (Phase 26)
-- [ ] STACKUI-01..03: tabla de stack técnico en el reporte (Phase 26)
 - [ ] CMSFIX-01..05: motor de recomendaciones por CMS (Phase 27)
 
 ### Out of Scope
@@ -141,6 +140,8 @@ v1.5 en curso (Phase 25 shipped 2026-07-21, Phases 26-27 pendientes):
 | Motor de fingerprint propio (registry de signatures) en vez de `wappalyzer-core` o APIs pagas | Librería deprecada/GPL-3.0 incompatible; requisito explícito de Juan de no depender de servicios de terceros pagos en el core | ✓ Good — v1.5 Phase 25, 34 tests, validado contra 6 sitios reales |
 | `packages/fingerprint` desacoplado de `@auditor/db`/`@auditor/crawler`/`@auditor/checks` en runtime | Mismo patrón que `packages/graph`/`packages/scoring`; motor de detección debe ser reusable/testeable sin infra | ✓ Good — v1.5 Phase 25, única dep runtime es `cheerio` |
 | Confianza de detección por reglas explícitas de conteo de señales (no puntaje numérico 0-100) | Más fácil de calibrar sin datos reales previos; auditable por regla en vez de umbral arbitrario | ✓ Good — v1.5 Phase 25 |
+| `detectStack` invocado una sola vez por auditoría en el worker (post-crawl) y persistido en `Audit.stack`; report-model solo lee el escalar | Evita recomputar el fingerprint en cada vista del reporte; misma auditoría siempre muestra el mismo stack | ✓ Good — v1.5 Phase 26, `grep detectStack` en report-model = 0 |
+| CMS+builder combinado en una sola fila ("WordPress (Elementor)") en vez de dos filas separadas | Builder solo tiene sentido en contexto del CMS; una fila combinada es más legible que dos filas dependientes | ✓ Good — v1.5 Phase 26 |
 
 ## Evolution
 
@@ -160,4 +161,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-21 after Phase 25*
+*Last updated: 2026-07-24 after Phase 26*

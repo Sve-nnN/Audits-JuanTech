@@ -157,7 +157,7 @@ Detalle completo: `.planning/milestones/v1.4-ROADMAP.md`. Audit: `.planning/mile
 Aditivo sobre v1.0-v1.4 — no toca el pipeline de crawl/checks/scoring existente. Secuencia de riesgo ascendente según research (ARCHITECTURE.md/SUMMARY.md): primero el contrato de datos completo del fingerprint (tipos con `confidence`, captura de headers/cookies sin requests extra, motor de detección por eje independiente) porque cambiarlo después obliga a retocar cada adaptador y cada UI consumidora; luego el wiring end-to-end mínimo (worker + tabla en el reporte) para validar que la detección produce resultados útiles y visibles *antes* de invertir en la pieza más costosa; y por último el motor de recomendaciones por CMS (patrón adaptador + fallback en cadena), el diferenciador central del milestone.
 
 - [x] **Phase 25: Fingerprint de stack técnico — contrato de datos y motor de detección** - Detecta CMS+builder/CDN/hosting/framework/analytics con confianza tipada por eje, nunca winner-take-all (completed 2026-07-21)
-- [x] **Phase 26: Wiring en el worker + tabla de stack en el reporte** - Persiste el stack detectado una vez por auditoría y lo muestra en una tabla tokens-only al inicio del reporte (completed 2026-07-22, verification: human_needed)
+- [x] **Phase 26: Wiring en el worker + tabla de stack en el reporte** - Persiste el stack detectado una vez por auditoría y lo muestra en una tabla tokens-only al inicio del reporte (completed 2026-07-22, verification: passed — human checks confirmados por Juan 2026-07-24)
 - [ ] **Phase 27: Motor de recomendaciones por CMS — patrón adaptador + fallback** - Reescribe el fix de los checks de mayor volumen según el CMS/builder detectado, con fallback genérico garantizado
 
 ## Phase Details
@@ -259,7 +259,7 @@ Próximo trabajo previsto tras v1.5:
 | 23. Grafo JSON-LD con layout radial | v1.4 | 1/1 | Complete ✅ | 2026-07-09 |
 | 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 3/3 | Complete ✅ | 2026-07-10 |
 | 25. Fingerprint de stack técnico — contrato de datos y motor de detección | v1.5 | 4/4 | Complete ✅ | 2026-07-21 |
-| 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 5/5 | Complete ✅ (human check pendiente) | 2026-07-22 |
+| 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 5/5 | Complete ✅ | 2026-07-22 |
 | 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 0/TBD | Not started | - |
 
 ---

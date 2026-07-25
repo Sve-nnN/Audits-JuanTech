@@ -17,13 +17,13 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **FPRINT-06**: El sistema detecta el framework JS en uso (ej. React, Next.js, Vue) cuando hay señal suficiente
 - [x] **FPRINT-07**: El sistema detecta herramientas de analytics/tag manager en uso (ej. GA4, GTM, Meta Pixel)
 - [x] **FPRINT-08**: Cuando la confianza de detección es baja o no hay señal, el sistema muestra "no detectado con certeza" en vez de forzar una respuesta incorrecta
-- [ ] **FPRINT-09**: El resultado del fingerprint se persiste asociado a la auditoría (no requiere re-detección en cada vista del reporte)
+- [x] **FPRINT-09**: El resultado del fingerprint se persiste asociado a la auditoría (no requiere re-detección en cada vista del reporte)
 
 ### Reporte: Tabla de Stack Detectado
 
-- [ ] **STACKUI-01**: El reporte muestra una tabla de "stack técnico detectado" al inicio, visible apenas termina el escaneo
-- [ ] **STACKUI-02**: La tabla muestra cada categoría detectada (CMS+builder, CDN/proxy, hosting, framework JS, analytics) con su nivel de confianza cuando aplica
-- [ ] **STACKUI-03**: La tabla es consistente con el design system existente (tokens, sin hex hardcodeado, ambos temas claro/oscuro)
+- [x] **STACKUI-01**: El reporte muestra una tabla de "stack técnico detectado" al inicio, visible apenas termina el escaneo
+- [x] **STACKUI-02**: La tabla muestra cada categoría detectada (CMS+builder, CDN/proxy, hosting, framework JS, analytics) con su nivel de confianza cuando aplica
+- [x] **STACKUI-03**: La tabla es consistente con el design system existente (tokens, sin hex hardcodeado, ambos temas claro/oscuro)
 
 ### Motor de Recomendaciones por CMS
 
@@ -77,10 +77,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FPRINT-06 | Phase 25 | Complete |
 | FPRINT-07 | Phase 25 | Complete |
 | FPRINT-08 | Phase 25 | Complete |
-| FPRINT-09 | Phase 26 | Pending |
-| STACKUI-01 | Phase 26 | Pending |
-| STACKUI-02 | Phase 26 | Pending |
-| STACKUI-03 | Phase 26 | Pending |
+| FPRINT-09 | Phase 26 | Complete |
+| STACKUI-01 | Phase 26 | Complete |
+| STACKUI-02 | Phase 26 | Complete |
+| STACKUI-03 | Phase 26 | Complete |
 | CMSFIX-01 | Phase 27 | Pending |
 | CMSFIX-02 | Phase 27 | Pending |
 | CMSFIX-03 | Phase 27 | Pending |
