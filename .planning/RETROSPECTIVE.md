@@ -80,6 +80,44 @@ Design system tokenizado con 4 fuentes de marca (Array/Khand/Geist Sans/Geist Mo
 - 4 fases entregadas en ~1 día calendario (2026-07-09 → 2026-07-10), más una sesión adicional el 2026-07-10 para cerrar los gaps de proceso y archivar el milestone.
 - Notable: el gap de proceso (checkpoints sin cerrar por escrito) costó una sesión extra completa de reconciliación documental — el fix es barato (cerrar en el momento) comparado con el costo de reconstrucción después.
 
+## Milestone: v1.5 — Fingerprinting técnico + fixes personalizados por CMS
+
+**Shipped:** 2026-07-25
+**Phases:** 3 (25-27) | **Plans:** 12
+
+### What Was Built
+
+Motor de fingerprint propio (`@auditor/fingerprint`, única dep runtime `cheerio`) que detecta CMS+builder, CDN/proxy, hosting, framework JS y analytics a partir de headers/cookies/HTML ya capturados durante el crawl, sin requests adicionales, con confianza tipada por eje (nunca winner-take-all). El worker invoca la detección una sola vez por auditoría y la persiste en `Audit.stack`; el reporte muestra una tabla "Stack técnico detectado" tokens-only al inicio. Sobre ese fingerprint, `@auditor/cms-adapters` implementa un patrón adaptador (WordPress con resolución por builder, Shopify, Webflow, Wix/Squarespace combinado) con fallback genérico garantizado, que `buildReportModel` resuelve en lectura (nunca persistido) para personalizar la recomendación de fix de los 10 checks de mayor volumen — llegando gratis a la UI y a los 3 exports sin tocar `packages/export`.
+
+### What Worked
+
+- Secuencia de riesgo ascendente (contrato de datos completo → wiring end-to-end mínimo → motor de recomendaciones) evitó retrabajo en cascada: el tipo `DetectedStack` se fijó antes de escribir ningún adaptador o UI consumidora.
+- Verificar el copy de UI de terceros (`[REVISAR]`) contra documentación oficial vigente vía `WebSearch` en vez de asumir el research original — 5 de 7 rutas de menú habían cambiado de nombre/ubicación desde que se escribió el catálogo inicial.
+- Cerrar el checkpoint de validación humana (redacción de copy, rutas de menú) en el mismo momento con Juan, en vez de diferirlo, evitó repetir el gap de proceso de v1.4 (checkpoints sin artefacto escrito).
+- El chain completo code-review → fix → verify → nyquist → security corrió sin intervención manual salvo las 2 decisiones genuinamente humanas (aprobar redacción, decidir revisar las rutas de menú).
+
+### What Was Inefficient
+
+- La sesión anterior se cortó justo después de ejecutar los 3 plans de Phase 27 (commits + SUMMARY.md ya en `main`) pero antes de correr code-review/verify — el reinicio de `/gsd-autonomous` tuvo que reconciliar el estado en disco contra `STATE.md`/tasks desactualizados antes de poder continuar. Costo bajo (unos minutos de lectura de estado), pero evitable si la sesión hubiera dejado un `.continue-here.md` explícito antes de cortar.
+- `27-SECURITY.md` es el primer `SECURITY.md` del proyecto — no hubo un baseline previo contra el cual comparar, así que la primera pasada de security-auditor tuvo que decidir criterio de aceptación (`accept` vs `mitigate`) sin precedente. Quedó documentado como baseline para milestones futuros.
+
+### Patterns Established
+
+- Paquetes de dominio puro (`@auditor/fingerprint`, `@auditor/cms-adapters`) desacoplados de `@auditor/db`/`@auditor/crawler`/`@auditor/checks` en runtime, con el `checkId` string como único punto de contacto — mismo patrón que `packages/graph`/`packages/scoring` de milestones anteriores, ahora consolidado como convención explícita del proyecto (ver `STATE.md` → Notas de ejecución).
+- Recomendaciones/derivados costosos de recalibrar se resuelven en lectura dentro de `buildReportModel`, nunca persistidos pre-calculados — mismo principio para fingerprint (v1.5 Phase 25/26) y CMS-fix (v1.5 Phase 27).
+- Verificar copy de UI de terceros contra la documentación oficial vigente (no solo contra el research original) antes de cerrar un checkpoint humano de "rutas de menú".
+
+### Key Lessons
+
+- Cuando una sesión autónoma se corta a mitad de fase, el primer paso del reinicio debe ser reconciliar disco vs. `STATE.md`/task list antes de re-planificar o re-ejecutar nada — el estado en disco (commits, SUMMARY.md) es la fuente de verdad, no la última entrada de `STATE.md`.
+- Un `SECURITY.md` nuevo sin precedente en el proyecto necesita declarar explícitamente que es el baseline, para que futuras corridas sepan que no hay regresión que comparar todavía.
+
+### Cost Observations
+
+- Modo GSD: YOLO, granularidad standard.
+- 3 fases entregadas en 5 días calendario (2026-07-21 → 2026-07-25), con una interrupción/reconciliación de sesión en Phase 27.
+- Notable: 2 pausas explícitas para decisión humana (validar copy, decidir revisar rutas de menú) — ambas resueltas en la misma sesión, sin diferir a una corrida separada.
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Shipped | Nota |
@@ -87,8 +125,10 @@ Design system tokenizado con 4 fuentes de marca (Array/Khand/Geist Sans/Geist Mo
 | v1.0 MVP | 7 | 7 | 2026-07-06 | Pipeline funcional, 63/63 req, 6 bugs reales cazados en verificación |
 | v1.1 UI/UX | 3 | 19 | 2026-07-06 | UI-only, 31/31 req, pipeline v1.0 intacto |
 | v1.4 Visualización avanzada + resolución URL | 4 | 10 | 2026-07-10 | 7/7 req, audit inicial gaps_found (proceso, no funcional) resuelto por confirmación retroactiva |
+| v1.5 Fingerprinting técnico + fixes por CMS | 3 | 12 | 2026-07-25 | 18/18 req, audit `passed`, integración 10/10 wired, primer `SECURITY.md` del proyecto |
 
 **Tendencias:**
 - Verificación con datos reales (juan-tech.com) sigue siendo la que caza los bugs de mayor impacto.
 - Separar milestones por naturaleza (pipeline vs UI) mantuvo el blast radius chico y el audit limpio.
-- Los checkpoints `human-verify` necesitan cerrarse con un artefacto escrito en el momento de la aprobación — de lo contrario el milestone-audit los marca como gap y hay que reconstruir la aprobación retroactivamente al cerrar (visto en v1.4, Fases 21/22).
+- Los checkpoints `human-verify` necesitan cerrarse con un artefacto escrito en el momento de la aprobación — de lo contrario el milestone-audit los marca como gap y hay que reconstruir la aprobación retroactivamente al cerrar (visto en v1.4, Fases 21/22; evitado en v1.5 cerrando en el momento).
+- Copy de UI de terceros se desactualiza entre el research y el cierre de fase — verificar contra documentación oficial vigente al momento de la validación humana, no solo confiar en el research inicial (v1.5, Phase 27).
