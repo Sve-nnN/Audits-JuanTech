@@ -19,12 +19,10 @@ const catalog: Record<string, string> = {
     "En Webflow Designer, selecciona la imagen → panel Settings → campo «Alt Text». En imágenes del CMS, vincula el alt a un campo de la colección para completarlo en todos los ítems.",
   "ONPAGE-05":
     "En Webflow, abre configuración de la página → «Open Graph Settings» y completa título, descripción e imagen; puedes marcar las casillas para reutilizar el «Title Tag» y la «Meta Description».",
-  // [REVISAR] Nombre exacto de pestaña/campo robots.txt en el panel actual de Webflow (RESEARCH A4) — verificación humana pendiente.
   "TECH-01":
-    "En Webflow, ve a Ajustes del sitio → pestaña «SEO» → campo «robots.txt» y agrega ahí tus reglas (por ejemplo User-agent y Disallow). Publica el sitio para aplicarlo.",
-  // [REVISAR] Nombre exacto del toggle de sitemap en el panel actual de Webflow (RESEARCH A4) — verificación humana pendiente.
+    "En Webflow, ve a Ajustes del sitio → pestaña «SEO» → sección «Indexing» → campo de robots.txt y agrega ahí tus reglas (por ejemplo User-agent y Disallow). Publica el sitio para aplicarlo.",
   "TECH-02":
-    "En Webflow, ve a Ajustes del sitio → pestaña «SEO» y activa «Auto-generate sitemap» (o pega un sitemap personalizado). Publica el sitio; el sitemap queda en /sitemap.xml.",
+    "En Webflow, ve a Ajustes del sitio → pestaña «SEO» → sección «Sitemap» y activa «Auto-generate sitemap» (o pega un sitemap personalizado). Publica el sitio; el sitemap queda en /sitemap.xml.",
   // TECH-04: cubre tanto la ubicación del campo (canonical.ts) como los
   // sub-casos de destino roto/en cadena/con noindex (canonicalDeep.ts).
   "TECH-04":

@@ -13,9 +13,8 @@ const catalog: Record<string, string> = {
     "En Shopify, abre el recurso (Productos, Páginas o Colecciones); para la home ve a Tienda online → Preferencias. Busca la sección «Vista previa del motor de búsqueda», haz clic en «Editar» y completa el campo de título. Guarda.",
   "ONPAGE-02":
     "En Shopify, abre el recurso o, para la home, ve a Tienda online → Preferencias. En «Vista previa del motor de búsqueda» haz clic en «Editar» y completa el campo de descripción. Guarda.",
-  // [REVISAR] Ruta de H1 depende del tema (RESEARCH A6) — verificación humana pendiente.
   "ONPAGE-03":
-    "En Shopify el H1 lo define la plantilla del tema (normalmente el título del producto o página). Ve a Tienda online → Temas → Personalizar y revisa la sección de encabezado; si necesitas cambiar la etiqueta, edítala en «Editar código» del tema.",
+    "En Shopify el H1 lo define la plantilla del tema, y muchos temas lo aplican por defecto al nombre de la tienda o el logo, no al título del contenido. Ve a Tienda online → Temas → Personalizar y revisa la sección de encabezado; si necesitas reasignar la etiqueta al título real del producto o la página, edítala en «Editar código» del tema (busca la etiqueta h1 en las secciones del theme).",
   "ONPAGE-04":
     "En Shopify, ve a Productos (o Contenido → Archivos), selecciona la imagen y completa el campo «Texto alternativo»; en imágenes del tema, edítalo desde Personalizar. Guarda.",
   "ONPAGE-05":
