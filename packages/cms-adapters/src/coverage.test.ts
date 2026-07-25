@@ -1,24 +1,10 @@
 import { describe, it, expect } from "vitest";
 import type { AxisResult } from "@auditor/fingerprint";
 import { SUPPORTED_CHECK_IDS } from "./types";
-import type { CmsAdapter, CmsLabel } from "./types";
+import type { CmsLabel } from "./types";
+import { registry } from "./registry";
 import { wordpressAdapter } from "./wordpress";
-import { shopifyAdapter } from "./shopify";
-import { webflowAdapter } from "./webflow";
 import { wixSquarespaceAdapter } from "./wixSquarespace";
-
-/**
- * Mapa local label → adaptador (NO se importa el `registry`, que llega en el
- * Plan 02: este test es autónomo del Plan 02). Wix y Squarespace apuntan al
- * mismo adaptador técnico, que ramifica por label internamente.
- */
-const adapters: Record<CmsLabel, CmsAdapter> = {
-  WordPress: wordpressAdapter,
-  Shopify: shopifyAdapter,
-  Webflow: webflowAdapter,
-  Wix: wixSquarespaceAdapter,
-  Squarespace: wixSquarespaceAdapter,
-};
 
 const CMS_LABELS: CmsLabel[] = [
   "WordPress",
@@ -45,7 +31,7 @@ const builderElementorAlto: AxisResult = {
 describe("cobertura de catálogos cms-adapters", () => {
   it("las 50 combinaciones (5 labels × 10 checkIds) devuelven un string no vacío", () => {
     for (const label of CMS_LABELS) {
-      const adapter = adapters[label];
+      const adapter = registry[label]; // ← consume el registry real de producción
       for (const checkId of SUPPORTED_CHECK_IDS) {
         const result = adapter.lookup(checkId, label, builderNone);
         expect(
@@ -127,7 +113,7 @@ describe("Wix distinto de Squarespace bajo el mismo adaptador", () => {
 describe("checkId fuera del catálogo", () => {
   it("devuelve null (nunca lanza) para un checkId no soportado", () => {
     for (const label of CMS_LABELS) {
-      const adapter = adapters[label];
+      const adapter = registry[label]; // ← consume el registry real de producción
       expect(adapter.lookup("TECH-10", label, builderNone)).toBeNull();
     }
   });
