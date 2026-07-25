@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Fingerprinting técnico + fixes personalizados por CMS
 current_phase: 27
-current_phase_name: Motor de recomendaciones por CMS — patrón adaptador + fallback
-status: planning
-stopped_at: Completed 25-04-PLAN.md
-last_updated: "2026-07-25T01:51:35.131Z"
-last_activity: 2026-07-24
-last_activity_desc: Phase 26 complete, transitioned to Phase 27
+current_phase_name: motor-de-recomendaciones-por-cms-patr-n-adaptador-fallback
+status: executing
+stopped_at: Completed 27-01-PLAN.md
+last_updated: "2026-07-25T03:40:00.000Z"
+last_activity: 2026-07-25
+last_activity_desc: Phase 27 Plan 01 complete (paquete @auditor/cms-adapters)
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 9
-  completed_plans: 9
-  percent: 67
+  total_plans: 12
+  completed_plans: 10
+  percent: 75
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21 after v1.5 milestone opened)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** v1.5 (Fingerprinting técnico + fixes personalizados por CMS). Phases 25-26 shipped (fingerprint + tabla de stack en el reporte). Phase 27 (motor de recomendaciones por CMS) es la última fase del milestone.
+**Current focus:** Phase 27 — motor-de-recomendaciones-por-cms-patr-n-adaptador-fallback
 
 ## Current Position
 
-Phase: 27 of 27 (Motor de recomendaciones por CMS — patrón adaptador + fallback)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-24 — Phase 26 complete, transitioned to Phase 27
+Phase: 27 (motor-de-recomendaciones-por-cms-patr-n-adaptador-fallback) — EXECUTING
+Plan: 2 of 3
+Status: Executing Phase 27 (27-01 completo, siguiente 27-02)
+Last activity: 2026-07-25 — Phase 27 Plan 01 complete (paquete @auditor/cms-adapters)
 
 Progress: [██████████] 100%
 
