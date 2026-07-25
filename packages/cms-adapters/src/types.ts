@@ -1,4 +1,16 @@
-import type { AxisResult } from "@auditor/fingerprint";
+import type { AxisResult, Confidence } from "@auditor/fingerprint";
+
+/**
+ * Confianzas que ACTIVAN una variante/adaptador específico de plataforma.
+ * Decisión lockeada de CONTEXT: tanto `alto` como `medio` activan la copy
+ * específica; solo `bajo` y `no-detectado` fuerzan el fallback genérico
+ * (Pitfall 4). Fuente única de verdad: tanto el motor
+ * (`resolveCmsRecommendation.ts`, gating del CMS) como los adaptadores que
+ * gatean variantes internas por builder (`wordpress.ts`) importan esta
+ * constante en vez de redeclararla, para que ambos umbrales no puedan
+ * divergir silenciosamente.
+ */
+export const ACTIVATING_CONFIDENCE = new Set<Confidence>(["alto", "medio"]);
 
 /**
  * Unión cerrada de las 5 labels de CMS que este paquete personaliza. Son

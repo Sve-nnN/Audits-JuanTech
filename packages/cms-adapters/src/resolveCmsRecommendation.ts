@@ -1,13 +1,7 @@
 import type { DetectedStack } from "@auditor/fingerprint";
 import { registry } from "./registry";
 import type { CmsLabel } from "./types";
-
-/**
- * Confianzas que ACTIVAN un adaptador de plataforma. Decisión lockeada de
- * CONTEXT: tanto `alto` como `medio` activan la copy específica; solo `bajo` y
- * `no-detectado` fuerzan el fallback genérico (Pitfall 4).
- */
-const ACTIVATING = new Set<string>(["alto", "medio"]);
+import { ACTIVATING_CONFIDENCE } from "./types";
 
 /**
  * Las 5 labels con adaptador. El motor valida contra esta lista ANTES de indexar
@@ -44,7 +38,7 @@ export function resolveCmsRecommendation(
 ): string | null {
   if (!stack) return generic;
   const { value, confidence } = stack.cms;
-  if (!ACTIVATING.has(confidence)) return generic;
+  if (!ACTIVATING_CONFIDENCE.has(confidence)) return generic;
   if (value == null || !CMS_LABELS.includes(value as CmsLabel)) return generic;
   const adapter = registry[value as CmsLabel];
   const instruction = adapter.lookup(checkId, value as CmsLabel, stack.builder);

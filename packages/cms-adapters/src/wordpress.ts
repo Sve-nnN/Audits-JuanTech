@@ -1,5 +1,6 @@
 import type { AxisResult } from "@auditor/fingerprint";
 import type { CmsAdapter, CmsLabel } from "./types";
+import { ACTIVATING_CONFIDENCE } from "./types";
 
 /**
  * Adaptador de WordPress. La mayoría de los checkIds resuelven a nivel
@@ -16,7 +17,6 @@ import type { CmsAdapter, CmsLabel } from "./types";
  * (Pitfall 5); en cualquier otro caso se devuelve la copy base con ramas.
  */
 const BUILDER_VARIANTS = new Set(["Elementor", "Divi", "WPBakery", "Gutenberg"]);
-const ACTIVATING_BUILDER = new Set(["alto", "medio"]);
 
 /**
  * checkIds con granularidad por builder. El resto resuelve siempre a nivel
@@ -99,7 +99,7 @@ export const wordpressAdapter: CmsAdapter = {
       const useVariant =
         value != null &&
         BUILDER_VARIANTS.has(value) &&
-        ACTIVATING_BUILDER.has(builder.confidence);
+        ACTIVATING_CONFIDENCE.has(builder.confidence);
       if (useVariant) {
         const variant = builderCatalog[checkId]?.[value as string];
         if (variant) return variant;
