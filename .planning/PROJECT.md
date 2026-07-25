@@ -74,14 +74,13 @@ Cinco milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca)
 - ✓ Código JSON-LD formateado por entidad + validación por propiedad/tipo contra schema.org (Classy Schema, subconjunto de alto valor, nunca falla dura del score) — v1.4 (SDVIZ-02/03, Phase 24)
 - ✓ Fingerprint de stack técnico: captura de headers curados + nombres de cookie sin requests adicionales, motor `detectStack` propio (registry de signatures por eje, sin dependencias externas pagas/GPL) con detección independiente por eje (CMS, builder WordPress, CDN/proxy, hosting, framework JS, analytics) tipada por confianza (alto/medio/bajo/no-detectado), nunca forzando una respuesta sin señal — v1.5 (FPRINT-01..08, Phase 25)
 - ✓ Persistencia del stack detectado (una detección por auditoría, sin re-detectar por vista) + tabla "Stack técnico detectado" al inicio del reporte, tokens-only, ambos temas — v1.5 (FPRINT-09, STACKUI-01..03, Phase 26)
+- ✓ Motor de recomendaciones por CMS: patrón adaptador (WordPress con builder, Shopify, Webflow, Wix/Squarespace) con fallback genérico garantizado, resuelto en lectura en `buildReportModel` (nunca persistido, gratis en exports) — v1.5 (CMSFIX-01..05, Phase 27)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-v1.5 en curso (Phases 25-26 shipped, Phase 27 pendiente):
-
-- [ ] CMSFIX-01..05: motor de recomendaciones por CMS (Phase 27)
+v1.5 completa (Phases 25, 26, 27 shipped). Pendiente cierre de milestone.
 
 ### Out of Scope
 
@@ -100,7 +99,7 @@ v1.5 en curso (Phases 25-26 shipped, Phase 27 pendiente):
 - **Rendimiento:** Se usa Lighthouse (unlighthouse para crawl multi-página) + Google PageSpeed Insights API (Lighthouse + CrUX) para datos de campo.
 - **Extracción HTML:** el reporte de referencia usa Cheerio para parsear HTML crudo; JS rendering (Playwright) es deseable para comparar HTML crudo vs renderizado.
 - **Ecosistema:** entorno con Vercel disponible; Next.js App Router como default de frontend.
-- **Estado actual (post-v1.4):** monorepo pnpm+Turborepo con `apps/web` (Next.js, Vercel) y `apps/worker` (Crawlee, contenedor propio); paquetes db, queue, crawler, checks, psi, scoring, email, quota, graph, report-model, render, export. `packages/crawler` gana `resolveCanonicalUrl` (https→http, redirects, timeout); `apps/worker` la usa antes de `runCrawl` y persiste `Audit.resolvedUrl`. `apps/web` gana `ArchitectureMap` (viewport zoom/pan sobre el dendrograma) en ruta propia `/audits/[id]/arquitectura`, `EntityGraphSvg` con layout radial por componente conexo, y `SchemaEntities.tsx` (panel Classy Schema) alimentado por `Page.schemaJson` + `validateEntities` de `packages/checks`. Postgres (instancia propia, `shared-postgres`, migrado desde Neon el 2026-07-24) + Redis/BullMQ (Upstash). UI con design system tokenizado, 4 fuentes de marca y tema claro/oscuro; reporte con agrupación de issues, indicador JSON-LD por página y botón Exportar. `apps/worker/Dockerfile` pinneado a `mcr.microsoft.com/playwright:v1.61.1-noble`. Pendiente: deploy a producción (env/keys/Resend/GDPR) + 2 verificaciones humanas de runtime diferidas de v1.2 (Docker render, PDF visual) + debug abierto de crash en export PDF (ver `STATE.md` → Deferred Items).
+- **Estado actual (post-v1.4):** monorepo pnpm+Turborepo con `apps/web` (Next.js, Vercel) y `apps/worker` (Crawlee, contenedor propio); paquetes db, queue, crawler, checks, psi, scoring, email, quota, graph, report-model, render, export. `packages/crawler` gana `resolveCanonicalUrl` (https→http, redirects, timeout); `apps/worker` la usa antes de `runCrawl` y persiste `Audit.resolvedUrl`. `apps/web` gana `ArchitectureMap` (viewport zoom/pan sobre el dendrograma) en ruta propia `/audits/[id]/arquitectura`, `EntityGraphSvg` con layout radial por componente conexo, y `SchemaEntities.tsx` (panel Classy Schema) alimentado por `Page.schemaJson` + `validateEntities` de `packages/checks`. Paquetes `packages/fingerprint` (detección de stack técnico, v1.5 Phase 25) y `packages/cms-adapters` (motor de recomendaciones por CMS, v1.5 Phase 27) desacoplados de `@auditor/db`/`@auditor/crawler`/`@auditor/checks` en runtime; `packages/report-model` los consume en `buildReportModel` sin persistir el resultado. Postgres (instancia propia, `shared-postgres`, migrado desde Neon el 2026-07-24) + Redis/BullMQ (Upstash). UI con design system tokenizado, 4 fuentes de marca y tema claro/oscuro; reporte con agrupación de issues, indicador JSON-LD por página y botón Exportar. `apps/worker/Dockerfile` pinneado a `mcr.microsoft.com/playwright:v1.61.1-noble`. Pendiente: deploy a producción (env/keys/Resend/GDPR) + 2 verificaciones humanas de runtime diferidas de v1.2 (Docker render, PDF visual) + debug abierto de crash en export PDF (ver `STATE.md` → Deferred Items).
 
 ## Constraints
 
@@ -142,6 +141,9 @@ v1.5 en curso (Phases 25-26 shipped, Phase 27 pendiente):
 | Confianza de detección por reglas explícitas de conteo de señales (no puntaje numérico 0-100) | Más fácil de calibrar sin datos reales previos; auditable por regla en vez de umbral arbitrario | ✓ Good — v1.5 Phase 25 |
 | `detectStack` invocado una sola vez por auditoría en el worker (post-crawl) y persistido en `Audit.stack`; report-model solo lee el escalar | Evita recomputar el fingerprint en cada vista del reporte; misma auditoría siempre muestra el mismo stack | ✓ Good — v1.5 Phase 26, `grep detectStack` en report-model = 0 |
 | CMS+builder combinado en una sola fila ("WordPress (Elementor)") en vez de dos filas separadas | Builder solo tiene sentido en contexto del CMS; una fila combinada es más legible que dos filas dependientes | ✓ Good — v1.5 Phase 26 |
+| Wix y Squarespace comparten un único adaptador técnico (`wixSquarespaceAdapter`), ramificando por `label` internamente | Módulo técnico similar entre ambas plataformas, pero copy distinta por checkId; ramificar en vez de duplicar adaptador reduce superficie sin perder especificidad | ✓ Good — v1.5 Phase 27, tests confirman Wix ≠ Squarespace por checkId |
+| TECH-04 (canonical) resuelto como un solo copy por plataforma que cubre tanto ubicación del campo como destino roto/en cadena/con noindex, en vez de checkIds separados | Los checks de canonical básico y canonicalDeep comparten el mismo checkId `TECH-04`; separar requeriría tocar el catálogo de checks fuera de scope de la fase | ✓ Good — v1.5 Phase 27, redacción validada por Juan |
+| Resolución de recomendación por CMS en `buildReportModel` (lectura), nunca persistida en DB | Mismo patrón que el fingerprint: evita recomputar/guardar un derivado que cambiaría si se recalibra el copy; llega gratis a exports sin tocar `packages/export` | ✓ Good — v1.5 Phase 27, cero commits en `packages/export` durante la fase |
 
 ## Evolution
 
@@ -161,4 +163,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-24 after Phase 26*
+*Last updated: 2026-07-25 after Phase 27 — v1.5 milestone completo, cierre pendiente*

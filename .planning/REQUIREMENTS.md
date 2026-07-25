@@ -27,11 +27,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Motor de Recomendaciones por CMS
 
-- [ ] **CMSFIX-01**: El sistema define un patrón adaptador por plataforma (WordPress, Shopify, Webflow, Wix/Squarespace combinado) con una interfaz común para resolver instrucciones de fix por check
-- [ ] **CMSFIX-02**: El sistema tiene un fallback genérico obligatorio que se usa cuando no hay CMS detectado con confianza suficiente o no existe adaptador para la plataforma detectada
-- [ ] **CMSFIX-03**: Los checks de alt text, title/meta, H1, Open Graph, canonical, JSON-LD/datos estructurados y sitemap/robots.txt muestran instrucciones de fix personalizadas según el CMS detectado (WordPress considerando el builder detectado)
-- [ ] **CMSFIX-04**: Los checks no cubiertos por CMSFIX-03 (ej. hreflang, mixed content, enlaces rotos, profundidad de clics) mantienen la recomendación genérica actual sin cambios
-- [ ] **CMSFIX-05**: La recomendación personalizada por CMS se resuelve al construir el modelo de reporte (report-model), no se persiste pre-calculada, de forma que quede disponible también en exports (PDF/Markdown/PPTX) sin trabajo adicional
+- [x] **CMSFIX-01**: El sistema define un patrón adaptador por plataforma (WordPress, Shopify, Webflow, Wix/Squarespace combinado) con una interfaz común para resolver instrucciones de fix por check
+- [x] **CMSFIX-02**: El sistema tiene un fallback genérico obligatorio que se usa cuando no hay CMS detectado con confianza suficiente o no existe adaptador para la plataforma detectada
+- [x] **CMSFIX-03**: Los checks de alt text, title/meta, H1, Open Graph, canonical, JSON-LD/datos estructurados y sitemap/robots.txt muestran instrucciones de fix personalizadas según el CMS detectado (WordPress considerando el builder detectado)
+- [x] **CMSFIX-04**: Los checks no cubiertos por CMSFIX-03 (ej. hreflang, mixed content, enlaces rotos, profundidad de clics) mantienen la recomendación genérica actual sin cambios
+- [x] **CMSFIX-05**: La recomendación personalizada por CMS se resuelve al construir el modelo de reporte (report-model), no se persiste pre-calculada, de forma que quede disponible también en exports (PDF/Markdown/PPTX) sin trabajo adicional
 
 ## v2 Requirements
 
@@ -81,11 +81,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STACKUI-01 | Phase 26 | Complete |
 | STACKUI-02 | Phase 26 | Complete |
 | STACKUI-03 | Phase 26 | Complete |
-| CMSFIX-01 | Phase 27 | Pending |
-| CMSFIX-02 | Phase 27 | Pending |
-| CMSFIX-03 | Phase 27 | Pending |
-| CMSFIX-04 | Phase 27 | Pending |
-| CMSFIX-05 | Phase 27 | Pending |
+| CMSFIX-01 | Phase 27 | Complete |
+| CMSFIX-02 | Phase 27 | Complete |
+| CMSFIX-03 | Phase 27 | Complete |
+| CMSFIX-04 | Phase 27 | Complete |
+| CMSFIX-05 | Phase 27 | Complete |
 
 **Coverage:**
 

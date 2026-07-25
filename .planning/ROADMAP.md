@@ -158,7 +158,7 @@ Aditivo sobre v1.0-v1.4 — no toca el pipeline de crawl/checks/scoring existent
 
 - [x] **Phase 25: Fingerprint de stack técnico — contrato de datos y motor de detección** - Detecta CMS+builder/CDN/hosting/framework/analytics con confianza tipada por eje, nunca winner-take-all (completed 2026-07-21)
 - [x] **Phase 26: Wiring en el worker + tabla de stack en el reporte** - Persiste el stack detectado una vez por auditoría y lo muestra en una tabla tokens-only al inicio del reporte (completed 2026-07-22, verification: passed — human checks confirmados por Juan 2026-07-24)
-- [ ] **Phase 27: Motor de recomendaciones por CMS — patrón adaptador + fallback** - Reescribe el fix de los checks de mayor volumen según el CMS/builder detectado, con fallback genérico garantizado
+- [x] **Phase 27: Motor de recomendaciones por CMS — patrón adaptador + fallback** - Reescribe el fix de los checks de mayor volumen según el CMS/builder detectado, con fallback genérico garantizado (completed 2026-07-25)
 
 ## Phase Details
 
@@ -224,9 +224,9 @@ Plans:
 
 Plans:
 
-- [ ] 27-01-PLAN.md — Scaffold @auditor/cms-adapters + tipos (CmsLabel/CmsAdapter/SUPPORTED_CHECK_IDS) + 5 catálogos de copy + test de cobertura [wave 1]
-- [ ] 27-02-PLAN.md — Motor resolveCmsRecommendation + registry + barrel + tests de resolución/fallback [wave 2]
-- [ ] 27-03-PLAN.md — Integración en report-model (rawStack + guard severidad ok) + test de integración + e2e verify-cms-fix.mts [wave 3]
+- [x] 27-01-PLAN.md — Scaffold @auditor/cms-adapters + tipos (CmsLabel/CmsAdapter/SUPPORTED_CHECK_IDS) + 5 catálogos de copy + test de cobertura [wave 1]
+- [x] 27-02-PLAN.md — Motor resolveCmsRecommendation + registry + barrel + tests de resolución/fallback [wave 2]
+- [x] 27-03-PLAN.md — Integración en report-model (rawStack + guard severidad ok) + test de integración + e2e verify-cms-fix.mts [wave 3]
 
 ### 📋 Next (Planned)
 

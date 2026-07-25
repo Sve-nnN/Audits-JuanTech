@@ -3,35 +3,35 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Fingerprinting técnico + fixes personalizados por CMS
 current_phase: 27
-current_phase_name: motor-de-recomendaciones-por-cms-patr-n-adaptador-fallback
-status: executing
-stopped_at: Completed 27-01-PLAN.md
-last_updated: "2026-07-25T03:40:00.000Z"
+status: completed
+stopped_at: Phase 26 complete (human verification confirmada por Juan), ready to plan Phase 27
+last_updated: "2026-07-25T15:49:56.193Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 27 Plan 01 complete (paquete @auditor/cms-adapters)
+last_activity_desc: Phase 27 complete
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 12
-  completed_plans: 10
-  percent: 75
+  completed_plans: 12
+  percent: 100
+current_phase_name: motor-de-recomendaciones-por-cms-patr-n-adaptador-fallback
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-21 after v1.5 milestone opened)
+See: .planning/PROJECT.md (updated 2026-07-25 after Phase 27)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 27 — motor-de-recomendaciones-por-cms-patr-n-adaptador-fallback
+**Current focus:** Milestone v1.5 completo — cierre pendiente (audit → complete → cleanup)
 
 ## Current Position
 
-Phase: 27 (motor-de-recomendaciones-por-cms-patr-n-adaptador-fallback) — EXECUTING
-Plan: 2 of 3
-Status: Executing Phase 27 (27-01 completo, siguiente 27-02)
-Last activity: 2026-07-25 — Phase 27 Plan 01 complete (paquete @auditor/cms-adapters)
+Phase: 27
+Plan: Not started
+Status: All phases complete
+Last activity: 2026-07-25 — Phase 27 complete
 
 Progress: [██████████] 100%
 
@@ -47,7 +47,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 9
+- Total plans completed: 12
 - Average duration: —
 - Total execution time: —
 
@@ -57,6 +57,7 @@ Progress: [██████████] 100%
 |-------|-------|-------|----------|
 | 25 | 4 | - | - |
 | 26 | 5 | - | - |
+| 27 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -83,16 +84,17 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Research v1.5: detección independiente por eje (CMS, CDN, hosting, framework, analytics), nunca winner-take-all; recomendación de CMS resuelta en `buildReportModel` (tiempo de lectura), nunca persistida pre-calculada.
 - Phase 25: `@auditor/fingerprint` paquete puro (única dep runtime `cheerio`), `DetectedStack` con 6 ejes tipados por `Confidence` (alto/medio/bajo/no-detectado), `analytics` como array (coexistencia GA4+GTM+Meta Pixel), motor `detectStack` con resolución independiente por eje.
 - Phase 25 code-review: firma de GTM en `analytics.ts` corregida (matcheaba `dataLayer` genérico compartido con el snippet estándar de GA4 → falso positivo sistemático); needles de Meta Pixel/GA4 endurecidos.
+- Phase 27: `@auditor/cms-adapters` paquete puro (única dep `@auditor/fingerprint`), patrón adaptador por plataforma (`CmsAdapter.lookup`) + `registry` + `resolveCmsRecommendation` con gating por confianza y fallback genérico garantizado. Wix/Squarespace comparten módulo técnico, ramificado por `label`. Resuelto en `toReportIssue` de `report-model` vía `rawStack`, nunca persistido.
+- Phase 27 code-review: 3 warnings resueltos — `coverage.test.ts` ahora valida contra el `registry` real (no un mapa paralelo); umbral de confianza `ACTIVATING_CONFIDENCE` extraído a constante compartida en `types.ts`; copy de TECH-04 extendida para cubrir sub-casos de `canonicalDeep` (destino roto/en cadena/con noindex), aprobada por Juan.
+- Phase 27: 7 rutas de menú `[REVISAR]` verificadas contra Wix Support/Webflow Help Center/Squarespace Help Center (WebSearch) y actualizadas donde la UI real difería del copy original (Wix: panel renombrado a "SEO y accesibilidad"; robots.txt ahora en "SEO & GEO → Tools and settings"; Webflow: robots.txt/sitemap viven en subsecciones "Indexing"/"Sitemap" de la pestaña SEO; Squarespace: label oficial "Hide page from search results").
 
 ### Pending Todos
 
-None yet.
+- E2e `verify-cms-fix.mts` contra un audit real (ej. aprendoclub) con acceso a Postgres — diferido a Juan, corrida manual (`pnpm --filter @auditor/worker exec tsx scripts/verify-cms-fix.mts [auditId]`). No bloqueante, lógica ya cubierta por 21+48 tests automatizados.
 
 ### Blockers/Concerns
 
-- Copy de fix por plataforma×builder para checks fuera de los ejemplos ya calibrados (title/meta, H1, OG, sitemap/robots.txt) necesita cruzarse contra documentación oficial de cada plataforma durante Phase 27.
-- Decisión de granularidad Wix vs Squarespace (un solo adapter técnico, detección separada a nivel de label) — validar si el fallback compartido produce copy suficientemente específico en la primera vuelta de Phase 27.
-- [Phase 25, no bloqueante] `resolveConfidence` topa CDNs multi-header (ej. Fastly) en confianza `medio` aunque haya 3+ headers del mismo vendor — el conteo (`Signature.test`) no se usa para subir confianza, solo para desempate de builder. Documentado como limitación conocida en `cdn.ts`; revisar si Phase 26 necesita que suba a `alto`.
+- [Phase 25, no bloqueante] `resolveConfidence` topa CDNs multi-header (ej. Fastly) en confianza `medio` aunque haya 3+ headers del mismo vendor — el conteo (`Signature.test`) no se usa para subir confianza, solo para desempate de builder. Documentado como limitación conocida en `cdn.ts`.
 
 ## Deferred Items
 
@@ -114,6 +116,6 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-07-24T00:00:00.000Z
-Stopped at: Phase 26 complete (human verification confirmada por Juan), ready to plan Phase 27
+Last session: 2026-07-25T00:00:00.000Z
+Stopped at: Phase 27 complete (verificación + nyquist + security pasados), milestone v1.5 100% completo — pendiente lifecycle (audit → complete → cleanup)
 Resume file: None
