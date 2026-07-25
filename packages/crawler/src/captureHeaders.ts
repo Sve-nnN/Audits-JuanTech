@@ -36,6 +36,11 @@ export const CURATED_HEADER_KEYS = [
   "x-hs-hub-id",
   "link",
   "x-nextjs-cache",
+  // Hostinger deja pasar estos headers de origen a través de un CDN delante
+  // (p.ej. Cloudflare no los reescribe): `platform: hostinger` y `panel: hpanel`.
+  // Sin capturarlos, la signature de hosting nunca los vería (FPRINT-05).
+  "platform",
+  "panel",
 ] as const;
 
 export type CuratedHeaderKey = (typeof CURATED_HEADER_KEYS)[number];

@@ -7,6 +7,7 @@ import {
   webflowPage,
   wixPage,
   squarespacePage,
+  webflowCurrentCdnPage,
   wordpressElementorPage,
   wordpressGutenbergPage,
   wordpressBuilderTiePage,
@@ -16,6 +17,7 @@ import {
   akamaiPage,
   hostingMaskedByCdnPage,
   hostingNginxPage,
+  hostingerBehindCloudflarePage,
   nextjsPage,
   analyticsTrioPage,
   emptyPage,
@@ -36,6 +38,11 @@ describe("detectStack — CMS (FPRINT-02)", () => {
 
   it("detects Webflow", () => {
     expect(run(webflowPage).cms).toMatchObject({ value: "Webflow", confidence: "alto" });
+  });
+
+  it("detects Webflow por el CDN actual cdn.prod.website-files.com (sin data-wf ni generator)", () => {
+    // Regresión: antes solo matcheaba `assets.website-files.com` (host viejo).
+    expect(run(webflowCurrentCdnPage).cms).toMatchObject({ value: "Webflow" });
   });
 
   it("detects Wix", () => {
@@ -112,6 +119,15 @@ describe("detectStack — Hosting (FPRINT-05)", () => {
     expect(hosting.confidence).toBe("bajo");
     expect(hosting.confidence).not.toBe("alto");
   });
+
+  it("Hostinger detrás de Cloudflare -> hosting Hostinger alto (platform + panel)", () => {
+    // Regresión (fingerprint-cms-not-detected): el CDN enmascara `server`, pero
+    // `platform: hostinger` + `panel: hpanel` pasan y son inequívocos de Hostinger.
+    expect(run(hostingerBehindCloudflarePage).hosting).toMatchObject({
+      value: "Hostinger",
+      confidence: "alto",
+    });
+  });
 });
 
 describe("detectStack — JS framework (FPRINT-06)", () => {
@@ -151,6 +167,19 @@ describe("detectStack — Independencia de ejes (no winner-take-all)", () => {
     expect(stack.jsFramework.value).toBe("Next.js");
     // builder queda no-detectado: WP sin marcadores de builder.
     expect(stack.builder.value).toBeNull();
+  });
+
+  it("sitio estático Hostinger tras Cloudflare: CDN + hosting detectan, el resto no-detectado (no se fuerza)", () => {
+    // Regresión del bug reportado: antes solo detectaba Cloudflare. Ahora hosting
+    // también resuelve Hostinger, mientras cms/builder/jsFramework/analytics
+    // quedan no-detectado CORRECTAMENTE (el sitio no tiene esos marcadores).
+    const stack = run(hostingerBehindCloudflarePage);
+    expect(stack.cdn.value).toBe("Cloudflare");
+    expect(stack.hosting.value).toBe("Hostinger");
+    expect(stack.cms.value).toBeNull();
+    expect(stack.builder.value).toBeNull();
+    expect(stack.jsFramework.value).toBeNull();
+    expect(stack.analytics).toHaveLength(0);
   });
 });
 

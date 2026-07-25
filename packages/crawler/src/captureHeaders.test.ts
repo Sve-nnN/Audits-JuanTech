@@ -14,6 +14,20 @@ describe("curateHeaders", () => {
     expect(out).not.toHaveProperty("server");
   });
 
+  it("keeps the Hostinger origin headers that pass through a fronting CDN (platform, panel)", () => {
+    // Regresión (fingerprint-cms-not-detected): ariannalupi.com sirve detrás de
+    // Cloudflare pero deja pasar `platform: hostinger` / `panel: hpanel`. Sin
+    // capturarlos, la signature hosting.hostinger nunca los ve y el eje hosting
+    // queda no-detectado pese a haber señal.
+    const out = curateHeaders({
+      server: "cloudflare",
+      "cf-ray": "a20c7d15aa6b6d1d-AMS",
+      platform: "hostinger",
+      panel: "hpanel",
+    });
+    expect(out).toMatchObject({ platform: "hostinger", panel: "hpanel" });
+  });
+
   it("iterates over the allowlist, never over caller-controlled keys (no prototype pollution)", () => {
     const out = curateHeaders({ __proto__: "polluted", constructor: "x", server: "nginx" } as never);
     expect(out).toEqual({ server: "nginx" });

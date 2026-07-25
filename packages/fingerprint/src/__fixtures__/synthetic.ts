@@ -53,6 +53,20 @@ export const squarespacePage: PageFingerprintInput = {
   cookieNames: ["squarespace-refresh"],
 };
 
+/**
+ * Regresión (fingerprint-cms-not-detected): sitio Webflow 2026 servido desde el
+ * CDN ACTUAL `cdn.prod.website-files.com`, SIN atributos `data-wf-*` ni meta
+ * generator. La signature vieja fijaba `assets.website-files.com` => 0 match =>
+ * Webflow no-detectado. Al ampliar a `website-files.com` debe volver a detectar.
+ */
+export const webflowCurrentCdnPage: PageFingerprintInput = {
+  url: "https://wf-cdn.example.com/",
+  isHome: true,
+  html: `<html><head><link rel="stylesheet" href="https://cdn.prod.website-files.com/abc123/css/site.webflow.shared.min.css" /></head><body><h1>Webflow 2026</h1></body></html>`,
+  responseHeaders: emptyHeaders,
+  cookieNames: [],
+};
+
 // --- Builder (FPRINT-03) — todos sobre base WordPress ----------------------
 
 const wpBase = `<meta name="generator" content="WordPress 6.7" /><link href="/wp-content/themes/x/style.css" rel="stylesheet" />`;
@@ -134,6 +148,27 @@ export const hostingNginxPage: PageFingerprintInput = {
   isHome: true,
   html: `<html><body></body></html>`,
   responseHeaders: { server: "nginx/1.24.0" },
+  cookieNames: [],
+};
+
+/**
+ * Regresión (fingerprint-cms-not-detected): sitio ESTÁTICO hecho a mano en
+ * Hostinger detrás de Cloudflare. Cloudflare enmascara `server`, pero el origen
+ * deja pasar `platform: hostinger` + `panel: hpanel`. CDN Cloudflare y hosting
+ * Hostinger deben detectarse a la vez; cms/jsFramework/analytics quedan
+ * no-detectado CORRECTAMENTE (no hay marcadores en el HTML — no se fuerza).
+ */
+export const hostingerBehindCloudflarePage: PageFingerprintInput = {
+  url: "https://static-hostinger.example.com/",
+  isHome: true,
+  html: `<html><head><title>Sitio estático hecho a mano</title><meta name="description" content="Sin CMS" /></head><body><h1>Portafolio</h1></body></html>`,
+  responseHeaders: {
+    server: "cloudflare",
+    "cf-ray": "a20c7d15aa6b6d1d-AMS",
+    "cf-cache-status": "DYNAMIC",
+    platform: "hostinger",
+    panel: "hpanel",
+  },
   cookieNames: [],
 };
 

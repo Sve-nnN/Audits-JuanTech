@@ -58,6 +58,20 @@ export const hostingSignatures: Signature[] = [
       (headerIncludes(ctx, "x-powered-by", "wpengine") ? 1 : 0),
   },
   {
+    id: "hosting.hostinger",
+    axis: "hosting",
+    value: "Hostinger",
+    strength: "fuerte",
+    // `platform: hostinger` y `panel: hpanel` (hPanel) son exclusivos de Hostinger
+    // y sobreviven a un CDN delante (Cloudflare no los reescribe) — a diferencia de
+    // `server`, que el CDN sí enmascara. Por eso el origen Hostinger es detectable
+    // aun cuando Nginx/Apache queden ocultos.
+    unequivocal: true,
+    test: (ctx) =>
+      (headerIncludes(ctx, "platform", "hostinger") ? 1 : 0) +
+      (headerIncludes(ctx, "panel", "hpanel") ? 1 : 0),
+  },
+  {
     id: "hosting.nginx",
     axis: "hosting",
     value: "Nginx",

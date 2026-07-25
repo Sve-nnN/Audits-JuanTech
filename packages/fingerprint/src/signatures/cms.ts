@@ -102,8 +102,12 @@ export const cmsSignatures: Signature[] = [
     axis: "cms",
     value: "Webflow",
     strength: "fuerte",
+    // `website-files.com` cubre TODOS los hosts de assets de Webflow (histórico
+    // `assets.website-files.com`/`assets-global.website-files.com` y el actual
+    // `cdn.prod.website-files.com`). Fijar solo el host viejo dejaba la detección
+    // dependiendo únicamente de los atributos `data-wf-*` en sitios Webflow 2026.
     test: (ctx) =>
-      htmlIncludes(ctx, "assets.website-files.com", ".webflow.io") +
+      htmlIncludes(ctx, "website-files.com", ".webflow.io") +
       ctx.$("[data-wf-page], [data-wf-site]").length,
   },
 
