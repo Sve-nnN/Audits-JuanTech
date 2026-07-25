@@ -220,7 +220,13 @@ Plans:
   4. Los checks fuera de esa lista (hreflang, mixed content, enlaces rotos, profundidad de clics, etc.) siguen mostrando exactamente la misma recomendación genérica que antes de este milestone, sin regresión.
   5. La recomendación personalizada se resuelve al construir el modelo de reporte (no se persiste pre-calculada en la base de datos), por lo que aparece también en las exportaciones PDF/Markdown/PPTX sin cambios adicionales en el módulo de export.
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+
+- [ ] 27-01-PLAN.md — Scaffold @auditor/cms-adapters + tipos (CmsLabel/CmsAdapter/SUPPORTED_CHECK_IDS) + 5 catálogos de copy + test de cobertura [wave 1]
+- [ ] 27-02-PLAN.md — Motor resolveCmsRecommendation + registry + barrel + tests de resolución/fallback [wave 2]
+- [ ] 27-03-PLAN.md — Integración en report-model (rawStack + guard severidad ok) + test de integración + e2e verify-cms-fix.mts [wave 3]
 
 ### 📋 Next (Planned)
 
@@ -260,7 +266,7 @@ Próximo trabajo previsto tras v1.5:
 | 24. Código + validación JSON-LD estilo Classy Schema | v1.4 | 3/3 | Complete ✅ | 2026-07-10 |
 | 25. Fingerprint de stack técnico — contrato de datos y motor de detección | v1.5 | 4/4 | Complete ✅ | 2026-07-21 |
 | 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 5/5 | Complete ✅ | 2026-07-22 |
-| 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 0/TBD | Not started | - |
+| 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 0/3 | Planned | - |
 
 ---
 *Roadmap created: 2026-07-05*
