@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Fingerprinting técnico + fixes personalizados por CMS
-current_phase: 27
-status: completed
-stopped_at: Phase 26 complete (human verification confirmada por Juan), ready to plan Phase 27
-last_updated: "2026-07-25T15:49:56.193Z"
+status: Awaiting next milestone
+stopped_at: Phase 27 complete (verificación + nyquist + security pasados), milestone v1.5 100% completo — pendiente lifecycle (audit → complete → cleanup)
+last_updated: "2026-07-25T15:55:53.968Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 27 complete
+last_activity_desc: Milestone v1.5 completed and archived
 progress:
   total_phases: 3
   completed_phases: 3
   total_plans: 12
   completed_plans: 12
   percent: 100
+current_phase: 27
 current_phase_name: motor-de-recomendaciones-por-cms-patr-n-adaptador-fallback
 ---
 
@@ -28,12 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-25 after Phase 27)
 
 ## Current Position
 
-Phase: 27
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-07-25 — Phase 27 complete
-
-Progress: [██████████] 100%
+Phase: Milestone v1.5 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-25 — Milestone v1.5 completed and archived
 
 ## Milestone v1.5 — Phases
 
@@ -119,3 +117,7 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 Last session: 2026-07-25T00:00:00.000Z
 Stopped at: Phase 27 complete (verificación + nyquist + security pasados), milestone v1.5 100% completo — pendiente lifecycle (audit → complete → cleanup)
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

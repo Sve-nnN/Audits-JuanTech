@@ -1,5 +1,24 @@
 # Project Milestones: Auditor Web (SEO/Técnico) — Lead Magnet para juan-tech.com
 
+## v1.5 Fingerprinting técnico + fixes personalizados por CMS (Shipped: 2026-07-25)
+
+**Phases completed:** 3 phases, 12 plans, 19 tasks
+
+**Key accomplishments:**
+
+- Paquete puro @auditor/fingerprint (cheerio como única dep runtime) con el contrato de datos completo: DetectedStack (analytics como array, no-detectado de primera clase), Signature.test devolviendo conteo de marcadores, y PageFingerprintInput desacoplado de Prisma.
+- Columnas aditivas Page.responseHeaders (Json) + Page.cookieNames (String[]) con helpers allowlist-only (curateHeaders) y names-only (parseCookieNames) cableados al upsert del CheerioCrawler, sin requests HTTP adicionales.
+- Registry declarativo de detección de stack: seis módulos de signatures (cms/builder/cdn/hosting/jsFramework/analytics) con test() basado en conteo y Gutenberg por marcador positivo, agregados en un Record<Axis, Signature[]> con test estructural en verde.
+- Motor puro `detectStack` que resuelve seis ejes de stack de forma independiente (WordPress + Cloudflare + Next.js a la vez) con confianza por reglas explícitas, `no-detectado` como estado de primera clase, y firmas de builder de WordPress calibradas contra HTML real.
+- 1. [Rule 1 - Bug] Detección de P1001 por nombre/mensaje además del `code`
+- Task 1 — Variante warningSubtle (commit `113e902`)
+- 1. Título de sección replicado local en vez de cross-importar report.module.css
+- 1. [Rule 3 - Blocking] `build` no existe como script en el mirror
+- Commit único al final (instrucción del orquestador).
+- 1. [Rule 3 - Blocking] Dependencias workspace agregadas a apps/worker
+
+---
+
 ## v1.4 Visualización avanzada + resolución de URL (Shipped: 2026-07-10)
 
 **Phases completed:** 4 phases, 10 plans, 9 tasks

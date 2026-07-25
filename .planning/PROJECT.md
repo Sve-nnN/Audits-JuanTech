@@ -8,23 +8,19 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
-## Current Milestone: v1.5 Fingerprinting técnico + fixes personalizados por CMS
+## Current Milestone: ninguno — planificando próximo (post v1.5)
 
-**Goal:** Detectar el stack técnico del sitio auditado (CMS, builder de página si es WordPress, CDN/proxy, hosting/servidor, framework JS, analytics/tag manager) vía fingerprint propio (headers HTTP, HTML, paths conocidos — sin servicios pagos de terceros), mostrarlo como tabla al inicio del reporte apenas termina el escaneo, y usar ese stack detectado para generar recomendaciones de fix personalizadas por issue (ej: "falta alt text" explica cómo resolverlo en WordPress vs Shopify vs Webflow vs Wix/Squarespace, con fallback genérico útil para el resto).
+v1.5 shipped 2026-07-25 (ver abajo). Próximo milestone aún no definido — arrancar con `/gsd-new-milestone`.
 
-**Target features:**
-- Fingerprint de stack: CMS (+ builder si WordPress: Elementor, WPBakery, Divi, etc.), CDN/proxy, hosting/servidor, framework JS, analytics/tag manager.
-- Tabla de stack detectado al inicio del reporte, tras finalizar el crawl.
-- Motor de recomendaciones por CMS: módulo/clase por plataforma (WordPress, Shopify, Webflow, Wix/Squarespace) con patrón adaptador para sumar plataformas a futuro; fallback genérico cuando no hay adaptador específico.
-- Cobertura de fixes personalizados en on-page, SEO técnico y datos estructurados (la mayor cantidad de checks posible en esta primera vuelta).
+## Prior State: v1.5 shipped 2026-07-25
 
-## Prior State: v1.4 shipped 2026-07-10
+Seis milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca), v1.2 (renderizado + exportación), v1.3 (checks técnicos profundos + visualización de arquitectura), v1.4 (visualizaciones estilo Octopus.do/Classy Schema + resolución canónica de URL) y v1.5 (fingerprint de stack técnico + recomendaciones de fix personalizadas por CMS). El producto ahora detecta el stack técnico del sitio auditado (CMS+builder, CDN/proxy, hosting, framework JS, analytics) con confianza tipada por eje sin requests adicionales, lo muestra en una tabla al inicio del reporte, y usa ese stack para personalizar la recomendación de fix de los 10 checks de mayor volumen (WordPress con resolución por builder, Shopify, Webflow, Wix/Squarespace), con fallback genérico garantizado.
 
-Cinco milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca), v1.2 (renderizado + exportación), v1.3 (checks técnicos profundos + visualización de arquitectura) y v1.4 (visualizaciones estilo Octopus.do/Classy Schema + resolución canónica de URL). El producto resuelve la URL canónica real del dominio (https/http + redirects) antes de crawlear, muestra un dendrograma de arquitectura navegable con zoom/pan, un grafo de entidades JSON-LD con layout radial por componente, y el código JSON-LD formateado por entidad con validación por propiedad/tipo contra schema.org.
-
-**Cierre v1.4:** aditivo, sin tocar el pipeline de v1.0-v1.3. `resolveCanonicalUrl` (packages/crawler) reemplaza la mitigación puntual `resolveHomeKey` de v1.3; `Audit.resolvedUrl` persistido. `ReportArchitecture.tree` (árbol anidado real desde `graph.edges`) reemplaza `nodesByDepth`; `ArchitectureTreeSvg` es ahora un dendrograma con conectores + `ArchitectureMap` (zoom/pan) en ruta propia. `EntityGraphSvg` usa layout radial por componente conexo. `Page.schemaJson` persistido (fuente Playwright-free) + `validateEntities` (packages/checks) + `SchemaEntities.tsx` (panel Classy Schema) + check de scoring SD-07 (nunca crítico). 7/7 requisitos satisfechos, audit inicialmente `gaps_found` por un gap de proceso (2 checkpoints humanos sin cerrar por escrito pese a estar ya validados por Juan en sesión previa), resuelto el 2026-07-10 con confirmación retroactiva de Juan — status final `passed`. Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.4-ROADMAP.md`.
+**Cierre v1.5:** aditivo, sin tocar el pipeline de v1.0-v1.4. `@auditor/fingerprint` (motor `detectStack`, 6 ejes independientes tipados por `Confidence`) y `@auditor/cms-adapters` (patrón adaptador + `resolveCmsRecommendation` con fallback) quedan desacoplados de `@auditor/db`/`@auditor/crawler`/`@auditor/checks` en runtime. `Audit.stack` (Prisma `Json?`) persiste una detección por auditoría; `buildReportModel` resuelve la recomendación personalizada en lectura (nunca persistida), llegando gratis a UI y a los 3 exports. 18/18 requisitos satisfechos, integración 10/10 wired, audit `passed`. Primer `SECURITY.md` del proyecto (7/7 threats). Detalle en `.planning/MILESTONES.md` y `.planning/milestones/v1.5-ROADMAP.md`.
 
 **Trabajo previsto posterior:**
+- **E2e verify-cms-fix.mts** contra audit real (Postgres) — corrida manual de Juan, no bloqueante.
+- **Nyquist retroactivo** para Phase 25/26 (`/gsd-validate-phase 25` y `26`) — coverage TODO opcional, no bloqueante.
 - **Deploy a producción:** web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera. Incluye las 2 verificaciones humanas diferidas de v1.2 (runtime Docker del render + render visual del PDF).
 - **v2 monetización:** planes de pago, auditorías/URLs ilimitadas, Stripe.
 - **v2 enriquecimiento:** RENDER-04/05, EXPORT-06 (DOCX/CSV), REPORT-05 (`Page.renderVerdict` persistido), Domain Rating como contexto.
