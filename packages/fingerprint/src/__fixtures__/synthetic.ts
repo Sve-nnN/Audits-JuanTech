@@ -142,6 +142,25 @@ export const hostingMaskedByCdnPage: PageFingerprintInput = {
   cookieNames: [],
 };
 
+/**
+ * Regresión (fingerprint-hosting-headers-dropped): sitio en Vercel tras
+ * Cloudflare. `x-vercel-id`/`x-vercel-cache` pasan a través del CDN y son
+ * inequívocos de Vercel. Antes el crawler los descartaba (allowlist); ahora que
+ * se capturan, la signature hosting.vercel debe resolver Vercel[alto].
+ */
+export const hostingVercelPage: PageFingerprintInput = {
+  url: "https://vercel.example.com/",
+  isHome: true,
+  html: `<html><body></body></html>`,
+  responseHeaders: {
+    server: "cloudflare",
+    "cf-ray": "8abc123-EWR",
+    "x-vercel-id": "fra1::abc123",
+    "x-vercel-cache": "HIT",
+  },
+  cookieNames: [],
+};
+
 /** Origen nginx genérico: señal débil -> hosting `bajo`, nunca `alto`. */
 export const hostingNginxPage: PageFingerprintInput = {
   url: "https://nginx.example.com/",

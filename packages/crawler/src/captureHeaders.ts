@@ -24,7 +24,10 @@ export const CURATED_HEADER_KEYS = [
   "cf-cache-status",
   "x-served-by",
   "x-cache",
+  "x-cache-hits",
   "x-akamai-transformed",
+  "x-akamai-request-id",
+  "x-check-cacheable",
   "x-amz-cf-id",
   "x-amz-cf-pop",
   "x-drupal-cache",
@@ -36,9 +39,17 @@ export const CURATED_HEADER_KEYS = [
   "x-hs-hub-id",
   "link",
   "x-nextjs-cache",
+  // Headers de hosting que las signatures ya referencian y que pasan a través de
+  // un CDN delante (Vercel/Netlify/WP Engine no reescriben estos). Sin capturarlos
+  // la signature de hosting es código muerto — invariante: el allowlist debe ser
+  // superset de TODO header que cualquier signature lee (FPRINT-05).
+  "x-vercel-id",
+  "x-vercel-cache",
+  "x-nf-request-id",
+  "x-wpe-loopback-upstream-addr",
+  "x-wpengine-lb",
   // Hostinger deja pasar estos headers de origen a través de un CDN delante
   // (p.ej. Cloudflare no los reescribe): `platform: hostinger` y `panel: hpanel`.
-  // Sin capturarlos, la signature de hosting nunca los vería (FPRINT-05).
   "platform",
   "panel",
 ] as const;

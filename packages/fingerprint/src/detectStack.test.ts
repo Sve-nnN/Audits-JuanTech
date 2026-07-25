@@ -17,6 +17,7 @@ import {
   akamaiPage,
   hostingMaskedByCdnPage,
   hostingNginxPage,
+  hostingVercelPage,
   hostingerBehindCloudflarePage,
   nextjsPage,
   analyticsTrioPage,
@@ -118,6 +119,15 @@ describe("detectStack — Hosting (FPRINT-05)", () => {
     expect(hosting.value).toBe("Nginx");
     expect(hosting.confidence).toBe("bajo");
     expect(hosting.confidence).not.toBe("alto");
+  });
+
+  it("Vercel detrás de Cloudflare -> hosting Vercel alto (x-vercel-id + x-vercel-cache)", () => {
+    // Regresión (fingerprint-hosting-headers-dropped): antes el crawler descartaba
+    // estos headers y hosting.vercel era código muerto.
+    expect(run(hostingVercelPage).hosting).toMatchObject({
+      value: "Vercel",
+      confidence: "alto",
+    });
   });
 
   it("Hostinger detrás de Cloudflare -> hosting Hostinger alto (platform + panel)", () => {

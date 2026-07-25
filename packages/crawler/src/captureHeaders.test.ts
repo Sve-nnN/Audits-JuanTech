@@ -28,6 +28,28 @@ describe("curateHeaders", () => {
     expect(out).toMatchObject({ platform: "hostinger", panel: "hpanel" });
   });
 
+  it("keeps the Vercel/Netlify/WP Engine origin headers that fingerprint signatures read", () => {
+    // Regresión (fingerprint-hosting-headers-dropped): estas signatures de hosting
+    // referencian headers que el allowlist NO capturaba => código muerto. Invariante:
+    // el allowlist es superset de todo header que una signature lee. aprendoclub.com
+    // (Vercel tras Cloudflare) quedaba hosting=no-detectado por esto.
+    const out = curateHeaders({
+      server: "cloudflare",
+      "x-vercel-id": "fra1::abc",
+      "x-vercel-cache": "HIT",
+      "x-nf-request-id": "nf-123",
+      "x-wpe-loopback-upstream-addr": "10.0.0.1",
+      "x-wpengine-lb": "lb-1",
+    });
+    expect(out).toMatchObject({
+      "x-vercel-id": "fra1::abc",
+      "x-vercel-cache": "HIT",
+      "x-nf-request-id": "nf-123",
+      "x-wpe-loopback-upstream-addr": "10.0.0.1",
+      "x-wpengine-lb": "lb-1",
+    });
+  });
+
   it("iterates over the allowlist, never over caller-controlled keys (no prototype pollution)", () => {
     const out = curateHeaders({ __proto__: "polluted", constructor: "x", server: "nginx" } as never);
     expect(out).toEqual({ server: "nginx" });
