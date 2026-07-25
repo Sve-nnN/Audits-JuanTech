@@ -25,8 +25,10 @@ const catalog: Record<string, string> = {
   // [REVISAR] Nombre exacto del toggle de sitemap en el panel actual de Webflow (RESEARCH A4) — verificación humana pendiente.
   "TECH-02":
     "En Webflow, ve a Ajustes del sitio → pestaña «SEO» y activa «Auto-generate sitemap» (o pega un sitemap personalizado). Publica el sitio; el sitemap queda en /sitemap.xml.",
+  // TECH-04: cubre tanto la ubicación del campo (canonical.ts) como los
+  // sub-casos de destino roto/en cadena/con noindex (canonicalDeep.ts).
   "TECH-04":
-    'En Webflow no hay un campo nativo de canonical en todos los planes: agrega la etiqueta <link rel="canonical" href="..."> en configuración de la página → «Custom Code» (head) o en un elemento «Embed».',
+    'En Webflow no hay un campo nativo de canonical en todos los planes: agrega la etiqueta <link rel="canonical" href="..."> en configuración de la página → «Custom Code» (head) o en un elemento «Embed». Si la etiqueta ya existe pero el problema es su destino (con noindex, en redirección o en cadena hacia otra canonical), corrige la URL dentro de esa misma etiqueta.',
   "SD-01":
     "En Webflow no hay soporte nativo de schema: genera el bloque JSON-LD y pégalo en configuración de la página → «Custom Code» (head) o en un elemento «Embed» dentro del contenido.",
   "SD-02":

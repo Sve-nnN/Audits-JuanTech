@@ -45,8 +45,10 @@ const catalog: Record<string, string> = {
     "En WordPress, edita robots.txt desde tu plugin SEO: Yoast SEO → Herramientas → «Editor de archivos»; Rank Math → Ajustes generales → «Editar robots.txt» (requiere modo avanzado). Sin plugin, crea un archivo robots.txt en la raíz del dominio o instala Yoast SEO o Rank Math.",
   "TECH-02":
     "En WordPress, activa el sitemap XML de tu plugin SEO: en Yoast SEO → Ajustes → «Funciones del sitio» → «Mapas XML del sitio» (queda en /sitemap_index.xml); en Rank Math → «Sitemap Settings». Declara la URL del sitemap en robots.txt y envíala en Google Search Console. Sin plugin, instala Yoast SEO o Rank Math.",
+  // TECH-04: cubre tanto la ubicación del campo (canonical.ts) como los
+  // sub-casos de destino roto/en cadena/con noindex (canonicalDeep.ts).
   "TECH-04":
-    "En WordPress, con Yoast SEO o Rank Math el campo canonical está en la pestaña «Avanzado» del panel SEO de cada entrada o página. Sin plugin SEO, requiere editar el tema/código: instala Yoast SEO o Rank Math para gestionarlo sin tocar código.",
+    "En WordPress, con Yoast SEO o Rank Math el campo canonical está en la pestaña «Avanzado» del panel SEO de cada entrada o página. Sin plugin SEO, requiere editar el tema/código: instala Yoast SEO o Rank Math para gestionarlo sin tocar código. Si el problema no es la ausencia del campo sino su valor actual, revisa que apunte a una URL indexable, sin redirecciones, sin conflicto con noindex y sin formar una cadena hacia otra canonical.",
   // SD-01: copy con ramas (builder no-detectado). Variantes por builder abajo.
   "SD-01":
     "En WordPress, Yoast SEO y Rank Math generan JSON-LD básico automáticamente (Organization, Article, breadcrumbs). Para tipos adicionales (FAQPage, Product, Review) usa el schema del plugin SEO, un plugin de schema dedicado, o bloques del builder. Si usas Elementor Pro, incluye widgets de schema (versión Pro). Sin plugin SEO, instala Yoast SEO o Rank Math.",

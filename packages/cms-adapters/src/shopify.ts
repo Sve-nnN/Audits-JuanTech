@@ -24,8 +24,10 @@ const catalog: Record<string, string> = {
     "En Shopify, robots.txt se genera automáticamente. Para personalizarlo, ve a Tienda online → Temas → «Editar código», crea el archivo robots.txt.liquid en la carpeta Templates y ajusta las reglas con los objetos Liquid provistos (edición avanzada, no cubierta por el soporte de Shopify).",
   "TECH-02":
     "En Shopify, el sitemap se genera automáticamente en /sitemap.xml y se actualiza al agregar o editar productos, colecciones, páginas o entradas; no requiere configuración. Envíalo en Google Search Console.",
+  // TECH-04: cubre tanto la ubicación del campo (canonical.ts) como los
+  // sub-casos de destino roto/en cadena/con noindex (canonicalDeep.ts).
   "TECH-04":
-    "En Shopify las canonical se generan automáticamente en la mayoría de los casos; los problemas suelen venir de paginación de colecciones o URLs duplicadas. Corregirlo puede requerir ajustar theme.liquid («Editar código») o una app de SEO.",
+    "En Shopify las canonical se generan automáticamente en la mayoría de los casos; los problemas suelen venir de paginación de colecciones o URLs duplicadas. Corregirlo puede requerir ajustar theme.liquid («Editar código») o una app de SEO. Si la canonical actual apunta a un destino con noindex, en redirección o que forma una cadena hacia otra canonical, el ajuste es sobre ese destino, no sobre el campo.",
   "SD-01":
     "En Shopify, los temas modernos (por ejemplo Dawn) ya incluyen schema de Product, Organization y BreadcrumbList. Para tipos adicionales o personalización, instala una app de datos estructurados de la App Store o edita el tema.",
   "SD-02":

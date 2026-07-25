@@ -28,8 +28,10 @@ const wixCatalog: Record<string, string> = {
     "En Wix, ve al panel de tu sitio → Marketing y SEO → «Herramientas SEO» → editor de robots.txt, y edita el archivo. Los cambios aplican al dominio conectado.",
   "TECH-02":
     "En Wix, el sitemap se genera automáticamente en tudominio.com/sitemap.xml una vez publicado el sitio con un dominio conectado. Envíalo en Google Search Console desde las herramientas de SEO de Wix.",
+  // TECH-04: cubre tanto la ubicación del campo (canonical.ts) como los
+  // sub-casos de destino roto/en cadena/con noindex (canonicalDeep.ts).
   "TECH-04":
-    "En el editor de Wix, ve a Páginas y menú → más acciones → «SEO básico» → pestaña «Avanzado» → «Etiquetas adicionales», y edita la URL canónica de la página.",
+    "En el editor de Wix, ve a Páginas y menú → más acciones → «SEO básico» → pestaña «Avanzado» → «Etiquetas adicionales», y edita la URL canónica de la página. Si el problema es el destino de esa URL (con noindex, en redirección o en cadena hacia otra canonical), corrígelo ahí mismo, no solo la ubicación del campo.",
   "SD-01":
     "En Wix se genera algo de schema básico por tipo de página, pero es incompleto y no editable; para schema adicional o personalizado usa el editor de código personalizado de Wix en el <head> del sitio.",
   "SD-02":
@@ -53,8 +55,10 @@ const squarespaceCatalog: Record<string, string> = {
     "En Squarespace, el archivo robots.txt lo gestiona la plataforma y no es editable por el usuario. Si necesitas evitar que una página se indexe, usa la opción «Hide this page from search engine results» en la pestaña SEO de esa página.",
   "TECH-02":
     "En Squarespace, el sitemap se genera automáticamente en /sitemap.xml y no es editable. Envíalo en Google Search Console.",
+  // TECH-04: cubre tanto la ubicación del campo (canonical.ts) como los
+  // sub-casos de destino roto/en cadena/con noindex (canonicalDeep.ts).
   "TECH-04":
-    "En Squarespace el control de canonical es limitado y depende de la plantilla; normalmente se inyecta la etiqueta canonical vía código en Ajustes de la página → «Advanced» → «Code Injection».",
+    "En Squarespace el control de canonical es limitado y depende de la plantilla; normalmente se inyecta la etiqueta canonical vía código en Ajustes de la página → «Advanced» → «Code Injection». Si el problema es el destino de esa URL (con noindex, en redirección o en cadena hacia otra canonical), corrígelo en ese mismo código, no solo la ubicación del campo.",
   "SD-01":
     "En Squarespace hay schema básico limitado; para schema personalizado, agrega el JSON-LD vía inyección de código de la página («Code Injection») o bloques de código en entradas de blog.",
   "SD-02":
