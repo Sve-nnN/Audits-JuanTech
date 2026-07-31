@@ -1,98 +1,199 @@
-# Stack Research — v1.5 (fingerprinting de stack técnico + fixes personalizados por CMS)
+# Stack Research — v1.6 (Meta Tags / Open Graph / Social + performance por página)
 
-**Domain:** Fingerprinting de tecnología web (CMS/builder/CDN/hosting/framework JS/analytics) sin servicios pagos de terceros, más motor de recomendaciones adaptador-por-CMS, agregado sobre el crawler Crawlee/Cheerio y el pipeline de checks ya existentes.
-**Researched:** 2026-07-21
-**Confidence:** MEDIUM — la recomendación central (construir un motor de firmas propio en vez de adoptar una librería empaquetada) es HIGH confidence; las afirmaciones puntuales sobre firmas de tecnologías concretas (headers/paths/cookies) son de fuentes web cruzadas, MEDIUM confidence.
+**Domain:** Auditoría profunda de meta tags sociales (Open Graph, Twitter Card, favicon, charset/viewport), validación de la imagen social remota, panel visual de preview social, y métricas de performance por página (response time, HTML size) no derivadas de PSI/Lighthouse. Todo agregado sobre el pipeline Crawlee/Cheerio + checks + report-model ya existente.
+**Researched:** 2026-07-31
+**Confidence:** HIGH — la recomendación central (casi cero dependencias nuevas: una sola librería, `image-size`, más código propio sobre lo ya instalado) está verificada contra el código del repo y contra los tipos de las dependencias ya instaladas. Las especificaciones de plataforma (Facebook, Google, X) vienen de docs oficiales salvo las de X, que están MEDIUM (docs oficiales devolvieron 402; se usaron fuentes secundarias cruzadas).
 
-> Nota: reemplaza el `STACK.md` de v1.3 (árbol de arquitectura/Lighthouse diagnostics/template grouping), que ya fue implementado y archivado. Este documento es la investigación de stack para el milestone activo v1.5.
+> Nota: reemplaza el `STACK.md` de v1.5 (fingerprinting + fixes por CMS), ya implementado y archivado. Este documento es la investigación de stack para el milestone activo v1.6.
+
+## Resumen de la decisión
+
+**Una sola dependencia nueva de producción: `image-size@2.0.2`.** Todo lo demás se construye sobre lo que el monorepo ya tiene instalado y validado:
+
+- **Parseo de OG/Twitter/favicon/charset/viewport** → Cheerio, ya presente en `packages/checks` y ya parseado una vez por página en el pipeline de checks. No hace falta nada nuevo.
+- **Response time + HTML size** → ya están disponibles gratis en el `requestHandler` de `packages/crawler/src/crawl.ts` (`response.timings.phases` de got + longitud en bytes del body). Cero requests extra, cero dependencias.
+- **Preview social** → componentes React con los design tokens existentes. Es exactamente lo que hacen las herramientas del mercado (mockup HTML/CSS, no captura real). Cero Chromium, no rompe el boundary de Vercel.
+- **Snippets de fix HTML** → strings/plantillas en `packages/checks` (o en `packages/cms-adapters` si se quiere variante por CMS). Cero dependencias.
+
+Lo único que no se puede resolver con lo instalado es leer las dimensiones reales de la `og:image` remota, y eso necesita `image-size`.
 
 ## Recommended Stack
 
 ### Core Technologies
 
-No se necesita ningún framework nuevo. La decisión correcta para este milestone es **no** adoptar una librería de detección de terceros completa, sino agregar un módulo propio de matching de firmas dentro del pipeline ya existente — porque toda opción empaquetada disponible hoy está muerta, licenciada GPL, o es una API paga, lo cual choca con el requisito explícito del milestone ("fingerprint propio, sin servicios pagos de terceros").
-
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Paquete nuevo `packages/fingerprint` (workspace propio, TypeScript plano, sin runtime deps nuevas de peso) | n/a | Motor de matching de firmas: evalúa un set curado de firmas contra `{ headers, html, cookies, scriptSrc, metaGenerator }` ya producido por el crawl, por página o por sitio | Cada opción de "instalar y listo" falla al menos una restricción dura (ver Alternatives / What NOT to Use). Un matcher de ~150-300 líneas sobre la pasada de Cheerio que `packages/checks` ya hace es la única opción simultáneamente gratuita, limpia en licencia, y acotada a las ~40-60 tecnologías que este proyecto realmente necesita (no las ~7.500 de Wappalyzer). Esto calca el patrón que el propio proyecto ya estableció: `packages/checks/src/registry.ts` ya corre un arreglo de objetos de check tipados (`PageCheck`/`SiteCheck`/`NetworkCheck`) sobre una única pasada de `cheerio.load()` por página — un módulo de fingerprint es estructuralmente el mismo tipo de registry, sólo que produce un `TechStack` en vez de `IssueDraft`s. |
-| `set-cookie-parser` | 3.1.2 | Parsear los headers `Set-Cookie` crudos de la respuesta en objetos estructurados `{ name, value, domain, path }` | El fingerprinting de CDN/CMS/analytics depende mucho de nombres de cookies (`__cf_bm`/`__cfduid` → Cloudflare, `_shopify_s`/`_secure_session_id` → Shopify, `wp-settings-*`/`wordpress_logged_in_*` → WordPress, `_wixCIDX`/`XSRF-TOKEN` en Wix, `_ga`/`_gid` → GA). Crawlee/got-scraping expone el `Set-Cookie` crudo como array de strings en la respuesta; parsearlo bien (múltiples cookies, atributos) es un problema ya resuelto que no vale la pena reinventar. Mantenida activamente, cero dependencias, encaja con el patrón ya usado en el proyecto de "librería de soporte chica y enfocada" (`fast-xml-parser`, `robots-parser`). Verificado directo contra el registro de npm (versión actual, sin deprecar). |
+| **`image-size`** | 2.0.2 | Leer ancho/alto/tipo de la `og:image` / `twitter:image` remota a partir de los primeros bytes del archivo | Es la única pieza realmente nueva. Cero dependencias, MIT, sync, y su API v2 acepta directamente un `Buffer`/`Uint8Array` — que es exactamente lo que necesitamos: nosotros controlamos el `fetch` con `Range: bytes=0-65535`, le pasamos el buffer parcial y obtenemos dimensiones sin bajar la imagen completa. Lee sólo cabeceras, nunca decodifica el píxel. Cubre todos los formatos que aparecen en la vida real como `og:image`: JPEG, PNG, WebP, GIF, AVIF/HEIC, SVG (usa `viewBox`), ICO/CUR, BMP, TIFF, PSD, JPEG-XL. HIGH confidence: docs oficiales del repo vía Context7, verificadas contra la versión publicada hoy en el registry. |
+| **Cheerio (ya instalado)** | ^1.2.0 | Parsear `<meta property="og:*">`, `<meta name="twitter:*">`, `<link rel="icon">`/`apple-touch-icon`/`manifest`, `<meta charset>`, `<meta name="viewport">` | Ya está en `packages/checks` y el pipeline de checks ya recibe un `$` parseado por página (ver la firma `run({ page, $ })` en `packages/checks/src/checks/onpage/openGraph.ts`). Todo lo que v1.6 necesita extraer del `<head>` son selectores CSS triviales sobre ese mismo `$`. Agregar un parser distinto duplicaría el parseo del HTML sin ganar nada — y el proyecto ya tiene la regla explícita de "un solo parseo de HTML" (ARCH-03, comentada en `crawl.ts:120`). |
+| **`got` timings vía Crawlee (ya instalado, transitiva)** | got 14.x bajo `@crawlee/http@3.17.0` | Response time real por página (TTFB y total) | **Verificado en el repo:** `CheerioCrawlingContext.response` es `PlainResponse` de got-scraping (`@crawlee/http/internals/http-crawler.d.ts:149`), y `PlainResponse` expone `timings: Timings` con `phases.firstByte` (TTFB), `phases.download`, `phases.total`, `phases.dns`, `phases.tcp`, `phases.tls` (`got/dist/source/core/response.d.ts:55-68`). O sea: la métrica de "response time por página" ya está en la mano dentro del `requestHandler` actual, sin request extra y sin instalar nada. Esta es la diferencia clave contra PSI/CWV, que sólo cubren una muestra y sólo con datos de laboratorio/campo de Google. |
+| **`Buffer.byteLength` (Node stdlib)** | — | HTML size por página | El body ya se materializa en `crawl.ts:114` (`const html = ... body?.toString("utf-8")`). `Buffer.byteLength(html, "utf8")` da el tamaño descomprimido; el header `content-length` de la respuesta da el tamaño transferido (comprimido) cuando el servidor lo manda. Reportar ambos es más honesto que reportar uno solo: "1.2 MB de HTML servido en 180 KB comprimidos" es un hallazgo distinto a "1.2 MB sin comprimir". Cero dependencias. |
+| **React + design tokens existentes** | — | Panel de preview social (Google / X / Facebook / LinkedIn) | Verificado contra el mercado: las herramientas de referencia (metatags.io, opengraph.io, los previewers de Toolsana y similares) renderizan **mockups estáticos de HTML/CSS parametrizados con los meta tags leídos**, no capturas reales de la plataforma. Nadie hace screenshot real: sería lento, caro, y las plataformas no exponen un endpoint de render. Esto encaja perfecto con la restricción dura del proyecto ("Chromium fuera del bundle de Vercel"): el preview es JSX + CSS con los tokens del design system, se renderiza en el server component del reporte y no toca un navegador headless nunca. |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `cheerio` (ya es dependencia) | 1.2.0 (pinneada, igual que en `packages/checks`/`packages/crawler`) | Extraer `<meta name="generator">`, atributos `src` de `<script>`, `href` de `<link>`, cuerpos de `<script>` inline (para matchear strings de `dataLayer`/`gtag`/`fbq`), y marcadores del DOM (ej. `data-wf-page`, `.elementor`, `.et_pb_*`, `.vc_row`) | Reusar el mismo `$` ya cargado una vez por página dentro de `runAllChecks` (por `ARCH-03` — "no re-parseo de HTML en ningún otro lado"). El fingerprint debe engancharse en ese loop existente como una pasada más sobre el mismo `$`, no abrir un segundo parseo. |
-| Matcher de firmas basado en regex (escrito a mano, sin librería) | n/a | Matchear `headers`, strings de `html`/`meta`/`scriptSrc`, y nombres de cookies contra objetos de firma por tecnología (`{ id, category, headers?, html?, scriptSrc?, cookies?, metaGenerator? }`) | Este es el "motor" real — deliberadamente no el motor de `wappalyzer-core` (ver abajo). Una firma es simplemente `{ pattern: RegExp, confidence: number }` por campo; el matching es `Object.entries(signatures).filter(sig => testSignature(sig, evidence))`. Suficientemente simple como para que importar un motor añada más riesgo (licencia, dependencias sin mantener) del que ahorra trabajo. |
-| Dataset de firmas propio y curado (JSON/TS de primera mano, ~40-60 entradas) | n/a | Las reglas de fingerprint reales para: CMS (WordPress, Shopify, Webflow, Wix, Squarespace, Ghost, Joomla, Drupal), builders de WordPress (Elementor, WPBakery/`js_composer`, Divi/`et_pb_*`, Oxygen), CDN/proxy (Cloudflare, Fastly, Akamai, Vercel, Netlify, CloudFront), frameworks JS (React, Next.js, Vue, Nuxt, Angular — vía `__NEXT_DATA__`, `data-reactroot`, `__nuxt`, `ng-version`), analytics/tag managers (GA4, GTM, Meta Pixel, Hotjar) | Escribirlas desde investigación propia de los headers/meta tags/dominios de CDN de assets/nombres de cookies conocidos de cada plataforma (la sección Sources de este documento ya deja señales concretas para CDNs y builders de WP como punto de partida). **No** copiar el archivo `technologies.json` de `enthec/webappanalyzer` textual al repo — ver nota de licenciamiento en "What NOT to Use". Leer ese dataset público como referencia para verificar las firmas propias está bien; vendorizar su archivo de datos GPL-3.0 dentro del árbol de fuentes de un producto propietario es lo que hay que evitar. |
+| `undici` / `fetch` global (Node 20+, ya disponible) | — | Probe HTTP de la imagen social: `Range: bytes=0-65535` + lectura de `content-length` / `content-type` | Un helper propio (~60 líneas) en `packages/crawler`: intenta `HEAD` para peso y tipo; si el servidor no soporta `HEAD` (405/501) o no devuelve `content-length`, cae a `GET` con `Range` y lee `content-range` para el total. Si el servidor ignora el `Range` y responde 200 con el archivo completo, se aborta el stream tras N bytes con `reader.cancel()` / `AbortController`. No hace falta librería para esto; lo que sí hace falta es el timeout acotado y el cap de bytes, mismo patrón que ya usa `resolveCanonicalUrl`. |
+| `zod` (ya en el stack del proyecto) | latest | Validar/normalizar la forma del JSON persistido de meta social | Opcional. Sólo si se quiere blindar el `Json?` nuevo de Prisma igual que se hizo con el JSON-LD. |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| Ninguna nueva | — | No se necesita tooling de dev/build nuevo; esto se envía como un paquete de workspace TS plano siguiendo las convenciones ya existentes de `packages/checks` (Vitest para tests, `tsc --noEmit` para typecheck). |
+| `vitest` (ya instalado) | Tests de los checks nuevos y del parser de dimensiones | Los tests del probe de imagen deben correr contra **buffers fixture** (los primeros KB de un PNG/JPEG/WebP/SVG/AVIF committeados como fixture), nunca contra URLs reales — el pipeline de tests no debe depender de red. Mismo patrón que `captureHeaders.test.ts`. |
+| Fixtures HTML de `<head>` reales | Tests de los checks de OG/Twitter/favicon | Reusar el patrón de `testUtils.ts` de `packages/checks`. Incluir al menos: head completo, head vacío, `og:image` relativa, `twitter:card` sin `twitter:image`, favicon sólo por convención `/favicon.ico` sin `<link>`. |
 
 ## Installation
 
 ```bash
-# Única dependencia de runtime genuinamente nueva en todo el milestone:
-pnpm --filter @auditor/fingerprint add set-cookie-parser@3.1.2
+# Core — única dependencia nueva de producción
+pnpm --filter @auditor/checks add image-size@^2.0.2
+# (o en @auditor/crawler si el probe de imagen vive del lado del crawler — ver "Puntos de integración")
 
-# Todo lo demás (cheerio, crawlee) ya está instalado en las versiones que
-# asume esta investigación (cheerio@1.2.0, @crawlee/cheerio@3.17.0) — sin bump necesario.
+# Supporting — nada nuevo. fetch/AbortController son stdlib de Node 20+.
+
+# Dev — nada nuevo. vitest ya está en todos los paquetes.
 ```
+
+## Puntos de integración con la arquitectura existente
+
+### 1. `packages/crawler/src/crawl.ts` — captura de métricas de página (aditivo, sin request extra)
+
+Dentro del `requestHandler` que ya existe, junto a donde hoy se calcula `responseHeaders` y `cookieNames` (líneas ~112-116):
+
+- `responseTimeMs` ← `response.timings?.phases?.total ?? null`
+- `ttfbMs` ← `response.timings?.phases?.firstByte ?? null`
+- `htmlBytes` ← `html ? Buffer.byteLength(html, "utf8") : null`
+- `transferBytes` ← `Number(response.headers["content-length"]) || null`
+
+Van al mismo `prisma.page.upsert` que ya está ahí. **Cero requests adicionales** — exactamente el mismo principio que hizo bien FPRINT-01 en v1.5.
+
+Advertencia importante: estos timings son de **la corrida del crawler**, no del navegador de un usuario. Hay que etiquetarlos así en el reporte ("tiempo de respuesta del servidor medido durante el rastreo") para que no se confundan con LCP/TTFB de campo de CrUX que ya reporta `packages/psi`. Si no se separa la narrativa, el reporte se contradice a sí mismo.
+
+### 2. `packages/db/prisma/schema.prisma` — model `Page`
+
+Columnas nuevas, todas nullable (el patrón de v1.5 con `responseHeaders`/`cookieNames`):
+
+```prisma
+responseTimeMs  Int?     // total de la request durante el crawl (got timings)
+ttfbMs          Int?
+htmlBytes       Int?     // tamaño descomprimido del HTML
+transferBytes   Int?     // content-length cuando el servidor lo manda
+socialMeta      Json?    // og:*, twitter:*, favicon(s), charset, viewport ya extraídos
+```
+
+`socialMeta` sigue el mismo patrón que `schemaJson` de v1.4: se extrae una vez en el pipeline (worker), se persiste compacto, y el reporte lo lee sin volver a parsear los 500 HTML. Esto es lo que hace viable el panel de preview sin costo de render.
+
+### 3. `packages/checks` — categoría nueva
+
+- Nuevo directorio `src/checks/social/` (hermano de `onpage/`, `tech/`, `schema/`, `aeo/`), registrado en `registry.ts`.
+- **Categoría nueva `"social"`** en `types.ts` — necesaria para que `packages/scoring` la trate como quinta/sexta categoría con su propio health-ratio, sin tocar el cálculo de las existentes.
+- Los checks nuevos reciben el mismo `{ page, $ }` de siempre.
+
+### 4. Qué NO tocar / qué NO duplicar
+
+`ONPAGE-05` (`packages/checks/src/checks/onpage/openGraph.ts`) ya cubre **presencia** de las 4 etiquetas base (`og:title`, `og:description`, `og:image`, `og:url`) y emite un issue por página con `pageFingerprint("ONPAGE-05", url)`. Decisión recomendada:
+
+- **Mantener `ONPAGE-05` como está y no moverlo de categoría.** Moverlo rompe la comparación entre corridas (el diff de v1.0 se hace por `fingerprint`, y el fingerprint incluye el `checkId`; recategorizarlo haría que todas las auditorías previas reporten el issue como "resuelto" y uno nuevo como "nuevo").
+- Los checks de `social` arrancan donde `ONPAGE-05` termina: **calidad**, no presencia. Si `ONPAGE-05` ya dice "faltan las 4", los checks de calidad deben degradar limpio (no emitir ruido duplicado) — el mismo patrón de supresión que se usó en SCHEMA-06/07 con la muestra CSR.
+- Concretamente, lo nuevo es: longitud óptima de `og:title`/`og:description`, `og:image` absoluta vs relativa, dimensiones y aspect ratio reales de la imagen, peso de la imagen, formato de la imagen no soportado por las plataformas, `og:type`/`og:site_name`, presencia y coherencia de `twitter:card`, favicon (formatos/tamaños/declaración), `charset` presente y en los primeros 1024 bytes, `viewport` correcto.
+
+Ojo con `viewport`: ya hay un check técnico de viewport en la categoría técnica (mencionado en los requisitos validados de v1). Antes de escribir uno nuevo hay que grepear el catálogo y **reusar el checkId existente**, no crear un duplicado con otro id.
+
+### 5. `packages/report-model` + `apps/web` — panel de preview
+
+`buildReportModel` lee `Page.socialMeta` y arma el modelo del preview. El componente de preview es tokens-only, igual que el resto de la librería de v1.1. La `og:image` remota se muestra con un `<img>` plano:
+
+```jsx
+<img src={ogImageUrl} loading="lazy" referrerPolicy="no-referrer" alt="" />
+```
+
+**No usar `next/image` acá.** Requiere whitelist de `remotePatterns` — imposible con dominios arbitrarios de sitios auditados — y además factura optimización de imágenes en Vercel por cada imagen de cada sitio auditado. Si por algún motivo se quiere `next/image`, tiene que ser con `unoptimized`, que es lo mismo que un `<img>` con más ceremonia.
+
+Verificado en el repo: **hoy `apps/web` no configura ningún header `Content-Security-Policy`** (no hay middleware ni headers en `next.config.ts`). Así que el `<img>` remoto funciona hoy sin cambios. Si más adelante se agrega CSP (que sería sano), debe incluir `img-src 'self' https: data:` o el panel de preview queda vacío en producción sin error visible.
+
+### 6. `packages/export` — límite real a documentar
+
+`@react-pdf/renderer` sólo resuelve **JPEG y PNG** para `<Image>` (verificado: el tipo de retorno de `@react-pdf/image` es `format: 'jpeg' | 'png'`). Una `og:image` en WebP, AVIF o SVG — cada vez más comunes — **crashea o se cae silenciosamente** en el export PDF. El panel de preview en el PDF debe: (a) mirar el formato ya detectado por `image-size` y (b) si no es JPEG/PNG, renderizar un placeholder con la URL en texto en vez de intentar embeber. Esto es un requisito, no un nice-to-have: es un crash en producción esperando a pasar, y el proyecto ya tiene un crash abierto de export PDF.
+
+## Criterios de validación (fuentes oficiales)
+
+| Check | Umbral | Fuente | Confidence |
+|-------|--------|--------|------------|
+| `og:image` dimensiones | mínimo absoluto 200×200; por debajo de 600×315 se muestra chico; óptimo ≥1200×630 | Facebook Sharing Webmasters (oficial) | HIGH |
+| `og:image` aspect ratio | 1.91:1 para evitar recorte | Facebook Sharing Webmasters (oficial) | HIGH |
+| `og:image` peso | máximo 8 MB (Facebook) | Facebook Sharing Webmasters (oficial) | HIGH |
+| `twitter:image` (`summary_large_image`) | mínimo 300×157, recomendado 1200×628 (1.91:1), máximo 5 MB, formatos JPEG/PNG/GIF/WebP | Fuentes secundarias cruzadas (docs oficiales de X devolvieron 402) | MEDIUM |
+| Favicon | cuadrado 1:1, mínimo 8×8, recomendado >48×48, declarado con `<link rel="icon">` en el `<head>` del home, URL estable, crawleable | Google Search Central — Favicon in Search (oficial) | HIGH |
+| Favicon: un solo favicon por host | Google sólo soporta uno por hostname | Google Search Central (oficial) | HIGH |
+| `og:title` / `og:description` longitud | no hay límite oficial de plataforma; usar los umbrales prácticos de truncado (~60 y ~155-200 chars) y reportarlo como recomendación, no como error duro | Convención de la industria | MEDIUM |
+
+Nota de umbral para el peso: el límite duro de Facebook es 8 MB pero el de X es 5 MB. El check debe usar **el más estricto** (5 MB) como umbral de warning si la página declara `twitter:image`, porque una imagen de 6 MB pasa en Facebook y falla en X. Reportar el número medido, no sólo pasa/falla — es la convención que ya sigue todo el reporte ("valor medido / criterio").
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|--------------------------|
-| Motor de firmas propio + dataset de firmas propio curado | `wappalyzer-core` (npm) + traer el `technologies.json` de `enthec/webappanalyzer` en build/runtime | Sólo si Juan decide explícitamente que la cobertura de ~7.500 tecnologías vale (a) sumar código y datos licenciados GPL-3.0 dentro de un producto comercial, y (b) el riesgo de mantenimiento continuo de un fork comunitario no oficial sin paquete npm propio (habría que traer/vendorizar el JSON crudo desde GitHub a mano, sin pinning de versión vía npm). No recomendado para un proyecto cuyo objetivo declarado son 5 categorías puntuales (CMS/builder, CDN, hosting, framework JS, analytics) — la cobertura completa de Wappalyzer resuelve un problema mucho más grande del que tiene este milestone. |
-| Motor de firmas propio | API paga de Wappalyzer (`wappalyzer.com/api`) | Nunca para este proyecto — explícitamente fuera de alcance según el brief del milestone ("sin servicios pagos de terceros"), y reintroduce una dependencia externa por request/costo sobre una herramienta gratuita tipo lead magnet que ya escala a 500 URLs/auditoría. |
-| Motor de firmas propio | `@ryntab/wappalyzer-node` u otros wrappers comunitarios | Estos envuelven el mismo motor/dataset GPL-3.0 de `wappalyzer-core` (algunos además levantan Puppeteer por default en modo "browser") — mismo problema de licencia que arriba, más peso extra (Puppeteer) que la pasada Cheerio-first de este proyecto no necesita. |
-| Curar dataset de firmas propio (~40-60 entradas) | Vendorizar un subconjunto del `technologies.json` de `enthec/webappanalyzer` directamente | Si el tiempo de entrega importa más que la higiene de licenciamiento y Juan está cómodo con las obligaciones de GPL-3.0 sobre ese archivo de datos (una pregunta legal poco clara de "dato vs. código" — vale una consulta rápida a quien maneje temas legales de juan-tech.com si se toma este camino en un producto comercial). El default más seguro es escribir las propias regex desde investigación de primera mano de cada plataforma, usando el dataset público sólo como verificación cruzada, no como fuente de copia. |
+|-------------|-------------|-------------------------|
+| `image-size@2.0.2` + fetch propio con `Range` | `probe-image-size@7.3.0` | `probe-image-size` hace el fetch por vos y aborta solo, lo cual suena más cómodo. Pero arrastra `needle` (cliente HTTP viejo, ajeno al resto del stack), `lodash.merge` y `stream-parser` — tres dependencias transitivas para algo que ya sabemos hacer, y su HTTP no comparte user-agent, timeouts ni política de reintentos con el crawler. Elegirlo sólo si el helper de fetch con `Range` resulta más frágil de lo esperado contra CDNs raros; en ese caso vale la pena la comodidad. |
+| `image-size` (lee headers) | `sharp@0.35.3` | `sharp` sólo si en algún momento hace falta **procesar** la imagen (recortar, generar un thumbnail propio). Para leer dimensiones es un binario nativo enorme (libvips) que además complicaría el Dockerfile del worker. Para v1.6 es sobredimensionado. |
+| Preview como mockup HTML/CSS | Captura real con Playwright | Nunca para este caso. Ninguna plataforma social expone una URL que renderice la card; habría que screenshotear el sitio, que no es lo mismo que la card. Además Playwright ya está capado a `MAX_RENDER_PAGES=10` por costo. |
+| Preview como mockup HTML/CSS | `satori` / `@vercel/og` (renderizar la preview a PNG) | Sólo tendría sentido si se quisiera **exportar** el preview como imagen dentro del PDF/PPTX con fidelidad pixel. Dado el límite JPEG/PNG de `@react-pdf/renderer`, `satori`+`resvg` produciría un PNG embebible. Es una salida válida al problema de la sección 6, pero agrega dos dependencias pesadas; el placeholder de texto resuelve el 90% del valor a costo cero. Revisar sólo si Juan quiere el preview visual dentro del PDF. |
+| Timings de got (crawler) | Medir con `performance.now()` alrededor del fetch | Los timings de got desglosan DNS/TCP/TLS/TTFB/download por separado; un cronómetro manual da un solo número opaco y además mide tiempo de cola del pool de Crawlee, no de red. Usar el cronómetro sólo si por algún motivo `response.timings` viniera `undefined` (defensivo con `?? null`). |
+| `socialMeta` persistido en `Page` | Derivar el preview leyendo `Page.html` en `buildReportModel` | El HTML crudo de 500 páginas ya está en Postgres; re-parsearlo en cada vista del reporte es exactamente el antipatrón que v1.5 evitó con `Audit.stack`. Derivar en lectura sólo si el volumen de páginas con preview visible fuera muy chico (ej. sólo el home). |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
-|-------|-----|--------------|
-| `wappalyzer-core` (npm) | Marcado explícitamente `DEPRECATED` en el registro de npm desde la v6.10.66 (sin mantenimiento desde agosto 2023, cuando Wappalyzer puso su API detrás de un paywall); motor y dataset licenciados GPL-3.0, ambos sin actualizaciones upstream desde que el vendor se volvió comercial. Confirmado vía consulta directa `npm view wappalyzer-core` al registro. | Motor de firmas propio (recomendación central de este documento) |
-| Cualquier API paga de detección de tecnología (Wappalyzer API, BuiltWith API, etc.) como dependencia por request de auditoría | El brief del milestone la descarta explícitamente; además reintroduce riesgo de costo/rate-limit por request en una herramienta que ya corre auditorías gratis sobre hasta 500 URLs/semana/email — el mismo razonamiento que ya descartó Domain Rating (Ahrefs) como input puntuado en v1.0. | Motor de firmas propio contra datos ya capturados por el crawl |
-| Correr un navegador headless (Playwright) sólo para fingerprintear stack (ej. leer `window.dataLayer`, `window.gtag`) en cada página | Este proyecto ya restringe Playwright a una muestra chica para el veredicto de render (`MAX_RENDER_PAGES=10`, según `RENDER-01..03`) precisamente porque cuesta 5-10x más que Cheerio. Fingerprintear desde HTML/headers/cookies crudos cubre la gran mayoría de señales de CMS/CDN/hosting/analytics (las URLs de `src` de script y las llamadas inline `gtag(`/`fbq(`/`dataLayer.push(` son visibles en el HTML crudo para la enorme mayoría de sitios) sin tocar el presupuesto de render. | Fingerprintear desde la pasada Cheerio ya existente (headers/html/meta/scriptSrc/cookies) en cada página; recurrir al DOM ya renderizado de la muestra existente (reusando las páginas de veredicto de render, no una pasada nueva de Playwright) sólo para el caso raro de HTML crudo vacío/shell de CSR. |
-| Vendorizar el `technologies.json` de `enthec/webappanalyzer` textual en este repo | Archivo de datos licenciado GPL-3.0; commitearlo en un codebase propietario/comercial levanta una pregunta real (aunque debatida) de copyleft, y no hay paquete npm oficial para pinnearlo/versionarlo de forma limpia de todos modos — habría que scrapear contenido crudo de GitHub para el build. | Escribir firmas propias para las ~40-60 tecnologías que este proyecto puntúa, usando docs públicas/headers/nombres de cookies como insumo de investigación (no como artefacto copiado) |
+|-------|-----|-------------|
+| Descargar la `og:image` completa para medirla | Una imagen social pesa 200 KB-8 MB. Multiplicado por páginas únicas de un sitio de 500 URLs es un download de gigabytes que el worker no debería hacer para responder "¿mide 1200×630?" | `Range: bytes=0-65535` + `image-size` sobre el buffer parcial. 64 KB alcanzan sobradamente para el header de cualquier formato. |
+| Probar la `og:image` una vez por página | La mayoría de los sitios usan la **misma** imagen de fallback en cientos de páginas. Probar 500 veces la misma URL es abuso del servidor auditado y viola la política de politeness que el crawler ya respeta. | Deduplicar por URL de imagen dentro de la auditoría y capear el total de probes (sugerido: máximo ~50 URLs únicas, priorizando home + una por plantilla, reusando la heurística de `TEMPLATE-01`). |
+| `next/image` para la `og:image` del preview | Exige `remotePatterns` con dominios arbitrarios (imposible) y factura optimización de Vercel por imagen de sitio ajeno | `<img>` plano con `loading="lazy"` y `referrerPolicy="no-referrer"` |
+| Embeber la `og:image` en el PDF sin chequear formato | `@react-pdf/renderer` sólo soporta JPEG/PNG; WebP/AVIF/SVG rompen el render | Chequear `format` de `image-size` y caer a placeholder de texto |
+| Un parser HTML nuevo (jsdom, parse5, htmlparser2 directo) para favicon/manifest | El pipeline ya parsea cada página una vez con Cheerio y lo pasa por contexto; agregar un segundo parser duplica CPU y memoria sobre 500 páginas para leer cuatro `<link>` | El `$` de Cheerio que los checks ya reciben |
+| Mover `ONPAGE-05` a la categoría `social` | Rompe el diff entre corridas: el fingerprint incluye el `checkId`, así que todas las auditorías previas marcarían el issue como resuelto y aparecería uno nuevo idéntico | Dejar `ONPAGE-05` donde está; los checks de `social` cubren calidad, no presencia |
+| Un check de `viewport` nuevo | Ya existe uno en la categoría técnica desde v1 | Reusar el checkId existente; si hace falta profundizar (ej. `user-scalable=no`), extender ese check |
+| Fetchear `/site.webmanifest` por página | Es un recurso por sitio, no por página | Una sola vez por auditoría, junto al fetch de `robots.txt` / `sitemap.xml` que ya se hace. `JSON.parse` alcanza, no hace falta librería. |
+| Presentar `responseTimeMs` como Core Web Vital | Es tiempo de servidor medido por el crawler desde el datacenter del worker, no una métrica de campo de usuarios reales | Etiquetarlo explícitamente como "medido durante el rastreo" y mantenerlo separado del bloque de CWV/PSI |
 
 ## Stack Patterns by Variant
 
-**Punto de integración del fingerprinting:**
-- Extender el `requestHandler` de `packages/crawler/src/crawl.ts` para capturar `response.headers` (ya disponible en el objeto `response` de Crawlee/got-scraping, hoy descartado) y el header `Set-Cookie` crudo, al menos para el request de la página de inicio/depth-0 — el crawl hoy persiste `title`/`statusCode`/`html`/`contentType`/`redirectChain` pero ningún header ni cookie, así que esto es captura de datos nueva, no sólo procesamiento nuevo.
-- Agregar campos para persistir esto: ya sea una columna `Page.responseHeaders Json?` (si importa la variación por página, ej. distinto CDN detrás de distintos paths) o un único snapshot `Audit.techStack Json?` computado una vez desde la página de inicio (más simple, y encaja con cómo el brief del milestone describe la feature: "tabla de stack detectado al inicio del reporte", una tabla a nivel sitio, no por página). Se recomienda esto último para el alcance de v1.5 — computarlo una vez desde la respuesta + HTML de la home ya resuelta, mantenerlo simple, revisar variación por página sólo si auditorías reales lo muestran (ej. un CDN sólo delante de algunos subpaths).
-- Correr el módulo de fingerprint nuevo como una pasada más dentro del loop por página de `cheerio.load()` que `runAllChecks` ya tiene (`packages/checks/src/registry.ts`), reusando el mismo `$` — no agregar un segundo parseo de HTML.
+**Si el sitio usa una sola `og:image` global (caso más común en WordPress/Shopify con plugin SEO):**
+- El dedupe por URL colapsa las 500 páginas a 1-3 probes.
+- El issue debe reportarse **agregado** ("342 páginas comparten una og:image de 600×315"), no 342 veces. Reusar el patrón de issue agregado que ya se implementó en DEPTH-03.
 
-**Patrón del motor de recomendaciones adaptador-por-CMS:**
-- Seguir el mismo idioma que ya usa `packages/checks/src/registry.ts` (arreglos/mapas de objetos tipados con una función `run()`/`recommend()`, no clases) en vez de introducir herencia OOP — el codebase de este proyecto es functional-registry-style de punta a punta (`pageChecks`, `siteChecks`, `networkChecks` como arreglos), y el patrón adaptador debería leerse como "un registry más", no como un paradigma nuevo.
-- Concretamente: un mapa `Record<CmsId, CmsAdapter>` (`wordpress`, `shopify`, `webflow`, `wix`, `squarespace`, `generic`) donde cada `CmsAdapter` implementa `recommend(issue: IssueDraft, ctx: { techStack: TechStack }): string | null` — devolviendo un string de instrucciones específico del CMS (ej. "en WordPress, agregá el alt text desde el editor de medios…") o `null` para dejar pasar al fallback.
-- Dispatch: `(adapters[detectedCms] ?? adapters.generic).recommend(issue, ctx)` — el adapter `generic` no es opcional ni un afterthought, es una entrada de primera clase en el mismo mapa, garantizando que cada issue siempre reciba una recomendación aunque la detección de CMS sea nula o de baja confianza.
-- Como un CMS se detecta una vez por auditoría (no por página), pasar el `TechStack` detectado hacia abajo a través del mismo objeto `siteCtx` que `runAllChecks` ya inyecta en cada check (`{ pages, origin, robotsTxt, sitemapUrls, depthByUrl, renderVerdictByPageId }` → agregar `techStack`), en vez de crear un camino nuevo de parámetros.
+**Si el sitio no declara `og:image` en absoluto:**
+- No probar nada, no emitir issues de calidad de imagen. `ONPAGE-05` ya cubre la ausencia.
+- El panel de preview debe renderizar el estado "sin imagen" tal como lo mostraría la plataforma (card de texto), que es en sí mismo el hallazgo más elocuente del panel.
 
-**Si el builder de WordPress no se puede identificar con confianza (sin marcadores de Elementor/WPBakery/Divi/Oxygen):**
-- Caer a un nivel de adapter genérico "WordPress" (no al fallback totalmente genérico) — instrucciones específicas de WordPress ("desde el editor de bloques / Gutenberg…") siguen siendo más útiles que el fallback genérico total aunque no haya granularidad a nivel de builder.
+**Si la `og:image` es SVG:**
+- Facebook y X no renderizan SVG. Es un warning propio, aparte del de dimensiones (`image-size` sí lee el `viewBox`, así que las dimensiones se reportan igual).
+
+**Si el servidor de la imagen ignora `Range` y responde 200:**
+- Abortar el stream tras 64 KB. No dejar que la respuesta se materialice entera "por las dudas".
+- Si aun así falla, degradar a `unknown` en vez de emitir un falso positivo de "imagen demasiado chica". La regla de v1.5 aplica igual: nunca forzar una respuesta sin señal.
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
-|-----------|------------------|-------|
-| `set-cookie-parser@3.1.2` | Node 18+ (ya es el baseline del proyecto) | Cero dependencias; sin conflictos de peer range. |
-| Paquete nuevo `packages/fingerprint` | `cheerio@1.2.0`, modelos Prisma `Page`/`Audit` existentes | Debe agregarse como paquete de workspace consumido por `packages/checks` y/o `apps/worker`, siguiendo el mismo límite de "sin dependencias de navegador filtrándose al bundle de Vercel" ya reforzado para exports (`assert:web-boundary`) — este módulo no tiene dependencias de navegador/Playwright, así que es seguro en ambos lados, pero mantenerlo en `packages/` (no directo en `apps/web`) para preservar la simplicidad de ese chequeo. |
-| `wappalyzer-core@6.10.66` (si se reconsidera alguna vez) | GPL-3.0, deprecado, sin publicaciones npm activas desde 2023 | Explícitamente no recomendado — listado acá sólo para dejar registro de por qué se descartó (ver What NOT to Use). |
+|-----------|-----------------|-------|
+| `image-size@2.0.2` | Node 20+ | Cero dependencias, ESM + CJS, tipos TS incluidos. La API v2 (`imageSize(buffer)`) es distinta de la v1 (`sizeOf`) — no copiar ejemplos viejos de internet, son de la v1. |
+| `image-size@2.0.2` | `@auditor/checks` / `@auditor/crawler` | No importa dónde viva mientras no se meta en `apps/web`. Preferible `@auditor/crawler` si el probe de red vive ahí (coherente con `resolveCanonicalUrl`); `@auditor/checks` si se prefiere mantener el crawler sin lógica de imágenes. |
+| `image-size` | `apps/web` (Vercel) | **No agregarlo a `apps/web`.** El probe corre en el worker. Si un check de web lo importara transitivamente, el guardarrail `assert:web-boundary` debería seguir pasando (es JS puro, sin binarios), pero conceptualmente rompe la separación worker/web. |
+| `got` timings | `@crawlee/http@3.17.0` | Ya presente. Acceder siempre con optional chaining (`response.timings?.phases?.total`) — en respuestas cacheadas o en algunos paths de error los timings pueden venir incompletos. |
+| `@react-pdf/renderer` | `og:image` remota | Sólo JPEG/PNG. Ver sección 6. |
+| Columnas nuevas de `Page` | Auditorías existentes | Todas nullable → migración sin backfill, auditorías viejas muestran "sin dato" en vez de romper. Mismo criterio que v1.5. |
 
 ## Sources
 
-- Registro de npm, consulta directa (`npm view wappalyzer-core`, verificado 2026-07-21) — confirma `DEPRECATED`, licencia `GPL-3.0`, última publicación "hace más de un año" (dist-tag `latest` 7.0.3) — HIGH confidence (consulta directa al registro, fuente primaria)
-- Registro de npm, consulta directa (`npm view set-cookie-parser`, `npm view cheerio`, `npm view crawlee`, verificado 2026-07-21) — versiones actuales 3.1.2 / 1.2.0 / 3.17.0, las últimas dos coincidiendo con lo ya pinneado en este proyecto — HIGH confidence (consulta directa al registro)
-- [enthec/webappanalyzer](https://github.com/enthec/webappanalyzer) (README + CONTRIBUTING, consultado 2026-07-21) — licencia GPL-3.0, schema de `technologies.json` (`cats`, `website` requeridos; `headers`/`meta`/`scriptSrc`/`cookies`/`dom`/`js`/`css`/`dns`/`certIssuer`/`implies` como campos de patrón opcionales), sin paquete npm oficial documentado — MEDIUM confidence (docs del repo oficial, pero resumen vía scrape de página, no lectura manual completa)
-- [Wappalyzer Paywalled Itself in 2023 — the OSS-Powered Replacement (DEV Community)](https://dev.to/nexgendata/wappalyzer-paywalled-itself-in-2023-heres-the-oss-powered-replacement-3i01) — contexto del evento de paywall de 2023 y los forks comunitarios (`enthec/webappanalyzer`, `tunetheweb/wappalyzer`, `dochne/wappalyzer`) — MEDIUM confidence (resumen de tercero, cruzado contra el repo oficial directamente para las afirmaciones de schema/licencia)
-- Resultados de búsqueda web sobre firmas de headers de CDN (Cloudflare `Server: cloudflare`/`CF-Ray`/`__cf_bm`; Fastly `X-Served-By`/`X-Cache`; Akamai `X-Check-Cacheable`/`X-Akamai-Transformed`) — MEDIUM confidence (agregado de múltiples fuentes independientes de blogs de herramientas de detección, consistentes entre sí y con el comportamiento de headers públicamente documentado de cada vendor de CDN)
-- Resultados de búsqueda web sobre firmas DOM de builders de WordPress (clases `et_pb_*`/`elementor-*` de Elementor/Divi, clases `vc_row`/`vc_column`/`wpb_wrapper` de WPBakery + path de asset `/js_composer/` + meta tag `generator`, comentario `<!-- Oxygen Builder -->` de Oxygen) — MEDIUM confidence (fuentes de blog/comunidad agregadas; no verificado de forma independiente contra instalaciones de WordPress reales en esta pasada de investigación — marcar para verificación puntual contra 2-3 sitios reales por builder durante la implementación)
-- `packages/crawler/src/crawl.ts`, `packages/checks/src/registry.ts`, `packages/db/prisma/schema.prisma` (leídos directamente de este repo, 2026-07-21) — confirman la arquitectura actual de crawl/checks/persistencia y el gap de integración puntual (hoy no se persisten headers ni cookies) — HIGH confidence (fuente primaria: el codebase real)
+- `/image-size/image-size` (Context7) — API v2, entrada por `Buffer`/`Uint8Array`, formatos soportados, limitación de "sólo lee headers" — HIGH confidence (docs oficiales del repo)
+- `/diegomura/react-pdf` (Context7) — `@react-pdf/image` devuelve `format: 'jpeg' | 'png'`, confirma la limitación de formatos — HIGH confidence (docs oficiales)
+- [Facebook Sharing — Webmasters/Images](https://developers.facebook.com/docs/sharing/webmasters/images/) — mínimo 200×200, óptimo 1200×630, ratio 1.91:1, máximo 8 MB — HIGH confidence (docs oficiales)
+- [Google Search Central — Favicon in Search](https://developers.google.com/search/docs/appearance/favicon-in-search) — 1:1, mínimo 8×8, recomendado >48×48, declaración con `<link rel="icon">`, un favicon por hostname, URL estable — HIGH confidence (docs oficiales)
+- [Twitter Card Image Size Guide (opengraphplus)](https://opengraphplus.com/consumers/twitter/images) y [Twitter Image Specs 2026 (soona)](https://soona.co/image-resizer/twitter-spec-guide) — mínimo 300×157, recomendado 1200×628, máximo 5 MB, formatos — MEDIUM confidence (fuentes secundarias cruzadas entre sí; developers.x.com devolvió HTTP 402)
+- [OpenGraph.io Link Preview](https://www.opengraph.io/link-preview) y [Toolsana OpenGraph Preview](https://toolsana.com/tools/opengraph-preview/) — confirman que las herramientas del mercado renderizan mockups HTML/CSS client-side, no capturas reales — MEDIUM-HIGH confidence (múltiples herramientas independientes, comportamiento consistente)
+- npm registry (consultado 2026-07-31) — `image-size@2.0.2` (MIT, cero deps), `probe-image-size@7.3.0` (MIT, deps: needle/lodash.merge/stream-parser), `sharp@0.35.3` — HIGH confidence (consulta en vivo)
+- Código del repo — `packages/checks/src/checks/onpage/openGraph.ts` (ONPAGE-05 actual), `packages/crawler/src/crawl.ts:110-150` (punto de captura), `packages/db/prisma/schema.prisma:107-136` (model `Page`), `@crawlee/http/internals/http-crawler.d.ts:149` (`response: PlainResponse`), `got/dist/source/core/response.d.ts:55-68` (`timings.phases`), `apps/web/next.config.ts` (sin CSP configurada) — HIGH confidence (lectura directa)
 
 ---
-*Stack research for: fingerprinting de stack técnico + recomendaciones personalizadas por CMS (milestone v1.5)*
-*Researched: 2026-07-21*
+*Stack research for: auditoría de meta tags sociales + performance por página (v1.6)*
+*Researched: 2026-07-31*

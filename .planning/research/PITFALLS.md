@@ -1,256 +1,480 @@
 # Pitfalls Research
 
-**Domain:** Tech-stack fingerprinting (CMS/builder/CDN/hosting/framework JS/analytics detection) + motor de recomendaciones de fix personalizadas por CMS, sumado a un crawler de auditoría SEO existente (Crawlee, 500 URLs, Cheerio-first + Playwright selectivo)
-**Researched:** 2026-07-21
-**Confidence:** MEDIUM (web search cruzado en múltiples fuentes independientes; sin fuente única "oficial" porque el dominio — fingerprinting heurístico — es inherentemente basado en consenso de la comunidad, no en un spec)
+**Domain:** Auditoría de meta tags / Open Graph / Twitter Card / favicon + preview social, agregada a un crawler SEO existente (500 URLs, score health-ratio size-independent, `buildReportModel` como single source of truth)
+**Researched:** 2026-07-31
+**Confidence:** HIGH en los pitfalls de arquitectura (verificados leyendo el código de este repo), MEDIUM en los de comportamiento de plataformas (Facebook/X/LinkedIn no documentan sus límites de truncado y cambian sin aviso — eso es, en sí mismo, uno de los pitfalls)
+
+**Nombres de fase provisionales usados abajo** (el roadmap todavía no existe; v1.6 arranca alrededor de Phase 28):
+
+| Ref | Fase provisional |
+|-----|------------------|
+| **A** | Captura de datos en el crawler (response time, tamaño de HTML, headers extra) |
+| **B** | Categoría + scoring (nueva categoría "social", rebalanceo de pesos, retiro/ajuste de ONPAGE-05) |
+| **C** | Checks de meta tags / OG / Twitter Card / favicon / charset / viewport |
+| **D** | Validación de red de `og:image` (muestreada, deduplicada) |
+| **E** | Panel visual de preview social en el reporte |
+| **F** | Snippets HTML de fix |
+
+---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Tratar el fingerprint como un booleano en vez de una detección probabilística
+### Pitfall 1: Doble penalización por convivir con ONPAGE-05
 
 **What goes wrong:**
-El motor de fix personalizado (y la tabla de stack en el reporte) afirma "Esto es WordPress" o "Esto es Elementor" cuando en realidad el fingerprint coincidió con 2-3 señales débiles de 6 posibles. El usuario recibe una recomendación de fix "para WordPress" en un sitio que en realidad es un WordPress headless, o al revés, un sitio no-WP recibe instrucciones de WP porque alguna librería JS coincidencial (ej. un plugin de terceros que reusa nombres de clase `wp-*`) disparó una regla.
+`packages/checks/src/checks/onpage/openGraph.ts` (ONPAGE-05) ya evalúa `og:title`, `og:description`, `og:image`, `og:url` y emite una fila `Issue` por página con `category: "onpage"`. Si v1.6 agrega checks equivalentes con `category: "social"`, un sitio sin Open Graph pierde puntos dos veces: una en el score On-Page y otra en el score Meta Tags/Social. Como ambos entran ponderados a `scoreOverall`, el peso efectivo del Open Graph en el score general se duplica sin que nadie lo haya decidido.
 
 **Why it happens:**
-Los devs migran de "detectar features" a "generar copy de recomendación" sin mantener el score de confianza en el camino. Es fácil escribir `if (isWordPress) { return wpFix(issue) }` porque simplifica el código, pero borra la incertidumbre real del fingerprint (que Wappalyzer mismo modela como score de confianza combinado, no como sí/no binario).
+El nuevo catálogo de checks se diseña "desde cero" mirando el objetivo del milestone, no el catálogo existente. ONPAGE-05 está enterrado en una carpeta de 12 archivos y es fácil no verlo.
 
 **How to avoid:**
-- El fingerprinter interno debe devolver siempre `{ platform, builder, confidence: 0-100, signals: [...] }`, nunca solo un string.
-- Definir umbrales explícitos (ej. ≥80 = "detectado", 40-79 = "probable", <40 = "no detectado, fallback genérico") y usar los tres estados en el motor de recomendaciones, no solo dos.
-- El motor de fix debe aceptar el nivel de confianza como parámetro y ajustar tanto el copy ("Como parece que usas WordPress...") como el fallback (mostrar SIEMPRE también la versión genérica cuando confidence < umbral alto).
+Decidir explícitamente una de estas tres, y dejarla escrita en Key Decisions antes de escribir checks:
+1. **Retirar ONPAGE-05** del registry y reemplazarlo por los checks `SOCIAL-*` (lo más limpio conceptualmente, pero dispara el Pitfall 13 sobre el diff).
+2. **Reducir ONPAGE-05** a un check de presencia mínima y mover todo el detalle (longitudes, imagen, Twitter, favicon) a `social`.
+3. Mantener ambos y **bajar el peso** de `onpage` en `CATEGORY_WEIGHTS` para compensar.
+
+Verificación mecánica: un test que recorra el registry y falle si dos `checkId` de categorías distintas leen el mismo tag OG.
 
 **Warning signs:**
-- El tipo de dato que devuelve el detector es `string | null` en vez de un objeto con score.
-- Los tests solo cubren "detecta WordPress" / "no detecta nada", sin casos "detecta con baja confianza".
-- El copy de recomendación nunca usa condicionales de incertidumbre ("parece", "probablemente"), siempre afirma con seguridad.
+Un fixture sin ninguna etiqueta OG baja el overall más de lo que bajaba en v1.5 por el mismo defecto. En el reporte aparecen dos filas con títulos casi idénticos ("Sin etiquetas Open Graph" y "Falta og:title") para la misma URL.
 
-**Phase to address:**
-Fase de diseño del fingerprinter (la primera fase de esta milestone) — el contrato de datos (confidence incluido) debe fijarse antes de escribir el motor de recomendaciones, porque cambiarlo después implica retocar cada adapter.
+**Phase to address:** B (decisión + rebalanceo), C (implementación de los checks nuevos ya sabiendo qué pasa con ONPAGE-05)
 
 ---
 
-### Pitfall 2: Confiar en headers de servidor como señal primaria sin fallback
+### Pitfall 2: Sumar la 6ª categoría sin rebalancear `CATEGORY_WEIGHTS` — renormalización silenciosa
 
 **What goes wrong:**
-El detector de CDN/hosting/servidor se basa principalmente en `Server`, `X-Powered-By`, `X-Generator`. Cuando el sitio está detrás de Cloudflare, Fastly o Akamai (mayoría de sitios de producción en 2026), estos headers llegan strippeados o reescritos por el proxy — el fingerprint reporta "servidor desconocido" en la mayoría de auditorías reales, no solo en casos raros.
+`CATEGORY_WEIGHTS` en `packages/scoring/src/overallScore.ts` suma exactamente 1.0 (tech .30, perf .30, onpage .15, schema .10, aeo .15). Si se agrega `social: 0.1` sin restar de otras, `totalWeight` pasa a 1.1 y `scoreOverall` **no falla**: renormaliza dividiendo por `totalWeight`. El resultado es que todas las categorías existentes pierden ~9% de peso relativo de forma invisible, y todo score histórico deja de ser comparable con los nuevos. No hay ningún assert que proteja la suma = 1.0.
 
 **Why it happens:**
-Es la señal más fácil de implementar (una línea: `headers['server']`), y funciona perfecto en local/staging sin CDN delante, dando falsa confianza durante desarrollo. El problema solo aparece al auditar sitios reales de clientes, que casi siempre están detrás de un CDN/WAF.
+La renormalización existe por una buena razón (una categoría ausente no debe contar como 0), pero convierte un error de configuración en un cambio de comportamiento silencioso en vez de una excepción.
 
 **How to avoid:**
-- Diseñar el fingerprint de hosting/CDN como multi-señal desde el día uno: headers (`server`, `via`, `cf-ray`, `x-served-by`, `x-amz-cf-pop`), DNS/CNAME cuando sea viable, cookies (`__cfduid`, `_shopify_s`, `wordpress_logged_in_`), y paths de assets estáticos (`/wp-content/`, `cdn.shopify.com`, `assets-static.wixstatic.com`).
-- Nunca reportar "no se detectó CDN" como ausencia de CDN — reportarlo como "no se pudo determinar" (ligado al pitfall 1: confianza explícita).
-- CDN y CMS/hosting-de-origen son preguntas DISTINTAS: un sitio puede estar en Cloudflare (CDN) y WordPress en Kinsta (hosting) al mismo tiempo — no colapsar ambas señales en un solo campo "stack".
+- Agregar un test en `overallScore.test.ts`: la suma de `CATEGORY_WEIGHTS` debe ser 1.0. Debería existir aunque no se agregue la categoría.
+- Decidir de dónde sale el peso de `social` de forma explícita. Sugerencia defendible: `social` 0.10 tomado de `onpage` (0.15 → 0.10) y `schema` (0.10 → 0.05), dejando tech/perf/aeo intactos — porque social es literalmente un desprendimiento de on-page (ver Pitfall 1), no una dimensión nueva de calidad.
+- Recalcular el fixture de referencia (juan-tech.com, overall 91 en v1.0) **antes y después** y registrar el delta en el ROADMAP. Si el delta es grande, es una decisión de producto, no un detalle de implementación.
 
 **Warning signs:**
-- El fingerprint funciona en pruebas locales (contra sitios sin CDN) pero devuelve "unknown" en la mayoría de auditorías de sitios reales/clientes.
-- El código solo lee un header (`Server`) para determinar hosting.
+El overall de la auditoría de fixture se mueve varios puntos sin que ningún check nuevo haya detectado nada. La pantalla de historial muestra un salto de score entre la última auditoría v1.5 y la primera v1.6 del mismo sitio.
 
-**Phase to address:**
-Fase de fingerprinting — incluir explícitamente un fixture de prueba con sitio detrás de Cloudflare (el propio juan-tech.com si usa Cloudflare, o un sitio WP conocido en Kinsta/WP Engine) para validar que el detector no depende solo de headers de origen.
+**Phase to address:** B
 
 ---
 
-### Pitfall 3: Firmas de builder de WordPress rotas por el patrón "Gutenberg no deja huella propietaria"
+### Pitfall 3: Dilución del health-ratio con checks que casi siempre pasan
 
 **What goes wrong:**
-El sub-detector de builder para WordPress (Elementor, WPBakery, Divi, etc.) asume que SIEMPRE hay una firma positiva que buscar. Pero Gutenberg (el editor nativo, mayoría de sitios WP modernos) no inyecta clases propietarias — genera HTML limpio con comment delimiters (`<!-- wp:paragraph -->`) que pueden no sobrevivir en el HTML renderizado final servido al navegador. Resultado: sitios con Gutenberg nativo se detectan como "sin builder" en vez de "Gutenberg", y el fix recomendado no distingue bien dónde vive la edición (bloques nativos del editor vs. un builder de terceros).
+`scoreCategory` es un promedio plano sobre filas de `Issue`: cada fila vale 1 (ok), 0.5 (warning) o 0 (critical). Los checks de meta tags que más fácil se implementan (`charset` presente, `viewport` presente) pasan en prácticamente el 100% de las páginas de cualquier sitio hecho con CMS. Si se emite una fila `ok` por página por cada uno de esos checks, el denominador se llena de aprobados triviales y el score "Meta Tags/Social" queda anclado arriba de 90 para todo el mundo, incluso para un sitio sin ni una sola etiqueta OG. La categoría deja de discriminar y el panel nuevo pierde sentido como lead magnet.
+
+El error espejo también existe: si se emiten filas **sólo cuando el check falla**, `scoreCategory` devuelve 100 con cero filas (caso "sin datos" = perfecto) y, apenas aparece un fallo, la categoría cae en picada porque el denominador es minúsculo.
 
 **Why it happens:**
-Los devs escriben reglas positivas para cada builder conocido (`elementor-*`, `et_pb_*`, `vc_row`) y dejan Gutenberg como "default/else" implícito, sin una firma positiva real de Gutenberg (bloques con clases `wp-block-*` sí sobreviven en el HTML final y son una firma válida, pero se olvida agregarla).
+El modelo health-ratio funciona bien en las categorías existentes porque ahí los checks tienen tasas de fallo realistas y variadas. Nadie revisa la distribución esperada de resultados antes de agregar un check.
 
 **How to avoid:**
-- Tratar Gutenberg como un detector positivo más, no como default: buscar clases `wp-block-*`, contenedores `wp-block-group`/`wp-block-columns` en el HTML servido.
-- El fallback real de "sin builder identificado" debe ser un cuarto estado distinto de "Gutenberg detectado" y de "builder de terceros detectado" — cada uno mapea a un fix distinto (dónde vive el fix: editor de bloques nativo vs. plugin de terceros vs. tema custom sin builder).
-- Documentar explícitamente en el adapter de WordPress: Elementor/Divi/WPBakery rompen visualmente el contenido si se desactiva el plugin (contenido en postmeta propietario/shortcodes) — esto es relevante para el copy del fix ("no desactives el plugin sin antes...").
+- Antes de fijar el catálogo, correr los checks candidatos sobre 5-6 sitios reales de perfiles distintos (WordPress, Shopify, Webflow, un sitio a código) y mirar la **tasa de aprobación de cada check**. Cualquier check que pase en >95% de páginas en todos los perfiles no aporta poder discriminante: convertirlo en site-level (Pitfall 4) o sacarlo del score y dejarlo como informativo.
+- Mantener el patrón `ok` explícito (es lo que hace hoy el resto del catálogo y es lo correcto para el health-ratio), pero equilibrar el catálogo: apuntar a que la categoría tenga cantidades comparables de checks fáciles y exigentes.
+- Dejar registrado en el ROADMAP cuál es el score esperado de la categoría para un sitio "promedio" (debería caer en 60-80, no en 95+).
 
 **Warning signs:**
-- El adapter de WordPress tiene reglas para Elementor/Divi/WPBakery pero ninguna regla positiva para Gutenberg.
-- El fix recomendado para "alt text faltante" en WP no distingue entre "edítalo en el bloque de imagen de Gutenberg" vs. "edítalo en el widget de imagen de Elementor" — dando instrucciones que no matchean la UI real del cliente.
+El score de la categoría nueva es el más alto del reporte en todos los sitios de prueba. La desviación del score social entre un sitio bien optimizado y uno sin ninguna etiqueta OG es menor a 20 puntos.
 
-**Phase to address:**
-Fase del adapter de WordPress + builder — incluir Gutenberg como caso explícito en la matriz de builders, no como ausencia de señal.
+**Phase to address:** C (diseño del catálogo), B (calibración contra fixtures)
 
 ---
 
-### Pitfall 4: Meta generator como única señal de versión/CMS, sin considerar que se remueve intencionalmente
+### Pitfall 4: Checks site-level implementados como page-level (favicon sobre todo)
 
 **What goes wrong:**
-El fingerprint usa `<meta name="generator">` como señal fuerte (o única) para CMS y versión. Sitios WordPress con hardening de seguridad activo (plugins como "Remove Meta Generators", muy comunes en agencias/consultores que saben de seguridad — el público objetivo de este auditor) remueven ese tag deliberadamente. El resultado es que los sitios MÁS cuidados con su seguridad (justo los que probablemente ya trabajan con alguien como Juan) son los que MENOS se detectan bien, generando una paradoja incómoda para un lead magnet.
+El favicon es un recurso del **sitio**, no de la página: Google lo busca en el home y usa uno solo para todo el dominio. Si se implementa como `PageCheck`, se emiten 500 filas idénticas ("favicon presente") que inundan el denominador del health-ratio (Pitfall 3), inflan la tabla de Issues con 500 entradas redundantes, y consumen 500 filas de Postgres por auditoría por un único hecho. Lo mismo aplica, con matices, a `charset` y `viewport`: son casi siempre propiedades de la plantilla, no de la página.
 
 **Why it happens:**
-El meta generator es la señal más simple y "gratis" de implementar (un `$('meta[name=generator]').attr('content')`), así que suele ser la primera y a veces única señal para versión.
+`PageCheck` es la interfaz más cómoda: ya recibe el `$` de Cheerio parseado. Hacer `SiteCheck` obliga a re-parsear el HTML del home, y se toma el atajo.
 
 **How to avoid:**
-- Nunca depender solo del meta generator para el CMS en sí (usarlo como señal de alta confianza SI está presente, pero el CMS debe poder determinarse igual sin él vía paths de wp-content/wp-includes, cookies, patrones de REST API `/wp-json/`).
-- Reservar el meta generator para intentar version fingerprinting cuando esté disponible (nice-to-have), no para la detección de plataforma en sí (must-have).
+- Favicon → `SiteCheck` con `scope: "favicon"`, evaluado sobre la página home (identificable por `Audit.resolvedUrl` de v1.4). Emite 1 fila.
+- `charset` / `viewport` → decidir entre `SiteCheck` con muestreo, o `PageCheck` que reporte **agregado** (una fila site-level del tipo "X de Y páginas sin viewport"), siguiendo el precedente de DEPTH-03 (issue agregado de % de páginas a >3 clics) que ya existe en v1.3.
+- Regla de oro para el roadmap: si el valor medido es idéntico en el 100% de las páginas de un sitio típico, es site-level.
 
 **Warning signs:**
-- Al desactivar/remover el meta generator del fixture de prueba, el fingerprint pasa de "WordPress, alta confianza" a "no detectado" en vez de mantenerse en "WordPress, confianza media/alta" vía otras señales.
+El conteo de filas `Issue` por auditoría se dispara varios miles respecto a v1.5. La tabla de issues del reporte muestra la misma recomendación 500 veces (el agrupador por tipo de v1.2 lo va a esconder visualmente, lo que hace que el problema pase inadvertido hasta que se mira la DB).
 
-**Phase to address:**
-Fase de fingerprinting de CMS — test explícito con fixture sin meta generator (simulando hardening de seguridad) debe seguir detectando WordPress.
+**Phase to address:** C
 
 ---
 
-### Pitfall 5: Arquitecturas headless/desacopladas (WordPress headless, Shopify Hydrogen) rompen las firmas clásicas y el detector falla en silencio
+### Pitfall 5: Selector de meta tags que pierde la mitad de las etiquetas (`property` vs `name`)
 
 **What goes wrong:**
-WordPress headless con WPGraphQL sirve HTML mínimo/vacío en el dominio principal (el contenido real se renderiza en un frontend Next.js/Astro separado, a veces en otro dominio). Shopify Hydrogen igual: no hay `cdn.shopify.com` en los assets ni las cookies clásicas `_shopify_s` porque el storefront es una app React custom sobre Oxygen. El crawler termina auditando el frontend desacoplado (que es indistinguible de "sitio Next.js custom") y el CMS real queda invisible — el fingerprint reporta "framework JS: Next.js" y nada más, cuando en realidad hay un WordPress o Shopify detrás gestionando el contenido.
+ONPAGE-05 hoy hace `$("meta[property]")`. Ese selector:
+- **Pierde** las etiquetas `og:` que muchos CMS y plugins emiten como `<meta name="og:title">` (técnicamente incorrecto según el protocolo OG, pero tolerado por las plataformas y común en el mundo real) → falso positivo "falta og:title".
+- **No sirve** para Twitter Card, que el estándar define con `name="twitter:card"` — pero que Yoast, RankMath y varios themes emiten como `property="twitter:card"`. Un check que sólo mire uno de los dos atributos va a reportar falsos positivos en una porción grande de sitios WordPress, que es justo el perfil de usuario del lead magnet.
+
+Además, la comparación es case-sensitive: `<meta property="OG:Title">` existe en la naturaleza y `Set.has("og:title")` falla.
 
 **Why it happens:**
-Las firmas clásicas de WP/Shopify se escriben pensando en el patrón monolítico (WP sirve el HTML final, Shopify Liquid sirve el HTML final). Nadie prueba contra el patrón headless/JAMstack porque es una minoría de casos, pero es una minoría creciente y son justo los clientes técnicamente más sofisticados (leads de mayor valor).
+Se implementa contra la especificación en vez de contra el HTML real. La especificación dice `property` para OG y `name` para Twitter; la realidad es que ambos se mezclan.
 
 **How to avoid:**
-- Para este caso, la salida honesta NO es "detectar WordPress a través del desacople" (con Cheerio-first eso es prácticamente imposible sin llamar a endpoints GraphQL/REST específicos) — es reconocer el patrón "headless/JAMstack" como una categoría de detección propia: framework JS detectado con alta confianza (Next.js/Astro/Remix) + ausencia de señales de CMS tradicional = reportar "Frontend desacoplado (JAMstack) — CMS de contenido no identificado desde el HTML público" en vez de fallar silenciosamente a "sin CMS detectado" (que suena a "sitio hecho a mano", una conclusión distinta y potencialmente incorrecta).
-- Intentar una señal secundaria de bajo costo cuando el framework JS es fuerte: sondear `/wp-json/` (WPGraphQL suele coexistir con REST API habilitado) con una sola request HEAD/GET barata — si responde con la firma JSON de WP REST, se recupera la detección sin necesidad de Playwright.
-- Documentar explícitamente en el adapter genérico que "framework JS detectado pero CMS no identificado" es un resultado válido y esperado (no un bug), y el motor de recomendaciones debe caer al fallback genérico en ese caso, no fallar o mostrar un CMS incorrecto por defecto.
+Un único extractor compartido, testeado, que:
+1. Recorre `$("meta")` una sola vez.
+2. Lee `property || name` (en ese orden de preferencia), lo normaliza a minúsculas y hace trim.
+3. Devuelve un `Map<string, string[]>` (array, no string — ver Pitfall 6) construido en un `Map` o en un objeto sin prototipo, ya que las claves vienen del sitio auditado y esto es el mismo riesgo de prototype pollution que `curateHeaders` ya mitiga con allowlist en v1.5.
+4. Ignora `<meta>` con `content` vacío o sólo whitespace — una etiqueta presente pero vacía es un fallo, no un aprobado.
+
+Fixtures obligatorios: Yoast, RankMath, Shopify default, Webflow, Next.js Metadata API, y un caso con `property` y `name` duplicados y contradictorios.
 
 **Warning signs:**
-- El detector nunca produce el estado "headless/JAMstack, CMS no identificado" en ningún fixture de prueba — señal de que ese caso no se contempló.
-- Auditar un sitio headless conocido (ej. cualquier sitio Shopify Hydrogen público) produce un fingerprint vacío o, peor, un falso positivo de otro CMS.
+El check reporta "falta twitter:card" en sitios donde el validador de X sí muestra la card. Discrepancia entre lo que dice el reporte y lo que devuelve un validador externo sobre la misma URL.
 
-**Phase to address:**
-Fase de fingerprinting — agregar fixtures de WordPress headless y Shopify Hydrogen a la suite de pruebas desde el inicio, no como edge case descubierto en producción.
+**Phase to address:** C
 
 ---
 
-### Pitfall 6: El motor de recomendaciones asume "un adapter = una plataforma = un lugar donde vive el fix", ignorando que el builder cambia la ubicación real del fix dentro de la misma plataforma
+### Pitfall 6: `og:image` — relativa, protocol-relative, múltiple y con fallback cruzado a `twitter:image`
 
 **What goes wrong:**
-El adapter de WordPress genera el mismo texto de fix para "falta alt text" sin importar si el sitio usa Gutenberg, Elementor, Divi o WPBakery — todos dicen algo genérico tipo "edita la imagen en el editor de WordPress y agrega el texto alternativo", que es técnicamente cierto pero inútil como instrucción accionable, porque la UI real donde el usuario hace clic es distinta en cada caso (panel de bloque de Gutenberg vs. panel de configuración de Elementor vs. módulo de Divi).
+Cuatro fallos distintos que se suelen tratar como uno:
+
+1. **Relativa.** El crawler de Facebook trae la página desde sus propios servidores y no resuelve rutas relativas: `og:image="/img/og.png"` produce preview roto. Un check que sólo verifique presencia lo da por aprobado. Este es probablemente el hallazgo de mayor valor de todo el milestone y es fácil no implementarlo.
+2. **Protocol-relative** (`//cdn.ejemplo.com/og.png`) y **http:// en un sitio https**: se resuelven, pero fallan o degradan en plataformas que exigen https. Un `new URL(value, base)` los normaliza en silencio y el check pasa.
+3. **Múltiples `og:image`.** El protocolo lo permite explícitamente y la primera es la que se usa como principal. Un extractor que colapse a un solo valor (último gana, típico de `Map.set` en loop) va a validar la imagen equivocada — reportando OK sobre la segunda cuando la primera, que es la que se muestra, está rota.
+4. **`twitter:image` ausente NO es un error.** X cae de vuelta a `og:image` cuando no hay `twitter:image`. Reportarlo como issue genera un falso positivo en la mayoría de los sitios correctamente configurados, y es exactamente el tipo de ruido que destruye la credibilidad de un lead magnet.
 
 **Why it happens:**
-Es más rápido escribir un fix por plataforma (4 adapters: WP, Shopify, Webflow, Wix/Squarespace) que un fix por (plataforma × builder) — la combinatoria explota rápido y no está claro cuánto detalle vale la pena en la primera vuelta.
+El modelo mental es "un tag, un valor". El protocolo OG es multivaluado y con fallbacks entre vocabularios.
 
 **How to avoid:**
-- Diseñar el adapter de WordPress con dos niveles desde el modelo de datos: `platform: 'wordpress'` + `builder: 'elementor' | 'divi' | 'wpbakery' | 'gutenberg' | 'unknown'`, y que el catálogo de fixes tenga un override opcional por builder (no obligatorio) — si no hay override específico, cae al fix genérico de WordPress (que a su vez cae al fix genérico universal si no hay adapter).
-- Priorizar overrides específicos de builder SOLO para los checks de mayor volumen/impacto (alt text, meta title/description, headings) en la primera vuelta, dejando el resto en el fix genérico de plataforma — esto es consistente con el alcance ya definido en el PROJECT.md ("la mayor cantidad de checks posible en esta primera vuelta", no todos).
-- Esto es exactamente el patrón adapter con "niveles de fallback" (plataforma → builder específico → genérico universal), evitando el pitfall de plugin-architecture donde el core termina lleno de if-else: la resolución del override debe vivir en una función central de "lookup con fallback en cadena", no repetida en cada checker.
+- El extractor devuelve arrays (ver Pitfall 5); la validación de imagen corre sobre **la primera** `og:image` y lo dice explícitamente en `criterion`.
+- Check dedicado a "og:image absoluta y https": comparar el valor crudo contra el resuelto; si difieren, es relativa → issue de severidad alta (rompe el preview en Facebook y LinkedIn). Rechazar también `//` y `http:` en sitios https.
+- La ausencia de `twitter:image` se evalúa **sólo** si tampoco hay `og:image`. Documentar la cadena de fallback (twitter:image → og:image; twitter:title → og:title → `<title>`) en el `criterion` de cada check, porque es la parte que el usuario no sabe y es donde está el valor educativo.
 
 **Warning signs:**
-- El catálogo de fixes tiene un mapa `platform -> fixText` sin campo de builder en absoluto.
-- QA manual: pedir el fix de "alt text faltante" en un sitio Elementor real y en un sitio Gutenberg real debería producir instrucciones visiblemente distintas; si son idénticas, el nivel de builder no se está usando.
+Un sitio con preview visiblemente roto en Facebook saca 100 en la categoría social. El reporte recomienda agregar `twitter:image` a sitios que ya tienen `og:image`.
 
-**Phase to address:**
-Fase del motor de recomendaciones — el modelo de datos del catálogo de fixes (plataforma + builder + fallback en cadena) debe diseñarse antes de escribir el primer fix real, para no tener que migrar el esquema a mitad de catálogo.
+**Phase to address:** C (parsing y resolución), D (verificación de red de que la imagen existe)
+
+---
+
+### Pitfall 7: Un request HTTP por `og:image` sobre 500 URLs
+
+**What goes wrong:**
+Verificar que la `og:image` existe (200, tipo de imagen correcto, tamaño suficiente) requiere red. Hacerlo ingenuamente son 500 requests extra por auditoría — sumados a los 500 del crawl, más los de TECH-12/TECH-13, más PSI. En un sitio con CDN lento eso agrega varios minutos al tiempo de auditoría y hace que el job parezca colgado, que es exactamente el modo de fallo que `MAX_URLS_PER_NETWORK_CHECK` ya existe para prevenir.
+
+Lo irónico: en la gran mayoría de los sitios reales **la `og:image` es la misma en todas las páginas** (imagen por defecto del theme). Sin deduplicar se hacen 500 requests para verificar 1 imagen.
+
+**Why it happens:**
+El check se escribe como `PageCheck` (que es síncrono, así que ni siquiera puede hacer red) o como `NetworkCheck` que itera páginas sin construir el set único primero.
+
+**How to avoid:**
+Reusar tal cual el patrón ya probado de `brokenResourcesCheck` (TECH-13):
+1. `NetworkCheck`, no `PageCheck`.
+2. `Map<urlNormalizada, páginaOrigen>` para deduplicar antes de tocar la red.
+3. `slice(0, MAX_URLS_PER_NETWORK_CHECK)` + la fila `ok` de "verificación limitada" que ya se emite en TECH-13, para ser transparente sobre el muestreo.
+4. `checkLinks()` de `linkChecker.ts`, que ya trae HEAD→GET fallback, timeout de 5s y concurrencia 12.
+
+No escribir un cliente HTTP nuevo. Si hace falta leer `content-length` o `content-type` de la respuesta, extender `LinkCheckResult` en `linkChecker.ts` (cambio pequeño, un solo lugar) en vez de duplicar el fetcher.
+
+**Warning signs:**
+El tiempo de auditoría del fixture sube más de ~20% respecto a v1.5. Aparecen timeouts o rate-limit del CDN del sitio auditado durante la fase de checks (no durante el crawl).
+
+**Phase to address:** D
+
+---
+
+### Pitfall 8: Medir "response time" de forma no representativa
+
+**What goes wrong:**
+El crawler corre con `maxConcurrency: 5`, `maxRequestsPerMinute: 120` y `maxRequestRetries: 2` (`packages/crawler/src/crawl.ts`). Si el response time se mide con reloj de pared alrededor del handler o de la request encolada, se está midiendo **la propia auto-limitación del crawler**, no la velocidad del servidor: a 120 req/min el rate limiter inserta esperas de cientos de milisegundos que se atribuirían injustamente al sitio auditado. Peor: si la request fue un reintento, el tiempo puede incluir el backoff de Crawlee.
+
+Encima, el número resultante va a contradecir al TTFB que PSI/CrUX ya muestra en el mismo reporte (que es de campo, desde clientes reales, con otra geografía y otra red). Dos métricas de "velocidad" que no coinciden, en el mismo PDF, sin explicación, es un problema de credibilidad, no de código.
+
+**Why it happens:**
+`Date.now()` antes y después es la implementación de una línea, y el sesgo por la cola no se ve en desarrollo (donde se prueba con pocas URLs y sin saturar el limiter).
+
+**How to avoid:**
+- Medir **sólo la transacción HTTP**, no el tiempo en cola ni el parseo. Con `got-scraping` (lo que usa `CheerioCrawler` por debajo) esto sale de los timings del propio request, no de un cronómetro externo. Si no se puede acceder a los timings sin tocar el hot path, es preferible **no** enviar la métrica que enviarla sesgada.
+- Descartar explícitamente las mediciones de requests que tuvieron reintentos.
+- Etiquetar la métrica de forma honesta en la UI: "tiempo de respuesta medido por el crawler (1 muestra, sin caché de navegador, desde el datacenter del worker)" — y decir en la propia UI que **no** es comparable con el TTFB de campo de la sección de rendimiento.
+- Reportar mediana/p75 del sitio, nunca el promedio: una sola página lenta distorsiona la media y genera una recomendación falsa.
+- **Riesgo de proceso:** esto obliga a tocar `packages/crawler`, el único componente que todos los milestones v1.1-v1.5 evitaron modificar (todos fueron aditivos). Aislarlo en su propia fase, con el fixture de crawl corriendo antes y después.
+
+**Warning signs:**
+El response time medido correlaciona con la posición de la URL en el orden de crawl (señal inequívoca de contaminación por la cola). Los valores se agrupan sospechosamente cerca de 500ms (= 60000/120). El sitio del propio Juan mide "lento" y el navegador dice lo contrario.
+
+**Phase to address:** A
+
+---
+
+### Pitfall 9: "HTML size" que mide algo distinto a lo que el usuario cree
+
+**What goes wrong:**
+`Page.html` ya está persistido, así que el tamaño parece gratis: `Buffer.byteLength(page.html)`. Pero ese es el tamaño **descomprimido y ya decodificado** del HTML. Lo que le importa al usuario (y lo que reporta Lighthouse en "Total Byte Weight", que ya aparece en la sección de rendimiento del mismo reporte desde v1.3) es el tamaño **transferido**, con gzip/brotli aplicado — típicamente 4-6× menor. Reportar 480 KB donde Lighthouse dice 95 KB, en el mismo documento, sin aclaración, es un bug de credibilidad.
+
+Segundo problema: `content-length` y `content-encoding` **no están** en `CURATED_HEADER_KEYS` (`packages/crawler/src/captureHeaders.ts`), así que el dato real de transferencia no se está persistiendo hoy.
+
+**Why it happens:**
+El campo ya está en la DB y "tamaño de HTML" suena inequívoco. No lo es.
+
+**How to avoid:**
+- Agregar `content-length` y `content-encoding` al allowlist de `CURATED_HEADER_KEYS`. Respetar la invariante documentada ahí: el allowlist es la única superficie que se persiste y es control de seguridad (T-25-02/03) — se extiende agregando claves a la lista, nunca iterando las keys entrantes.
+- Reportar **los dos** números con etiquetas distintas: "HTML transferido (comprimido)" y "HTML sin comprimir". La diferencia entre ambos es en sí misma un hallazgo accionable: si son iguales, el sitio **no tiene compresión activada**, que es un issue real y valioso (y complementa, sin duplicar, el diagnóstico de compresión de Lighthouse de v1.3 — verificar el solapamiento antes de emitir ambos).
+- Si `content-length` viene ausente (respuesta con `transfer-encoding: chunked`, muy común detrás de CDN), degradar limpio: reportar sólo el tamaño sin comprimir, marcado como tal. Nunca inventar el dato.
+
+**Warning signs:**
+El número de "HTML size" del reporte es sistemáticamente ~5× el de la sección de rendimiento. Sitios detrás de Cloudflare reportan tamaño nulo o faltante.
+
+**Phase to address:** A
+
+---
+
+### Pitfall 10: Umbrales de longitud de `og:title`/`og:description` tratados como reglas duras
+
+**What goes wrong:**
+Se codifican límites tipo "og:title ≤ 60 caracteres, og:description ≤ 120" y se emite `critical`/`warning` al pasarlos. El problema: **ninguna plataforma publica límites oficiales de Open Graph**. Facebook explícitamente no da tope para `og:description`, sólo recomienda 2-4 oraciones. Los números que circulan son observaciones de truncado visual, que dependen de plataforma, desktop vs móvil, ancho del viewport, idioma, y del rediseño de turno. Las fuentes secundarias que los publican se contradicen entre sí (60-70 vs 40-50 caracteres para el mismo `og:title` según dispositivo). Un check que diga "excede el límite" está afirmando algo falso, y va a envejecer mal y en silencio.
+
+**Why it happens:**
+Es el patrón mental heredado del `<title>`/meta description de SEO clásico, donde sí hay umbrales establecidos (y donde igual son píxeles, no caracteres).
+
+**How to avoid:**
+- Severidad máxima `warning`, nunca `critical`, para cualquier check de longitud social.
+- Redactar el `measuredValue`/`criterion` como **riesgo**, no como violación: "78 caracteres — puede recortarse en el preview móvil de Facebook" en vez de "excede el límite de 60".
+- Centralizar los umbrales en **un solo módulo de constantes** con comentario de fecha y fuente. Cuando (no si) cambien, es un archivo.
+- Emitir `critical` sólo por hechos verificables y estables: tag ausente, `content` vacío, `og:image` relativa, `og:image` que devuelve 404. Esos no dependen del diseño de nadie.
+- El caso de longitud **cero o casi cero** (`og:description` de 12 caracteres) es más accionable que el de exceso y casi nadie lo chequea.
+
+**Warning signs:**
+Sitios bien optimizados reciben `critical` por longitud. Las recomendaciones citan un número exacto de caracteres como si fuera normativo.
+
+**Phase to address:** C
+
+---
+
+### Pitfall 11: Vender el panel de preview como "así se va a ver", cuando no es cierto
+
+**What goes wrong:**
+El panel visual promete mostrar el preview de Google/Twitter/Facebook/LinkedIn. Tres razones por las que va a mentir:
+
+1. **X cambió el formato del preview en 2023**: primero eliminó título y descripción dejando sólo la imagen con el dominio superpuesto, y después reincorporó parcialmente los headlines (la descripción no volvió). Cualquier mockup de "tarjeta de Twitter" con título + descripción está dibujando un formato que la plataforma ya no usa así.
+2. **LinkedIn cachea agresivamente** por URL. Aunque los tags estén perfectos, el preview real puede mostrar contenido viejo hasta que se fuerza un re-scrape en su Post Inspector. Un usuario que "arregla" los tags según el reporte y ve el preview viejo en LinkedIn va a concluir que la herramienta está mal.
+3. Cada plataforma trunca en píxeles según el viewport, no en caracteres, así que el punto de corte del mockup nunca coincide exactamente.
+
+**Why it happens:**
+Se copia el look de herramientas de preview conocidas sin verificar si el formato que replican sigue vigente. Los mockups de referencia que circulan por internet están congelados en el diseño de 2021.
+
+**How to avoid:**
+- Rebautizar la promesa: "Vista previa aproximada de tus etiquetas" con un disclaimer de una línea. No "así se ve en X".
+- Verificar el formato actual de cada plataforma en el momento de implementar la fase (no confiar en este documento ni en el conocimiento del modelo — es el dato de vida más corta de todo el milestone).
+- Para LinkedIn, agregar en la recomendación el enlace al Post Inspector con la instrucción de forzar re-scrape después de corregir. Eso convierte una fuente de reclamos en un consejo útil, que es exactamente el tipo de detalle que diferencia al lead magnet.
+- Que el panel muestre el **dato crudo** (el valor exacto de cada tag) junto al mockup. El dato crudo no envejece; el mockup sí.
+
+**Warning signs:**
+El mockup del preview no se parece a lo que sale al pegar la URL en la plataforma real. Feedback del tipo "arreglé lo que me dijeron y LinkedIn sigue mostrando lo viejo".
+
+**Phase to address:** E
+
+---
+
+### Pitfall 12: Renderizar contenido controlado por el sitio auditado en el panel de preview
+
+**What goes wrong:**
+El panel de preview muestra, por diseño, strings y una imagen que vienen del HTML de un sitio de terceros arbitrario que el usuario eligió. Superficies de riesgo concretas:
+
+1. **XSS.** React escapa texto, pero no protege si el valor se mete en `dangerouslySetInnerHTML`, en `style`, o como `href`/`src` — un `og:url` con `javascript:` puesto en un `<a href>` es ejecutable. Lo mismo aplica a los snippets de fix (fase F) si se generan concatenando el valor actual del tag dentro del HTML de ejemplo.
+2. **Hotlink de `og:image` desde el navegador del usuario.** Carga un recurso de un dominio arbitrario en la sesión del usuario del reporte: filtra su IP/User-Agent al sitio auditado, puede fallar por protección de hotlinking (preview roto que parece bug propio), y arrastra el `Referer` del reporte.
+3. **Proxear la imagen desde el servidor para evitar (2) crea SSRF**: una `og:image` apuntando a `http://169.254.169.254/` o a una IP privada convierte el proxy en un lector de la red interna.
+4. **`<iframe>` del sitio auditado** para "previsualizar" no funciona en la práctica (la mayoría de los sitios envía `X-Frame-Options`/`frame-ancestors`) y además le entrega la superficie de clickjacking al sitio ajeno. No usarlo.
+5. **CSP.** El proyecto ya tomó una decisión de arquitectura por CSP estricta (v1.4 Phase 22: dendrograma sin librerías de layout en cliente), aunque no encontré cabeceras CSP declaradas en `apps/web/next.config.ts` — hay que confirmar dónde se aplican realmente antes de asumir cualquier cosa. Si existe una `img-src` restrictiva, la `og:image` de un dominio arbitrario será bloqueada y el panel se verá roto sólo en producción, no en desarrollo.
+
+**How to avoid:**
+- Validar y normalizar toda URL extraída con una allowlist de esquemas (`https:`, `http:` y nada más) **antes** de que llegue a la UI. Zod ya está en el stack.
+- Los valores de tag se renderizan siempre como texto, nunca como HTML ni como atributo de navegación.
+- Para los snippets de fix (F): escapar el contenido interpolado, o mejor, generar snippets con **placeholders** (`TU_TITULO_AQUI`) en vez de reinyectar el valor actual del sitio.
+- Decidir explícitamente entre no cargar la imagen (mostrar el estado "imagen: URL X, verificada 200 OK" con un placeholder gráfico) o cargarla con `referrerpolicy="no-referrer"`. Si se opta por proxy, rechazar IPs privadas/loopback/link-local tras resolver DNS y limitar el tamaño de la respuesta.
+- Verificar la CSP efectiva en producción con la `og:image` de un dominio externo antes de dar la fase por cerrada.
+
+**Warning signs:**
+El panel funciona en local y se ve roto en Vercel. Errores de CSP en la consola sólo en producción. Cualquier ruta nueva que reciba una URL por query param y haga fetch.
+
+**Phase to address:** E (renderizado y CSP), F (generación de snippets), y una revisión del `SECURITY.md` que v1.5 inauguró
+
+---
+
+### Pitfall 13: El diff entre corridas se llena de ruido en la primera auditoría v1.6
+
+**What goes wrong:**
+`diffIssues` compara por `fingerprint`. Dos efectos combinados en la primera auditoría v1.6 de un sitio ya auditado:
+- Todos los `SOCIAL-*` son fingerprints nuevos → aparecen como **"nuevos"**, aunque el sitio no haya cambiado nada. Un usuario recurrente ve "aparecieron 340 problemas nuevos" y concluye que su sitio empeoró.
+- Si se retira ONPAGE-05 (Pitfall 1), todos sus fingerprints desaparecen del set actual → `diffIssues` los marca como **"resueltos"**, felicitando al usuario por arreglar algo que nunca arregló.
+
+**Why it happens:**
+El diff es puro y correcto; el supuesto implícito es que el catálogo de checks es estable entre corridas. Ningún milestone anterior agregó checks a categorías ya diffeadas de forma masiva.
+
+**How to avoid:**
+- La opción barata y honesta: detectar en la UI del historial cuándo la auditoría previa fue de una versión anterior del catálogo y mostrar un aviso ("esta auditoría incluye una categoría nueva; los cambios respecto a la anterior no son comparables"). Requiere versionar el catálogo — un entero en `Audit`, no un sistema.
+- Alternativa más cara: excluir del diff los `checkId` que no existían en la auditoría previa. Más correcto, pero necesita saber qué checks corrieron en cada auditoría.
+- Lo que **no** hay que hacer es reusar los fingerprints de ONPAGE-05 en los checks nuevos para "preservar continuidad": eso hace que el diff mienta en la dirección opuesta y ensucia el catálogo permanentemente.
+
+**Warning signs:**
+La primera auditoría v1.6 de juan-tech.com muestra cientos de issues "nuevos" y decenas de "resueltos" sin que el sitio haya cambiado.
+
+**Phase to address:** B (versionado del catálogo), y verificación en la fase que cierre el milestone
+
+---
+
+### Pitfall 14: La categoría nueva llega al reporte web pero desaparece de los exports
+
+**What goes wrong:**
+`buildReportModel` es single source of truth **de los datos**, no de las etiquetas. Las etiquetas de categoría están duplicadas en al menos dos lugares (`packages/export/src/labels.ts` y `apps/web/app/components/ui/labels.ts`), y `CATEGORY_ORDER` está hardcodeado en `packages/report-model/src/build.ts` como `["tech", "perf", "onpage", "schema", "aeo"]`. Una categoría nueva que no se agregue a `CATEGORY_ORDER` queda fuera del orden de renderizado; una que no esté en cada `labels.ts` se muestra sin nombre o directamente se omite. El efecto típico: se ve perfecto en la web y falta en el PDF/PPTX, que es lo que el usuario comparte con su cliente.
+
+**Why it happens:**
+La lección de v1.5 (resolver en `buildReportModel` para que llegue gratis a los exports) se generaliza de más: llega gratis lo que fluye por el modelo, no lo que está hardcodeado en los serializers.
+
+**How to avoid:**
+- Derivar las etiquetas de un único mapa exportado y tipado por la union `Category`, de modo que TypeScript falle al compilar cuando falte un caso (`Record<Category, string>` ya lo hace si el tipo se extiende correctamente — verificar que ambos `labels.ts` estén tipados así y no como `Record<string, string>`).
+- Test de export: generar los 3 formatos desde un fixture que incluya la categoría social y afirmar que el nombre de la categoría aparece en el output de cada uno.
+- Recordar que el bug abierto de export PDF (`pdf-export-crash-reading-s`) puede enmascarar este fallo: si el PDF no genera, nadie va a notar que además le falta una categoría.
+
+**Warning signs:**
+El PDF tiene 5 tarjetas de categoría y la web 6. Suma de porcentajes que no cierra en algún export.
+
+**Phase to address:** E, con verificación en la fase de cierre del milestone
 
 ---
 
 ## Technical Debt Patterns
 
-Atajos que parecen razonables pero generan problemas a largo plazo.
-
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Copiar/adaptar el set de firmas público de Wappalyzer (enthec/webappanalyzer) en vez de escribir firmas propias desde cero | Ahorra semanas de investigación de patrones (CSS classes, headers, cookies por plataforma) | Firmas de terceros cambian de formato/licencia y requieren revisión periódica; heredas también sus falsos positivos conocidos si no filtras | Aceptable para el MVP de esta milestone SIEMPRE que se documente la fuente y se filtre/adapte solo el subconjunto relevante (CMS/builder/CDN/analytics), no importar el dataset completo (cientos de tecnologías irrelevantes al auditor) |
-| Detectar CMS con una sola señal fuerte (ej. solo meta generator, o solo un header) y no combinar señales con scoring | Rápido de implementar, código simple | Falsos negativos sistemáticos ante hardening de seguridad o CDN (pitfalls 2 y 4); usuarios notan que el "stack detectado" está mal en sitios reales y pierden confianza en todo el reporte | Nunca aceptable ni para MVP — el costo de combinar 3-4 señales con scoring es bajo comparado con el daño reputacional de un fingerprint visiblemente incorrecto en un lead magnet |
-| Mapear el fix recomendado solo por plataforma, ignorando builder (ver Pitfall 6) | Cubre 4 adapters simples más rápido | Instrucciones inútiles/genéricas para el ~60%+ de sitios WP que usan un builder (Elementor es el más usado del mercado); el "valor agregado" prometido del fix personalizado se diluye | Aceptable en la primera vuelta SOLO si el override por builder se agrega para los 3-5 checks de mayor volumen (alt text, title, meta description, H1) y se deja documentado como deuda explícita para el resto |
-| No re-chequear el fingerprint si el sitio migra de plataforma entre auditorías (usar el fingerprint cacheado de la corrida anterior) | Evita recalcular fingerprint en cada corrida, más rápido | El feature de "comparación entre corridas" (ya validado en v1) mostraría un diff de stack incorrecto/desactualizado si el sitio cambió de CMS entre auditorías | Nunca aceptable — el fingerprint debe recalcularse en cada auditoría completa, es barato (Cheerio-first, sin Playwright) comparado con el resto del crawl |
+| Dejar ONPAGE-05 vivo junto a los `SOCIAL-*` "por ahora" | Cero riesgo de romper el diff y el score histórico | Doble penalización permanente; el peso real del OG en el overall queda indefinido y nadie recuerda por qué | Sólo si se compensa bajando el peso de `onpage` **en el mismo commit** y se registra en Key Decisions |
+| Emitir el favicon como `PageCheck` para reusar el `$` ya parseado | Ahorra escribir un `SiteCheck` con re-parseo del home | 500 filas idénticas por auditoría, denominador del health-ratio contaminado, tabla de issues inflada | Nunca — el costo aparece en la primera auditoría real |
+| Medir response time con `Date.now()` alrededor del handler | Una línea, funciona en dev | Métrica sesgada por el propio rate limiter que se publica como si fuera del sitio auditado; destruye credibilidad y es difícil de detectar después | Nunca. Preferible no enviar la métrica |
+| Reportar tamaño de HTML desde `Page.html` sin `content-length` | El dato ya está en la DB, cero cambios al crawler | Contradice al Total Byte Weight de Lighthouse en el mismo reporte; se pierde el hallazgo de "sin compresión" | Aceptable en MVP **sólo** si la etiqueta dice explícitamente "sin comprimir" |
+| Hardcodear umbrales de longitud dispersos en cada check | Rápido de escribir | Cuando una plataforma cambie el truncado hay que tocar N archivos y nadie sabe cuáles | Nunca — centralizar cuesta 10 minutos |
+| Verificar `og:image` sin deduplicar | Implementación directa | 500 requests para verificar 1 imagen; minutos de auditoría; riesgo de rate-limit del CDN ajeno | Nunca — `brokenResourcesCheck` ya tiene el patrón hecho |
+| Panel de preview con mockups estáticos copiados de otra herramienta | Se ve bien de inmediato | Replica formatos de plataforma ya obsoletos; envejece sin que nadie se entere | Aceptable si va con disclaimer y se muestra el valor crudo del tag al lado |
+
+---
 
 ## Integration Gotchas
 
-Errores comunes al conectar con señales/servicios externos para fingerprinting.
-
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Headers HTTP de origen (`Server`, `X-Powered-By`) | Asumir que reflejan el servidor/stack real | Tratarlos como señal de baja confianza por sí solos; combinarlos con paths de assets, cookies y patrones de HTML. Nunca reportar ausencia de header como "no usa X" — reportar como señal no disponible |
-| CDN/WAF (Cloudflare, Fastly, Akamai) | Detectar solo un CDN cuando hay CDN chaining (ej. Cloudflare al frente + CloudFront/Fastly detrás para origin shielding) | Reportar el CDN "externo" (el que ve el crawler, vía DNS/CNAME si es viable o headers como `cf-ray`) como el dato principal, y aclarar en el copy que puede haber capas adicionales no visibles desde fuera |
-| Meta generator / firmas de versión | Usarlo como única fuente de verdad de plataforma y versión | Usarlo solo como bonus de alta confianza cuando está presente; el CMS en sí debe determinarse por señales estructurales (paths, cookies, patrones de API) que sobreviven a su remoción |
-| WordPress REST API (`/wp-json/`) como señal de refuerzo | No sondearla nunca, perdiendo la oportunidad de recuperar detección en sitios headless/hardened | Una request HEAD/GET barata a `/wp-json/` (dentro del presupuesto de Cheerio-first, sin Playwright) puede confirmar WordPress incluso cuando el HTML servido no lo delata |
-| Wappalyzer / bases de firmas de terceros | Importar el dataset completo sin filtrar y sin plan de actualización, dejándolo desactualizarse silenciosamente | Importar solo el subconjunto relevante al alcance de este auditor (CMS, builders, CDN, hosting, framework JS, analytics) y versionarlo como código propio revisable, no como dependencia externa sin control de cambios |
-| Analytics/Tag Manager (GTM, GA4, etc.) | Detectar solo el contenedor de GTM y asumir que revela qué analytics real corre dentro (GTM enmascara las tags reales que dispara) | Reportar "Google Tag Manager detectado" como su propia categoría, distinta de "Google Analytics detectado directamente" — no colapsar ambas en una sola conclusión, porque GTM puede no tener GA4 configurado o tener otras herramientas |
+| Crawlee / `CheerioCrawler` | Cronometrar el `requestHandler` y llamarlo "response time" del sitio | Usar los timings del request HTTP; descartar reintentos; si no se accede a ellos sin tocar el hot path, no publicar la métrica |
+| `curateHeaders` (v1.5) | Leer `content-length` de `response.headers` en el check, asumiendo que se persistió | No se persiste: el allowlist es cerrado. Agregar `content-length` y `content-encoding` a `CURATED_HEADER_KEYS`, respetando la invariante de que el allowlist es superset de todo lo que se lee |
+| `linkChecker` / `checkLinks` | Escribir un fetcher nuevo para validar `og:image` | Reusar `checkLinks` + `MAX_URLS_PER_NETWORK_CHECK`; extender `LinkCheckResult` en un solo lugar si hacen falta `content-type`/`content-length` |
+| Crawlers de Facebook / LinkedIn | Asumir que resuelven `og:image` relativa como lo hace un navegador | No lo hacen: traen la página desde sus servidores. Exigir URL absoluta con https y reportar la relativa como fallo real |
+| X (Twitter) | Reportar `twitter:*` ausentes como error; dibujar la card con título + descripción | La cadena de fallback a `og:*` es válida; el formato de preview de X cambió en 2023-2024 (sin descripción). Verificar el formato vigente al implementar |
+| LinkedIn | Asumir que el preview se actualiza solo al corregir los tags | Cachea por URL. La recomendación debe incluir forzar re-scrape en el Post Inspector |
+| Google (favicon) | Chequear favicon por página | Google toma un favicon por sitio, descubierto desde el home. Cuadrado, ≥ 48×48 recomendado, cualquier formato válido (ICO/PNG/SVG) |
+| PSI / Lighthouse (ya integrado) | Publicar "response time" y "HTML size" propios sin relacionarlos con el TTFB de campo y el byte weight ya presentes | Etiquetar explícitamente metodología y alcance de cada número, o unificarlos en una sola sección de rendimiento |
+
+---
 
 ## Performance Traps
 
-Patrones que funcionan a pequeña escala pero fallan al crecer.
-
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Correr el fingerprinting completo (todas las señales) en cada una de las 500 URLs del crawl | El crawl completo se vuelve notablemente más lento por URL, sin beneficio — el stack no cambia página a página en el 99% de los casos | Fingerprintear solo una vez por auditoría, usando la home o las primeras N páginas representativas (reusar el mismo patrón de sampling que ya usa Lighthouse/PSI en v1); persistir el resultado a nivel de `Audit`, no de `Page` | A partir de auditorías con >50-100 URLs, el costo extra ya es perceptible en tiempo total de crawl |
-| Sondear `/wp-json/` u otros endpoints de refuerzo en cada página en vez de una sola vez | Requests HTTP adicionales innecesarias que compiten con el presupuesto de 500 URLs del crawl y pueden disparar rate-limiting/WAF del sitio auditado | Ejecutar las señales de refuerzo (una request extra tipo `/wp-json/`) una sola vez a nivel de auditoría, no por página, y con manejo de error silencioso (si falla, simplemente no suma esa señal) | Se nota primero como falsos "bloqueos"/429 en sitios con WAF agresivo cuando el crawler además del crawl normal dispara requests de sondeo por cada URL |
+| Un request por `og:image` por página | La auditoría tarda minutos más; el job parece colgado; el CDN del sitio auditado empieza a rate-limitear | Dedupe por URL normalizada + cap de 150 + `checkLinks` | Ya a ~100 URLs con imágenes distintas por página (blogs, e-commerce) |
+| Filas `ok` por página para checks site-level (favicon, charset, viewport) | Filas de `Issue` por auditoría se multiplican; queries del reporte más lentas; Postgres crece rápido | `SiteCheck` o issue agregado (patrón DEPTH-03) | Inmediatamente, en cualquier sitio de 500 páginas |
+| Re-parsear el HTML con Cheerio una vez por check nuevo | CPU del worker sube; el paso de checks se alarga notoriamente | Un solo extractor de meta tags por página, resultado compartido entre todos los checks `SOCIAL-*` (ARCH-03 ya establece "sin re-parseo de HTML" como invariante) | A partir de ~6 checks nuevos × 500 páginas |
+| Cargar N `og:image` de dominios arbitrarios en el panel del reporte | El reporte tarda en pintar; imágenes rotas por hotlink protection; layout shift | Mostrar sólo la imagen de la muestra visible / lazy loading / placeholder con el resultado de la verificación de red | Cuando el panel liste más de un puñado de páginas |
+| Guardar el HTML del preview o los snippets generados por página en Postgres | Crecimiento de la DB, backups más lentos | Generar los snippets en lectura dentro de `buildReportModel` (mismo patrón que las recomendaciones por CMS de v1.5), nunca persistirlos | Al segundo o tercer sitio grande auditado |
+
+---
 
 ## Security Mistakes
 
-Errores de seguridad específicos del dominio, más allá de lo genérico de seguridad web.
-
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Reportar en el reporte público/exportable la versión exacta de WordPress/plugins detectada (si se llega a implementar version fingerprinting) | El reporte de auditoría (PDF/Markdown exportable, ya existe en v1.2) podría filtrar información de vulnerabilidad explotable del sitio del cliente si cae en manos equivocadas (el propio dueño lo comparte, o queda en un enlace no protegido) | Mantener el fingerprint de versión (si se agrega en el futuro) como dato interno de contexto para el motor de fix, no como dato expuesto verbatim en el reporte exportable; si se muestra, evitar precisión de versión exacta de plugins vulnerables conocidos |
-| Sondear activamente endpoints no documentados del sitio auditado (más allá de `/wp-json/`) para "confirmar" fingerprint | Empieza a parecerse a un scan de vulnerabilidades activo sin consentimiento explícito del dueño del dominio de destino — riesgo legal/ético distinto de un crawl SEO normal | Limitar las señales de refuerzo a endpoints públicos estándar y no invasivos (rutas conocidas de assets, robots.txt, sitemap, endpoints REST documentados de la plataforma), nunca fuzzing de rutas ni intentos de login |
+| Renderizar `og:url`/`og:image` de terceros como `href`/`src` sin validar esquema | XSS vía `javascript:`; carga de recursos arbitrarios | Allowlist de esquemas (`http`/`https`) validada con Zod antes de llegar a la UI |
+| Interpolar el valor actual del tag dentro del snippet HTML de fix | Inyección en la UI y en los exports; el snippet copiado por el usuario puede llevar payload a su sitio | Snippets con placeholders, o escapado explícito del contenido interpolado |
+| Proxear `og:image` desde el servidor para esquivar hotlink/CSP | SSRF: lectura de red interna / metadata de la nube desde el worker o desde Vercel | Si se proxea: rechazar IPs privadas, loopback y link-local después de resolver DNS; timeout y límite de tamaño de respuesta |
+| `<iframe>` del sitio auditado para "previsualizar" | Clickjacking + no funciona en la mayoría de los sitios | No usar iframes de sitios de terceros |
+| Construir el mapa de meta tags con un objeto literal indexado por claves del sitio auditado | Prototype pollution (`__proto__` como nombre de tag) | `Map` u objeto sin prototipo — mismo criterio que ya aplica `curateHeaders` |
+| Persistir valores completos de meta tags sin revisar | Los meta tags pueden contener datos personales; el proyecto ya declara "exports sin PII" como requisito de v1.2 | Revisar qué se persiste y qué llega a los exports; truncar valores largos |
+
+---
 
 ## UX Pitfalls
 
-Errores comunes de experiencia de usuario en este dominio.
-
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Mostrar el stack detectado con el mismo peso visual/certeza sin importar el nivel de confianza (ver Pitfall 1) | El usuario confía ciegamente en una detección de baja confianza, y si resulta incorrecta, pierde confianza en TODO el reporte (incluidos los checks SEO que sí son 100% verificables) | Usar un indicador visual de confianza (badge "detectado" vs. "probable" vs. "no identificado") en la tabla de stack, consistente con los badges de severidad que ya existen en el design system del proyecto |
-| Usar lenguaje que suena a fallo del sistema ("no se pudo detectar", "error") cuando el resultado es simplemente "no identificado" | Sensación de que la herramienta está rota o es de baja calidad, cuando en realidad "no identificado" es un resultado legítimo (ej. sitio headless, o CMS custom real) | Reformular como información útil ("Frontend desacoplado detectado — no se identificó un CMS tradicional desde el HTML público"), nunca como error del sistema |
-| Recomendaciones de fix genéricas que mencionan "tu plataforma" sin nombrarla cuando el fallback genérico está activo, sonando como que sí se detectó algo | Confunde al usuario sobre si su plataforma fue reconocida o no | El fallback genérico debe ser explícito sobre que es genérico ("No identificamos tu CMS con certeza; esta recomendación aplica en general a cualquier plataforma") en vez de fingir personalización |
-| Mostrar builder de WordPress con la misma confianza que el CMS en sí, cuando en la práctica el builder es una señal más débil y más propensa a error | El usuario recibe instrucciones específicas de Elementor cuando en realidad tiene Divi, generando fricción y desconfianza | Aplicar el mismo sistema de confianza en dos niveles independientes: confianza de plataforma (WordPress: alta) puede ser alta mientras confianza de builder (Elementor: media) es menor — comunicarlas por separado |
+| Preview presentado como fiel a la plataforma | El usuario corrige y no ve el cambio (caché de LinkedIn, formato distinto en X) → concluye que la herramienta miente | "Vista previa aproximada" + valor crudo del tag + instrucción de forzar re-scrape |
+| 500 issues de "falta og:image", uno por página | La tabla de issues se vuelve inusable; el problema real (la plantilla) se pierde | Agregar por plantilla — el agrupador por template de v1.3 ya existe y aplica perfecto acá |
+| Reportar `twitter:*` faltantes en sitios que ya tienen `og:*` correctos | Ruido; el usuario aprende a desconfiar de la lista | Evaluar la cadena de fallback antes de emitir |
+| Recomendaciones genéricas ("agrega og:image") en un producto que desde v1.5 personaliza por CMS | Retroceso perceptible de calidad respecto al milestone anterior | Extender `packages/cms-adapters` con los `SOCIAL-*` de mayor volumen (dónde se pone la imagen social en Yoast, en Shopify, en Webflow) |
+| Snippet de fix que no se puede copiar de un click, o que no aclara dónde pegarlo | El usuario no lo usa; la feature no genera el "aha" | Botón de copiar + una línea de "dónde va esto" resuelta por CMS detectado |
+| Mostrar response time sin contexto de qué es rápido y qué es lento | Número sin significado | Umbral explícito y comparación con la mediana del propio sitio |
+
+---
 
 ## "Looks Done But Isn't" Checklist
 
-Cosas que parecen completas pero les falta una pieza crítica.
+- [ ] **Checks de OG:** ¿el extractor lee `property` **y** `name`, en minúsculas, con trim, y trata `content` vacío como fallo? Verificar con fixtures de Yoast, RankMath, Shopify, Webflow y Next.js Metadata API.
+- [ ] **`og:image`:** ¿se detecta la relativa, la protocol-relative y la `http:` en sitio https? ¿Se valida la **primera** cuando hay varias?
+- [ ] **`twitter:*`:** ¿la cadena de fallback a `og:*` está implementada, y no sólo documentada?
+- [ ] **Favicon:** ¿es un check site-level de 1 fila y no 500? ¿Acepta ICO, PNG, SVG y `apple-touch-icon`?
+- [ ] **Scoring:** ¿la suma de `CATEGORY_WEIGHTS` = 1.0 está testeada? ¿Se registró el delta del overall del fixture antes/después?
+- [ ] **Doble penalización:** ¿ONPAGE-05 fue retirado, reducido o compensado con peso? ¿Está escrito en Key Decisions?
+- [ ] **Poder discriminante:** ¿la categoría social da resultados distintos entre un sitio bien optimizado y uno sin ninguna etiqueta? ¿Cuál es el score esperado de un sitio promedio?
+- [ ] **Response time:** ¿la medición excluye la espera del rate limiter y los reintentos? ¿Correlaciona con el orden de crawl (señal de contaminación)?
+- [ ] **HTML size:** ¿está etiquetado como comprimido o sin comprimir? ¿Degrada limpio cuando falta `content-length`?
+- [ ] **Red:** ¿la verificación de `og:image` deduplica y respeta `MAX_URLS_PER_NETWORK_CHECK`? ¿Cuánto subió el tiempo total de auditoría del fixture?
+- [ ] **Exports:** ¿la categoría nueva aparece en PDF, Markdown **y** PPTX, con su etiqueta correcta? (Ojo con el crash abierto de PDF, que puede tapar este fallo.)
+- [ ] **CSP en producción:** ¿el panel de preview carga una `og:image` de un dominio externo en Vercel, no sólo en local?
+- [ ] **Diff:** ¿la primera auditoría v1.6 de un sitio ya auditado se explica en la UI, o muestra cientos de falsos "nuevos" y "resueltos"?
+- [ ] **Seguridad:** ¿hay una entrada en `SECURITY.md` para el contenido de terceros renderizado en el panel y para los snippets generados?
 
-- [ ] **Fingerprint de CMS:** Suele faltar el manejo del estado "headless/JAMstack, CMS no identificado" — verificar con un fixture real de WordPress headless o similar (Pitfall 5)
-- [ ] **Fingerprint de builder WordPress:** Suele faltar una regla positiva para Gutenberg (queda como "default/else" implícito) — verificar que un sitio Gutenberg puro se detecte como "Gutenberg", no como "sin builder" (Pitfall 3)
-- [ ] **Motor de recomendaciones:** Suele faltar el nivel de override por builder dentro de la plataforma WordPress — verificar que el fix de alt text difiera visiblemente entre un fixture Elementor y uno Gutenberg (Pitfall 6)
-- [ ] **Comunicación de incertidumbre:** Suele faltar el estado visual "confianza media/baja" en la tabla de stack — verificar que existan al menos 3 estados visuales distintos (alta/media/no identificado), no solo detectado/no-detectado (Pitfall 1)
-- [ ] **CDN detection:** Suele faltar el manejo de "CDN externo detectado, hosting de origen desconocido" como resultado válido y distinto de "sin CDN" — verificar contra un fixture detrás de Cloudflare (Pitfall 2)
-- [ ] **Persistencia del fingerprint:** Suele faltar recalcular el fingerprint en auditorías subsecuentes del mismo sitio (queda cacheado de la primera corrida) — verificar que el campo se recompute en cada `Audit`, no se copie del anterior
-- [ ] **Exportación del reporte:** Suele faltar decidir si el stack detectado y su nivel de confianza viajan también a PDF/Markdown/PPTX (ya existentes en v1.2) — verificar que `buildReportModel` (single source of truth ya establecida) incluya el fingerprint con su confidence, no solo la UI web
+---
 
 ## Recovery Strategies
 
-Cuando los pitfalls ocurren pese a la prevención, cómo recuperarse.
-
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Fingerprint sin campo de confianza ya implementado y usado en varios lugares | MEDIUM | Agregar el campo `confidence` como opcional con default alto (backward-compatible), migrar el motor de recomendaciones para leerlo, y solo después bajar la confianza real donde corresponda; evitar un big-bang rewrite |
-| Catálogo de fixes mapeado solo por plataforma (sin builder) ya con decenas de entradas escritas | MEDIUM | No reescribir todo el catálogo: agregar el campo `builder` opcional al lookup con fallback en cadena (plataforma+builder → plataforma → genérico) y overridear solo los checks de mayor volumen primero (alt text, title, meta description) |
-| Se detectó un falso positivo de plataforma reportado por un usuario/cliente real ya en producción | LOW | Es exactamente el ciclo de vida esperado de un sistema de firmas (igual que Wappalyzer): documentar el caso como fixture de regresión, ajustar/afinar la firma que causó el falso positivo, no intentar prevenir todos los casos posibles de antemano |
-| El adapter genérico (fallback) resultó ser el más usado en producción por errores de detección de plataformas específicas | LOW | Señal útil, no un fallo: revisar qué señales fallan más seguido y priorizar reforzarlas; el fallback genérico bien escrito sigue dando valor real al usuario mientras tanto |
+| Doble penalización detectada tras el lanzamiento | LOW | Retirar ONPAGE-05 del registry y ajustar pesos. Los scores viejos quedan no comparables; anotarlo en el historial |
+| Pesos que no suman 1.0 | LOW | Corregir constantes + test. Los scores emitidos con el bug quedan mal calculados: decidir si se recalculan (los `Issue` están persistidos, así que se puede) |
+| Score social sin poder discriminante | MEDIUM | Recalibrar el catálogo (mover checks triviales a site-level o fuera del score) y recalcular desde los `Issue` persistidos |
+| Response time sesgado ya publicado | MEDIUM | Ocultar la métrica en la UI de inmediato (es una lectura de `buildReportModel`, no hay migración), arreglar la captura y re-medir en la próxima auditoría. Los datos viejos quedan inutilizables |
+| Filas por página que debían ser site-level | MEDIUM | Cambiar la implementación del check + limpiar filas viejas; los scores históricos de la categoría cambian |
+| Preview que muestra un formato de plataforma obsoleto | LOW | Es UI pura: ajustar el mockup y el copy |
+| SSRF/XSS en el panel | HIGH | Deshabilitar el panel, parchear la validación, revisar logs de acceso del proxy si existió |
+| Verificación de `og:image` que hace estallar el tiempo de auditoría | LOW | Es un cap y un dedupe; cambio contenido en un archivo |
+
+---
 
 ## Pitfall-to-Phase Mapping
 
-Cómo las fases del roadmap deberían atender estos pitfalls.
-
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Fingerprint tratado como booleano sin confianza (Pitfall 1) | Fase de diseño del fingerprinter (contrato de datos) | El tipo de retorno del detector incluye `confidence` desde el primer commit; tests cubren un caso de confianza media explícitamente |
-| Headers de servidor como única señal, CDN enmascarando origen (Pitfall 2) | Fase de fingerprinting de CDN/hosting | Fixture de prueba con sitio real detrás de Cloudflare/Fastly produce un resultado útil (CDN detectado, hosting de origen marcado como no determinado), no un fallo silencioso |
-| Gutenberg sin regla positiva (Pitfall 3) | Fase del adapter WordPress + builder | Fixture de sitio WP con Gutenberg puro se detecta explícitamente como "Gutenberg", verificado en test |
-| Meta generator como única señal de CMS (Pitfall 4) | Fase de fingerprinting de CMS | Fixture sin meta generator (hardening simulado) sigue detectando WordPress vía otras señales |
-| Arquitecturas headless rompen firmas clásicas (Pitfall 5) | Fase de fingerprinting de CMS | Fixtures de WordPress headless/WPGraphQL y Shopify Hydrogen incluidos en la suite desde el inicio; producen el estado "headless/JAMstack, CMS no identificado" en vez de falso positivo/negativo silencioso |
-| Fix mapeado solo por plataforma, ignorando builder (Pitfall 6) | Fase del motor de recomendaciones | El fix de alt text (o el primer check implementado) difiere visiblemente entre fixture Elementor y fixture Gutenberg en QA manual |
-| Comunicación de incertidumbre al usuario | Fase de UI de la tabla de stack en el reporte | Diseño incluye al menos 3 estados visuales de confianza, revisado contra el design system tokenizado existente (Badge de severidad ya establecido en v1.1) |
+| 1. Doble penalización con ONPAGE-05 | B (decisión), C (implementación) | Test que falle si dos checkId de categorías distintas leen el mismo tag OG; delta del overall del fixture registrado |
+| 2. Pesos que no suman 1.0 | B | Test de suma = 1.0; comparación del score del fixture antes/después |
+| 3. Health-ratio diluido | C (catálogo), B (calibración) | Score de la categoría medido sobre 5-6 sitios reales de perfiles distintos; spread mínimo esperado documentado |
+| 4. Checks site-level como page-level | C | Conteo de filas `Issue` por auditoría del fixture vs v1.5; favicon = 1 fila |
+| 5. Selector `property` vs `name` | C | Fixtures de Yoast/RankMath/Shopify/Webflow/Next.js; contraste contra un validador externo sobre la misma URL |
+| 6. `og:image` relativa / múltiple / fallback de Twitter | C (parsing), D (red) | Fixtures con relativa, protocol-relative, múltiples imágenes y sin `twitter:image` |
+| 7. Un request por imagen sobre 500 URLs | D | Tiempo total de auditoría del fixture (+20% máximo); conteo de requests de red del check |
+| 8. Response time no representativo | A | Ausencia de correlación con el orden de crawl; los reintentos se descartan; el fixture se mide dos veces con resultados estables |
+| 9. HTML size ambiguo | A | `content-length` presente en `CURATED_HEADER_KEYS`; ambos números etiquetados; degradación limpia con `transfer-encoding: chunked` |
+| 10. Umbrales de longitud como reglas duras | C | Ningún `critical` por longitud; umbrales en un solo módulo con fecha y fuente |
+| 11. Preview presentado como fiel | E | Copy revisado; formato de cada plataforma verificado en el momento de implementar; valor crudo del tag visible |
+| 12. Contenido de terceros en la UI (XSS/SSRF/CSP) | E, F | Validación de esquema con Zod; prueba en producción con `og:image` de dominio externo; entrada en `SECURITY.md` |
+| 13. Ruido en el diff | B (versionado de catálogo) | Diff de la primera auditoría v1.6 sobre un sitio ya auditado en v1.5 |
+| 14. Categoría ausente en exports | E + cierre | Test de los 3 exports desde un fixture con categoría social |
+
+---
 
 ## Sources
 
-- [Wappalyzer: How to hide technologies from Wappalyzer](https://www.wappalyzer.com/articles/how-to-hide-technologies-from-wappalyzer/) — MEDIUM confidence
-- [Wappalyzer GitHub issue #852: false-positive app detection](https://github.com/wappalyzer/wappalyzer/issues/852) — MEDIUM confidence
-- [enthec/webappanalyzer — mantenimiento comunitario de firmas Wappalyzer](https://github.com/enthec/webappanalyzer) — MEDIUM confidence
-- [YesWeHack — HTTP fingerprinting: reconning for web apps' hidden flaws](https://www.yeswehack.com/learn-bug-bounty/recon-series-http-fingerprinting) — MEDIUM confidence
-- [Cloudflare Community — Cloudflare proxy stripping response CORS headers](https://community.cloudflare.com/t/cloudflare-proxy-stripping-response-cors-headers/173809) — MEDIUM confidence (discusión comunitaria, cruzada con comportamiento documentado de CDNs)
-- [Medium — TIL Cloudflare fingerprints your TLS handshake, not just your headers](https://medium.com/@michaeloblak/til-cloudflare-fingerprints-your-tls-handshake-not-just-your-headers-and-how-to-impersonate-113829b18889) — MEDIUM confidence
-- [WordPress.com — What Is Headless WordPress](https://wordpress.com/blog/2025/03/20/headless-wordpress/) — MEDIUM confidence
-- [WPGraphQL extensions directory](https://www.wpgraphql.com/extensions) — MEDIUM confidence
-- ["Remove Meta Generators" plugin, WordPress.org](https://wordpress.org/plugins/remove-meta-generators/) y ["Meta Generator and Version Info Remover"](https://wordpress.org/plugins/meta-generator-and-version-info-remover/) — MEDIUM confidence
-- [SERT Media — How To Remove WordPress Generator Meta Tag & Does It Matter?](https://sertmedia.com/remove-wordpress-generator-meta-tag/) — MEDIUM confidence
-- [Stackcrawler — WordPress Website Builder Detector](https://stackcrawler.com/wordpress-website-builder-detector) — MEDIUM confidence (firmas de Elementor/Divi/WPBakery/Gutenberg)
-- [WPBakery — How to edit a WordPress website without coding: comparación de builders](https://wpbakery.com/blog/how-to-edit-wordpress-website-without-coding/) — MEDIUM confidence
-- [Screaming Frog Review 2026](https://thestacc.com/reviews/screaming-frog/) y [SEO Tool Insider — Screaming Frog Review 2026](https://www.seotoolinsider.com/screaming-frog-review) — MEDIUM confidence (limitaciones generales del tool de referencia del dominio)
-- [AI UX Playground — Confidence Score pattern](https://aiuxplayground.com/pattern/confidence-score/) — MEDIUM confidence
-- [Medium — UX Patterns for AI Confidence Scores and Risk Alerts](https://medium.com/@vamsiparasar1992/ux-patterns-for-ai-confidence-scores-and-risk-alerts-e8624e34cfd9) — MEDIUM confidence
-- [CoCreate Field Notes — Probabilistic UX Design: Designing for AI Uncertainty and Confidence](https://cocreate.consulting/field-notes/probabilistic-ux-design-patterns) — MEDIUM confidence
-- [Stack Interface — 7 Adapter Design Pattern Secrets Every Developer Must Know](https://stackinterface.com/adapter-design-pattern/) — MEDIUM confidence
-- [Medium — Plug-in Architecture and the story of the data pipeline](https://medium.com/omarelgabrys-blog/plug-in-architecture-dec207291800) — MEDIUM confidence
-- [DetectZeStack — How to Detect What CMS a Website Uses](https://detectzestack.com/blog/detect-what-cms-website-uses) — MEDIUM confidence (cookies/CNAME por plataforma: Shopify, WordPress, Squarespace)
-- [DetectZeStack — CDN Checker: Find Any Website's CDN & Hosting](https://detectzestack.com/blog/detect-cdn-hosting-provider) — MEDIUM confidence (CDN chaining, multi-señal DNS/headers/TLS)
-- [WebReveal — How to Detect if a Website Uses a CDN](https://webreveal.io/blog/how-to-detect-website-cdn.html) — MEDIUM confidence
+- Código de este repositorio (HIGH — lectura directa): `packages/scoring/src/{categoryScore,overallScore,diff}.ts`, `packages/checks/src/checks/onpage/openGraph.ts`, `packages/checks/src/types.ts`, `packages/checks/src/checks/network/{linkChecker,brokenResources}.ts`, `packages/crawler/src/{crawl,captureHeaders}.ts`, `packages/report-model/src/build.ts`, `packages/db/prisma/schema.prisma`, `apps/web/next.config.ts`
+- `.planning/PROJECT.md` — Key Decisions de v1.0-v1.5 (health-ratio, CSP estricta, buildReportModel como SSOT, resolución en lectura de recomendaciones por CMS) — HIGH
+- [Google Search Central — Define Website Favicon for Search Results](https://developers.google.com/search/docs/appearance/favicon-in-search) — favicon site-level descubierto desde el home, cuadrado, ≥48×48 recomendado, cualquier formato válido — HIGH (documentación oficial)
+- [Social Media Today — X's Updated Link Preview Format Is Now Live](https://www.socialmediatoday.com/news/xs-updated-link-preview-format-removes-headlines-descriptions/695681/) y [Headlines Are Now Returning to Link Previews on X](https://www.socialmediatoday.com/news/headlines-now-returning-link-previews-on-x/703479/) — cambio de formato de preview de X (títulos y descripciones removidos, headlines reincorporados parcialmente) — MEDIUM (prensa especializada, dos fuentes coincidentes; X no documenta esto)
+- [Veonr — Relative vs Absolute URL for Open Graph Image](https://veonr.com/blog/relative-vs-absolute-og-image-video-urls) y [PreviewOG — OG Image Guide](https://previewog.com/og-image-guide/) — el crawler de Facebook no resuelve rutas relativas; mínimo 200×200, recomendado 1200×630 — MEDIUM (fuentes secundarias coincidentes, consistentes con la especificación del protocolo OG que exige URL válida con esquema http/https)
+- [OGTester — maximum length of og:title and og:description](https://ogtester.com/blog/what-is-maximum-length-of-og-title-and-og-description) y [Letter Counter — Open Graph Character Limits](https://lettercounter.org/blog/og-title-character-limit/) — no hay límites oficiales; los números publicados son observaciones de truncado y **se contradicen entre fuentes** (60-70 vs 40-50 para `og:title` según dispositivo) — LOW en los números concretos, HIGH en la conclusión de que no deben tratarse como reglas duras
+- [dev.to — 7 Open Graph Tag Mistakes That Make Your Links Look Broken](https://dev.to/levinunnink/7-open-graph-tag-mistakes-that-make-your-links-look-broken-5h2g) — errores frecuentes de OG en la práctica (relativas, caché de plataformas) — MEDIUM
 
 ---
-*Pitfalls research for: Tech-stack fingerprinting + CMS-personalized fix recommendations (v1.5)*
-*Researched: 2026-07-21*
+*Pitfalls research for: auditoría de meta tags / Open Graph / social preview sobre un crawler SEO existente*
+*Researched: 2026-07-31*
