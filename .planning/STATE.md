@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Fingerprinting técnico + fixes personalizados por CMS
-status: Awaiting next milestone
-stopped_at: Phase 27 complete (verificación + nyquist + security pasados), milestone v1.5 100% completo — pendiente lifecycle (audit → complete → cleanup)
-last_updated: "2026-07-25T15:55:53.968Z"
-last_activity: 2026-07-25
-last_activity_desc: Milestone v1.5 completed and archived
+milestone: v1.6
+milestone_name: Meta Tags / Social
+status: planning
+last_updated: "2026-07-31T18:07:05.762Z"
+last_activity: 2026-07-31
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 12
-  completed_plans: 12
-  percent: 100
-current_phase: 27
-current_phase_name: motor-de-recomendaciones-por-cms-patr-n-adaptador-fallback
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-25 after Phase 27)
 
 ## Current Position
 
-Phase: Milestone v1.5 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-25 — Milestone v1.5 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-31 — Milestone v1.6 started
 
 ## Milestone v1.5 — Phases
 

@@ -8,9 +8,18 @@ Herramienta de auditoría web tipo "Screaming Frog pero más completo y automati
 
 Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado. Si todo lo demás falla, el crawler + reporte de auditoría debe funcionar y ser confiable.
 
-## Current Milestone: ninguno — planificando próximo (post v1.5)
+## Current Milestone: v1.6 Meta Tags / Social
 
-v1.5 shipped 2026-07-25 (ver abajo). Próximo milestone aún no definido — arrancar con `/gsd-new-milestone`.
+**Goal:** Nueva categoría de score que audita meta tags/Open Graph/Twitter Card por página, con panel visual de preview social, métricas de performance propias (response time/HTML size) y snippets de fix listos pa copiar.
+
+**Target features:**
+- Checks nuevos de meta tags/social: og:title/description/image, Twitter Card, favicon, charset/viewport (separados de On-Page existente)
+- Score propio "Meta Tags/Social" sumado a Técnico/On-Page/CWV/AEO
+- Panel visual dedicado en el reporte con preview social (Google/Twitter/Facebook/LinkedIn)
+- Response time + HTML size por página (nuevo, no viene de PSI/CWV)
+- Snippets HTML de fix por tag faltante/mal configurado
+
+v1.5 shipped 2026-07-25 (ver abajo).
 
 ## Prior State: v1.5 shipped 2026-07-25
 
@@ -77,7 +86,7 @@ Seis milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca),
 
 <!-- Current scope. Building toward these. -->
 
-v1.5 completa (Phases 25, 26, 27 shipped). Pendiente cierre de milestone.
+v1.6 en definición — Meta Tags/Social (score propio, panel visual, performance por página, fix snippets).
 
 ### Out of Scope
 
@@ -160,4 +169,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after Phase 27 — v1.5 milestone completo, cierre pendiente*
+*Last updated: 2026-07-31 — Milestone v1.6 Meta Tags/Social iniciado*
