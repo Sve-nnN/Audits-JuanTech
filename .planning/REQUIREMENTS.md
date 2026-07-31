@@ -1,0 +1,112 @@
+# Requirements: Auditor Web (SEO/Técnico) — Milestone v1.6 Meta Tags / Social
+
+**Defined:** 2026-07-31
+**Core Value:** Que cualquier persona ingrese una URL y reciba una auditoría completa, precisa y accionable de su web (con errores reales priorizados por severidad), a cambio de su email verificado.
+
+## v1.6 Requirements
+
+Requirements para el milestone Meta Tags / Social. Cada uno mapea a fases del roadmap.
+
+### SOCIAL — checks de meta/social por página
+
+- [ ] **SOCIAL-01**: og:title presente + longitud (10–60 chars)
+- [ ] **SOCIAL-02**: og:description presente + longitud (55–200 chars)
+- [ ] **SOCIAL-03**: og:image presente + URL absoluta HTTPS
+- [ ] **SOCIAL-04**: og:url presente + coherente con canonical
+- [ ] **SOCIAL-05**: og:type presente
+- [ ] **SOCIAL-06**: tags OG duplicados (mismo property, valores distintos)
+- [ ] **SOCIAL-07**: twitter:card presente + valor válido (regla anti-falso-positivo: resto de twitter:* solo se evalúa si falta también el OG equivalente)
+- [ ] **SOCIAL-08**: charset declarado dentro del primer 1KB
+- [ ] **SOCIAL-09**: retiro de ONPAGE-05 (absorbido en esta categoría), con guardarraíl de cero issues duplicados por fingerprint
+
+### IMG — validación de og:image (infra nueva)
+
+- [ ] **IMG-01**: fetcher de imágenes dedupeado por URL (HEAD + GET parcial), mismo patrón que `brokenResourcesCheck` (TECH-13)
+- [ ] **IMG-02**: og:image alcanzable — sin 4xx/5xx, content-type es imagen
+- [ ] **IMG-03**: dimensiones — error si <200×200; warning si 200×200–600×315 o ratio lejos de 1.91:1
+- [ ] **IMG-04**: peso — error sobre 5MB; warning entre 1MB y 5MB
+
+### PAGEPERF — métricas de página (nuevas, independientes de PSI)
+
+- [ ] **PAGEPERF-01**: response time por página medido en el crawl (instrumentar `crawl.ts`), sin requests extra
+- [ ] **PAGEPERF-02**: HTML size por página, persistido en `Page` (migración Prisma)
+- [ ] **PAGEPERF-03**: umbrales de severidad — response time warning >600ms / error >1500ms; HTML size warning >100KB / error >300KB
+
+### SCORE — scoring
+
+- [ ] **SCORE-01**: categoría "social" nueva en `Category` union + `WEIGHTS`
+- [ ] **SCORE-02**: rebalanceo de pesos (onpage .15→.10, schema .10→.05, social .10 nuevo), documentado como corte de versión de catálogo (scores pre/post v1.6 no directamente comparables)
+
+### PREVIEW — panel visual de preview social
+
+- [ ] **PREVIEW-01**: preview Google (estilo SERP)
+- [ ] **PREVIEW-02**: preview Facebook/LinkedIn (layout 1.91:1 compartido)
+- [ ] **PREVIEW-03**: preview X/Twitter (summary vs summary_large_image)
+- [ ] **PREVIEW-04**: estrategia de carga de imagen de terceros — proxy server-side con allowlist del origen auditado, sin hotlink directo
+
+### FIX — snippets de fix
+
+- [ ] **FIX-01**: snippet HTML de fix prellenado con valores reales de la página (title/URL existentes, no template genérico)
+- [ ] **FIX-02**: snippet accesible/copiable en el panel Meta Tags/Social
+
+## Future Requirements
+
+Deferred. Tracked but not in v1.6 roadmap.
+
+### Meta Tags / Social (v1.6.x / v1.7)
+
+- **SOCIAL-10**: previews de WhatsApp / Discord / Slack / Telegram
+- **CMSFIX-08**: snippets de fix por CMS vía `cms-adapters` (extensión del motor de v1.5)
+- **SOCIAL-11**: issue agregado de og:image por defecto compartida en todo el sitio
+- **IMG-05**: favicon alcanzable (más allá de presencia), un request por origen
+- **SOCIAL-12**: og:image:alt / twitter:image:alt
+
+### v2
+
+- Generador de og:image (fuera del modelo "detecta y recomienda, no produce")
+- Editor de preview interactivo (cambiar texto y ver la card actualizarse en vivo)
+- Validación de og:video / og:audio / tags de artículo
+- Comparación de card contra competidores
+
+## Out of Scope
+
+Explícitamente excluido de v1.6. Documentado para prevenir scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| Re-fetch en vivo del preview desde el reporte | Rompe el modelo de snapshot con cuota; abre abuso/SSRF por URL arbitraria |
+| Integración con Facebook Sharing Debugger / X Card Validator vía API | Card Validator de X retirado; Graph API de Meta requiere auth y tiene rate limits agresivos — dependencia frágil para free tier |
+| Fetch de og:image en las 500 páginas sin dedupe | Infla tiempo de crawl y riesgo de rate-limit del sitio auditado; se dedupe por URL de imagen (IMG-01) |
+| Screenshot real de la card renderizada por plataforma | Exige Playwright por página y plataforma; costo desproporcionado. Se reproduce en CSS con tokens del design system |
+| Tratar todos los twitter:* como obligatorios | X hereda de OG; marcar todo como error genera falsos positivos masivos (regla anti-falso-positivo en SOCIAL-07) |
+
+## Traceability
+
+Cuál fase cubre cuáles requirements. Se completa durante la creación del roadmap.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| PAGEPERF-01 | — | Pending |
+| PAGEPERF-02 | — | Pending |
+| PAGEPERF-03 | — | Pending |
+| SOCIAL-01 | — | Pending |
+| SOCIAL-02 | — | Pending |
+| SOCIAL-03 | — | Pending |
+| SOCIAL-04 | — | Pending |
+| SOCIAL-05 | — | Pending |
+| SOCIAL-06 | — | Pending |
+| SOCIAL-07 | — | Pending |
+| SOCIAL-08 | — | Pending |
+| SOCIAL-09 | — | Pending |
+| IMG-01 | — | Pending |
+| IMG-02 | — | Pending |
+| IMG-03 | — | Pending |
+| IMG-04 | — | Pending |
+| SCORE-01 | — | Pending |
+| SCORE-02 | — | Pending |
+| PREVIEW-01 | — | Pending |
+| PREVIEW-02 | — | Pending |
+| PREVIEW-03 | — | Pending |
+| PREVIEW-04 | — | Pending |
+| FIX-01 | — | Pending |
+| FIX-02 | — | Pending |
