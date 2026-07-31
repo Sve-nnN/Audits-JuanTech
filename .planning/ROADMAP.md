@@ -121,7 +121,12 @@ Aditivo sobre v1.0-v1.5 — no toca el pipeline de crawl/checks/scoring existent
   1. Cada página crawleada persiste su tiempo de respuesta (ms) y su tamaño de HTML (bytes), capturados durante el mismo request del crawl, sin llamadas HTTP extra.
   2. Una página con tiempo de respuesta superior a 1500ms o HTML superior a 300KB genera un issue de severidad error; entre 600-1500ms o 100-300KB, un issue de severidad warning.
   3. Un re-crawl de un sitio ya auditado en milestones anteriores sigue completando sin timeouts ni regresiones (smoke test contra un sitio real).
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 28-01-PLAN.md — Slice de punta a punta: columnas `Page.responseMs`/`htmlBytes`, helper `extractPageMetrics`, cableado en el upsert y check PERF-10 registrado
+- [ ] 28-02-PLAN.md — Check PERF-11 (tamaño de HTML) más guardarraíles de colisión de checkId y de contenido del registry
+- [ ] 28-03-PLAN.md — Script `verify-pageperf.mts`, `pnpm db:push` y smoke test de re-crawl (SC#3)
+**Nota de severidad**: el enum real es `IssueSeverity { critical, warning, ok }`; "error" del criterio 2 mapea a `critical`.
 **UI hint**: no
 
 ### Phase 29: Scoring — categoría Social + retiro de ONPAGE-05
