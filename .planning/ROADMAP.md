@@ -122,6 +122,7 @@ Aditivo sobre v1.0-v1.5 — no toca el pipeline de crawl/checks/scoring existent
   2. Una página con tiempo de respuesta superior a 1500ms o HTML superior a 300KB genera un issue de severidad error; entre 600-1500ms o 100-300KB, un issue de severidad warning.
   3. Un re-crawl de un sitio ya auditado en milestones anteriores sigue completando sin timeouts ni regresiones (smoke test contra un sitio real).
 **Plans**: TBD
+**UI hint**: no
 
 ### Phase 29: Scoring — categoría Social + retiro de ONPAGE-05
 **Goal**: El score general reconoce una sexta categoría "Meta Tags/Social" con pesos rebalanceados explícitamente, y el check ONPAGE-05 (ahora redundante con la categoría nueva) se retira sin duplicar issues.
