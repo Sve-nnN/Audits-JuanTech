@@ -114,62 +114,86 @@ Aditivo sobre v1.0-v1.5 — no toca el pipeline de crawl/checks/scoring existent
 ## Phase Details
 
 ### Phase 28: Performance por página
+
 **Goal**: El crawler mide y persiste el tiempo de respuesta y el tamaño del HTML de cada página auditada, sin requests adicionales, y el auditor advierte cuando alguno de los dos supera el umbral esperado.
 **Depends on**: Nada (primera fase de v1.6; toca únicamente `packages/crawler/src/crawl.ts` y el schema de `Page`, el único componente que ningún milestone anterior había modificado)
 **Requirements**: PAGEPERF-01, PAGEPERF-02, PAGEPERF-03
 **Success Criteria** (what must be TRUE):
+
   1. Cada página crawleada persiste su tiempo de respuesta (ms) y su tamaño de HTML (bytes), capturados durante el mismo request del crawl, sin llamadas HTTP extra.
   2. Una página con tiempo de respuesta superior a 1500ms o HTML superior a 300KB genera un issue de severidad error; entre 600-1500ms o 100-300KB, un issue de severidad warning.
   3. Un re-crawl de un sitio ya auditado en milestones anteriores sigue completando sin timeouts ni regresiones (smoke test contra un sitio real).
+
 **Plans**: 3 plans
 Plans:
+**Wave 1**
+
 - [ ] 28-01-PLAN.md — Slice de punta a punta: columnas `Page.responseMs`/`htmlBytes`, helper `extractPageMetrics`, cableado en el upsert y check PERF-10 registrado
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 28-02-PLAN.md — Check PERF-11 (tamaño de HTML) más guardarraíles de colisión de checkId y de contenido del registry
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 28-03-PLAN.md — Script `verify-pageperf.mts`, `pnpm db:push` y smoke test de re-crawl (SC#3)
+
 **Nota de severidad**: el enum real es `IssueSeverity { critical, warning, ok }`; "error" del criterio 2 mapea a `critical`.
 **UI hint**: no
 
 ### Phase 29: Scoring — categoría Social + retiro de ONPAGE-05
+
 **Goal**: El score general reconoce una sexta categoría "Meta Tags/Social" con pesos rebalanceados explícitamente, y el check ONPAGE-05 (ahora redundante con la categoría nueva) se retira sin duplicar issues.
 **Depends on**: Nada directamente (cambio de tipos/constantes en `packages/scoring` y en el registry de `packages/checks`; independiente de Phase 28, se secuencia antes de Phase 30 para no escribir checks contra un modelo de scoring que todavía puede cambiar)
 **Requirements**: SCORE-01, SCORE-02, SOCIAL-09
 **Success Criteria** (what must be TRUE):
+
   1. El modelo de scoring reconoce `"social"` como categoría válida y los pesos de las 6 categorías (técnico, on-page, CWV, datos estructurados, AEO, social) suman 1.0, con on-page (.15→.10) y datos estructurados (.10→.05) reducidos explícitamente para cederle peso a social (.10 nuevo).
   2. El check `ONPAGE-05` ya no está activo en el catálogo de checks; ninguna auditoría nueva produce issues duplicados (mismo fingerprint) entre `onpage` y `social` para la misma señal de Open Graph.
   3. El cambio de catálogo de checks queda documentado como corte de versión: los scores de auditorías previas a v1.6 no son directamente comparables con los posteriores.
+
 **Plans**: TBD
 
 ### Phase 30: Checks de meta tags/social
+
 **Goal**: El auditor detecta y reporta, por página, los problemas de Open Graph, Twitter Card, charset y duplicados de tags que afectan cómo se ve el sitio al compartirse.
 **Depends on**: Phase 29 (la categoría `social` y el retiro de ONPAGE-05 ya deben existir en el modelo de scoring antes de que estos checks aterricen ahí)
 **Requirements**: SOCIAL-01, SOCIAL-02, SOCIAL-03, SOCIAL-04, SOCIAL-05, SOCIAL-06, SOCIAL-07, SOCIAL-08
 **Success Criteria** (what must be TRUE):
+
   1. El auditor extrae de cada página, a partir del mismo HTML ya parseado por el crawl (sin segundo parseo), og:title/description/image/url/type, twitter:card y charset, vía un motor puro testeable con fixtures.
   2. El auditor genera issues de presencia/longitud para og:title (10-60 chars), og:description (55-200 chars), og:image (URL absoluta HTTPS) y og:url (coherente con canonical), y de presencia para og:type.
   3. El auditor detecta tags OG duplicados con valores distintos (mismo `property`) y marca twitter:card ausente o con valor inválido, evaluando el resto de twitter:* como error sólo cuando falta también el equivalente OG (regla anti-falso-positivo).
   4. El auditor advierte cuando el charset no está declarado dentro del primer 1KB del HTML.
+
 **Plans**: TBD
 
 ### Phase 31: Validación de og:image
+
 **Goal**: El auditor verifica que la imagen social (og:image) de cada página sea alcanzable, tenga dimensiones adecuadas y no pese demasiado, sin sobrecargar el sitio auditado con requests repetidos.
 **Depends on**: Phase 30 (necesita las URLs de og:image ya extraídas por el motor de meta/social)
 **Requirements**: IMG-01, IMG-02, IMG-03, IMG-04
 **Success Criteria** (what must be TRUE):
+
   1. El auditor deduplica las URLs de og:image antes de verificarlas — una misma imagen repetida en decenas de páginas se verifica una sola vez — con el mismo patrón de dedupe+cap+concurrencia que `linkChecker.ts`/`brokenResourcesCheck` (TECH-13).
   2. El auditor marca como error las og:image con status 4xx/5xx o cuyo content-type no es una imagen.
   3. El auditor advierte (warning) imágenes entre 200×200 y 600×315px o con ratio lejos de 1.91:1, y marca error si son menores a 200×200px.
   4. El auditor marca error si la imagen pesa más de 5MB y warning si pesa entre 1MB y 5MB.
+
 **Plans**: TBD
 
 ### Phase 32: Panel de preview social + snippets de fix
+
 **Goal**: El usuario ve, dentro del reporte, cómo se vería su página al compartirse en Google/Facebook/LinkedIn/X, y puede copiar el snippet HTML exacto para arreglar cada problema detectado.
 **Depends on**: Phase 30 (checks de meta/social) y Phase 31 (validación de og:image) — el panel consume los resultados de ambas
 **Requirements**: PREVIEW-01, PREVIEW-02, PREVIEW-03, PREVIEW-04, FIX-01, FIX-02
 **Success Criteria** (what must be TRUE):
+
   1. El reporte muestra un panel de preview social por página con 3 layouts: estilo SERP de Google, Facebook/LinkedIn (comparten layout 1.91:1) y X/Twitter (summary vs summary_large_image).
   2. Las imágenes de terceros del preview se cargan vía proxy server-side con allowlist del origen auditado, nunca vía hotlink directo a la imagen del sitio del usuario.
   3. Cada issue de meta/social muestra un snippet HTML de fix prellenado con los valores reales de esa página (title/URL existentes), no un template genérico con placeholders.
   4. El snippet es accesible por teclado y copiable con un botón dentro del panel Meta Tags/Social.
+
 **Plans**: TBD
 **UI hint**: yes
 
