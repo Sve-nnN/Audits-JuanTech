@@ -50,16 +50,25 @@ Green baseline verified before any change: `@auditor/checks` 24 files / 121 test
 
 ## Wave 0 Requirements
 
-- [ ] `packages/crawler/src/pageMetrics.ts` — pure helper extracting metric derivation out of `crawl.ts` (which has no tests today); same pattern as the existing `captureHeaders.ts`
-- [ ] `packages/crawler/src/pageMetrics.test.ts` — covers PAGEPERF-01 and PAGEPERF-02
-- [ ] `packages/checks/src/checks/perf/responseTime.test.ts` — covers PAGEPERF-03 threshold edges + null guard
-- [ ] `packages/checks/src/checks/perf/htmlSize.test.ts` — covers PAGEPERF-03 threshold edges + KB formatting + null guard
-- [ ] `packages/checks/src/checks/perf/checkIdCollision.test.ts` — guardrail against the `packages/psi` checkId/fingerprint collision
-- [ ] `packages/checks/src/registry.test.ts` — no test asserts registry contents today; a half-registered check would pass unnoticed
-- [ ] `packages/checks/src/testUtils.ts` → `makePage` must enumerate the new fields (it does not spread `overrides`)
-- [ ] `apps/worker/scripts/verify-pageperf.mts` — manual verification against real data, modeled on `verify-stack.mts`
+Framework install: **not applicable** — Vitest is already present in both packages, so there is no wave-0 infrastructure task. What follows is the list of test artifacts that do **not** exist today and the exact task that creates each one. The order below is the real order in the plans, not an aspirational one; it is authoritative and `28-01`/`28-02`/`28-03` agree with it.
 
-Framework install: not applicable, Vitest already present in both packages.
+| Test artifact | Created in | Wave | Relative to the code it covers | Covers |
+|---|---|---|---|---|
+| `packages/checks/src/testUtils.ts` → `makePage` enumerating `responseMs`/`htmlBytes` | `28-01` Task 2, step 4 | 1 | **Before** any threshold test can pass (`makePage` does not spread `overrides`; without this every threshold test silently returns `[]`) | fixture prerequisite for PAGEPERF-03 |
+| `packages/checks/src/checks/perf/responseTime.test.ts` | `28-01` Task 2, step 8 | 1 | **Same commit** as `responseTime.ts` | PAGEPERF-03 threshold edges + null guard + end-to-end `runAllChecks` |
+| `packages/crawler/src/pageMetrics.test.ts` | `28-01` Task 3 | 1 | **One task after** `pageMetrics.ts` (see note below) | PAGEPERF-01, PAGEPERF-02 |
+| `packages/checks/src/checks/perf/htmlSize.test.ts` | `28-02` Task 1 | 2 | **Same commit** as `htmlSize.ts` | PAGEPERF-03 threshold edges + KB rounding + null guard |
+| `packages/checks/src/checks/perf/checkIdCollision.test.ts` | `28-02` Task 2 | 2 | **After** both checks exist — by construction: it compares the real registry catalog against the real `packages/psi` catalog, so it cannot be written before the checks it guards are registered | guardrail vs. the `packages/psi` checkId/fingerprint collision |
+| `packages/checks/src/registry.test.ts` | `28-02` Task 2 | 2 | **After** both checks are registered — same reason: it asserts registry contents | guardrail vs. a half-registered check |
+| `apps/worker/scripts/verify-pageperf.mts` | `28-03` Task 1 | 3 | **After** the schema and both checks exist | manual verification against real data, modeled on `verify-stack.mts` |
+
+Non-test artifact tracked here because the tests depend on it: `packages/crawler/src/pageMetrics.ts` — pure helper extracting metric derivation out of `crawl.ts` (which has no tests today), same pattern as the existing `captureHeaders.ts`. Created in `28-01` Task 2, step 2.
+
+**Note on `pageMetrics.ts` / `pageMetrics.test.ts` (the one gap between task and dedicated test).** The helper is created in `28-01` Task 2 and its dedicated unit test lands in `28-01` Task 3, one task later inside the same wave. It is not untested in the interim: Task 2's own `<automated>` verify exercises the helper end-to-end through the tracer slice (crawl wiring → persisted field → threshold check → `runAllChecks`), and `28-01` Task 2 has a mandatory mid-task gate (`pnpm db:generate` + both typechecks) that isolates the capture layer before the check layer is written. Task 3 then adds the three absence modes and the UTF-8-vs-UTF-16 regression case, which the end-to-end path does not reach. The two tasks are consecutive in wave 1, so the helper never ships a wave without its dedicated test.
+
+**Why the two guardrail tests are wave 2 and not earlier:** both assert over the *assembled* catalog (`pageChecks` contents, and the union of `packages/checks` vs `packages/psi` checkIds). Writing them before the checks are registered would make them assert over an empty or partial set — a guardrail that passes vacuously is worse than no guardrail. Their `28-02` Task 2 acceptance criteria include a self-test with a synthetic colliding ID precisely so they cannot pass vacuously.
+
+Coverage consequence: every requirement (PAGEPERF-01, PAGEPERF-02, PAGEPERF-03) has automated coverage by the end of wave 2, and no test artifact is deferred past the phase.
 
 ---
 

@@ -725,26 +725,32 @@ Sin `@@index` nuevo: ningún query filtra ni ordena por estas columnas. `buildRe
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> Las cuatro preguntas quedaron enrutadas a una tarea concreta durante la planificación de la fase. Ninguna sigue abierta sin destino: cada una indica abajo dónde se decide y cómo.
 
 1. **¿Se aceptan `PERF-10`/`PERF-11` en lugar de los `PERF-07`/`PERF-08` lockeados?**
    - Lo que sabemos: `PERF-07`/`PERF-08` están ocupados y su uso produce colisión de fingerprint con consecuencias verificadas.
    - Lo que no está claro: si Juan prefiere otro esquema (p.ej. `PAGEPERF-01`/`PAGEPERF-02` como checkId, o renombrar los diagnósticos de PSI).
    - Recomendación: `PERF-10`/`PERF-11`. Renombrar los IDs de PSI está descartado — rompería el diff histórico de todas las auditorías existentes (los fingerprints persistidos dejarían de coincidir y todo aparecería como "resuelto" + "nuevo").
+   - **DISPOSICIÓN: resuelta por decisión explícita de Juan en `28-01-PLAN.md`, tarea 1 (`checkpoint:decision` bloqueante, `reversibility: one-way`), con las tres opciones sobre la mesa. Ninguna línea de código se escribe antes de esa selección.**
 
 2. **¿Se recalibran los umbrales o se acepta que casi toda página quede marcada?**
    - Lo que sabemos: los datos empíricos de las 5 opciones (A-E) están en **Pitfall 2**.
    - Lo que no está claro: la intención original detrás de los números de PAGEPERF-03.
    - Recomendación: opción B (medir gzip, conservar umbrales) si se acepta el costo de 5-10s por auditoría; opción A (recalibrar a >300KB/>1MB crudo) si no. En cualquier caso, sumar la opción C (no emitir fila "ok") para contener el volumen.
+   - **DISPOSICIÓN: registrada como FA-1 en `28-01-PLAN.md` (los umbrales lockeados se implementan tal cual, sin aplicar la recomendación en silencio) y resuelta con datos propios en `28-03-PLAN.md`, tarea 3, punto 4 — el script imprime la distribución real y Juan decide mantener o recalibrar.**
 
 3. **¿`responseMs` sale de `phases.total` o de `phases.firstByte`?**
    - Lo que sabemos: `total` incluye encolado propio y produce falsos positivos demostrados; `firstByte` es lo que mide el umbral de 600ms de la industria.
    - Lo que no está claro: si el objetivo declarado de PAGEPERF-01 ("tiempo de respuesta") pretendía incluir la descarga del documento.
    - Recomendación: `phases.firstByte`, manteniendo el nombre de columna `responseMs` (no es una columna `ttfbMs` nueva, así que no reabre el diferido de CONTEXT.md). Alternativa de compromiso: `total - (wait ?? 0)`.
+   - **DISPOSICIÓN: registrada como FA-2 en `28-01-PLAN.md` (`phases.total` se implementa tal cual porque está lockeado en CONTEXT.md, con la derivación aislada en `extractPageMetrics` para que el cambio sea de una línea) y resuelta con datos propios en `28-03-PLAN.md`, tarea 3, punto 4, a partir del sondeo `--probe` que imprime `wait` junto a `firstByte` y `total`.**
 
 4. **¿Cómo se verifica el Success Criterion #3 (re-crawl real sin regresiones)?**
    - Lo que sabemos: la base de datos no es alcanzable desde el entorno de desarrollo; el precedente del proyecto son scripts `.mts` corridos manualmente por Juan.
    - Recomendación: incluir en el plan un script `apps/worker/scripts/verify-pageperf.mts` (siguiendo el molde de `verify-stack.mts`) que lea las `Page` de un audit ya crawleado e imprima la distribución de `responseMs`/`htmlBytes` y cuántas páginas caerían en cada severidad. Ese script también resuelve empíricamente la pregunta 2 con datos del sitio real de Juan, en vez de con mi muestra.
+   - **DISPOSICIÓN: adoptada en `28-03-PLAN.md`, tarea 1 (el script) más las tareas 2 y 3 (`checkpoint:human-verify` bloqueantes para `pnpm db:push` y para el re-crawl real).**
 
 ---
 
