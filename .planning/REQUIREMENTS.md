@@ -82,31 +82,37 @@ Explícitamente excluido de v1.6. Documentado para prevenir scope creep.
 
 ## Traceability
 
-Cuál fase cubre cuáles requirements. Se completa durante la creación del roadmap.
+Cuál fase cubre cuáles requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PAGEPERF-01 | — | Pending |
-| PAGEPERF-02 | — | Pending |
-| PAGEPERF-03 | — | Pending |
-| SOCIAL-01 | — | Pending |
-| SOCIAL-02 | — | Pending |
-| SOCIAL-03 | — | Pending |
-| SOCIAL-04 | — | Pending |
-| SOCIAL-05 | — | Pending |
-| SOCIAL-06 | — | Pending |
-| SOCIAL-07 | — | Pending |
-| SOCIAL-08 | — | Pending |
-| SOCIAL-09 | — | Pending |
-| IMG-01 | — | Pending |
-| IMG-02 | — | Pending |
-| IMG-03 | — | Pending |
-| IMG-04 | — | Pending |
-| SCORE-01 | — | Pending |
-| SCORE-02 | — | Pending |
-| PREVIEW-01 | — | Pending |
-| PREVIEW-02 | — | Pending |
-| PREVIEW-03 | — | Pending |
-| PREVIEW-04 | — | Pending |
-| FIX-01 | — | Pending |
-| FIX-02 | — | Pending |
+| PAGEPERF-01 | Phase 28 | Pending |
+| PAGEPERF-02 | Phase 28 | Pending |
+| PAGEPERF-03 | Phase 28 | Pending |
+| SCORE-01 | Phase 29 | Pending |
+| SCORE-02 | Phase 29 | Pending |
+| SOCIAL-09 | Phase 29 | Pending |
+| SOCIAL-01 | Phase 30 | Pending |
+| SOCIAL-02 | Phase 30 | Pending |
+| SOCIAL-03 | Phase 30 | Pending |
+| SOCIAL-04 | Phase 30 | Pending |
+| SOCIAL-05 | Phase 30 | Pending |
+| SOCIAL-06 | Phase 30 | Pending |
+| SOCIAL-07 | Phase 30 | Pending |
+| SOCIAL-08 | Phase 30 | Pending |
+| IMG-01 | Phase 31 | Pending |
+| IMG-02 | Phase 31 | Pending |
+| IMG-03 | Phase 31 | Pending |
+| IMG-04 | Phase 31 | Pending |
+| PREVIEW-01 | Phase 32 | Pending |
+| PREVIEW-02 | Phase 32 | Pending |
+| PREVIEW-03 | Phase 32 | Pending |
+| PREVIEW-04 | Phase 32 | Pending |
+| FIX-01 | Phase 32 | Pending |
+| FIX-02 | Phase 32 | Pending |
+
+**Coverage:**
+
+- v1.6 requirements: 24 total
+- Mapped to phases: 24/24 ✓
+- Unmapped: 0

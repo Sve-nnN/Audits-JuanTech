@@ -8,6 +8,7 @@
 - ✅ **v1.3 Profundizar checks técnicos + visualización de arquitectura** — Phases 16-20 (shipped 2026-07-09)
 - ✅ **v1.4 Visualización avanzada + resolución de URL** — Phases 21-24 (shipped 2026-07-10)
 - ✅ **v1.5 Fingerprinting técnico + fixes personalizados por CMS** — Phases 25-27 (shipped 2026-07-25)
+- 🚧 **v1.6 Meta Tags / Social** — Phases 28-32 (in progress)
 
 ## Phases
 
@@ -69,71 +70,6 @@ Aditivo sobre v1.0-v1.2 — cierra gaps encontrados vs. metodología SEO estánd
 
 Detalle completo: `.planning/MILESTONES.md`.
 
-### Phase 16: Grafo de enlaces compartido + profundidad de clics real
-
-**Goal**: El auditor calcula la profundidad real de clics de cada página sobre un grafo de enlaces internos calculado una sola vez, y advierte cuando hay páginas demasiado profundas.
-**Depends on**: Nada (primera fase de v1.3)
-**Requirements**: DEPTH-01, DEPTH-02, DEPTH-03
-**Success Criteria** (what must be TRUE):
-
-  1. El worker calcula, sobre el grafo de enlaces internos (no sobre `Page.depth`), la profundidad real en clics de cada página vía BFS desde home, y persiste ese cómputo una sola vez por auditoría (en `Audit.stats`).
-  2. El reporte muestra un issue de advertencia agregado con el porcentaje de páginas a más de 3 clics de home (no un issue por página individual).
-  3. El módulo de grafo/BFS queda disponible como dato ya persistido para ser reusado sin recomputarse por el visualizador de arquitectura (Phase 20).
-
-**Plans**: 2 plans (completed)
-
-### Phase 17: Check schema-contenido mismatch
-
-**Goal**: El auditor advierte cuando una página declara datos estructurados de alto riesgo sin contenido visible correspondiente, evitando el riesgo de acción manual de Google.
-**Depends on**: Nada (independiente, reusa `@auditor/render` de v1.2 ya existente)
-**Requirements**: SCHEMA-06, SCHEMA-07
-**Success Criteria** (what must be TRUE):
-
-  1. El auditor detecta páginas con JSON-LD `FAQPage`, `HowTo`, `Product`+`AggregateRating` o `Review` sin contenido visible correspondiente en el HTML.
-  2. El hallazgo se reporta siempre con severidad `warning` (nunca `critical` automático).
-  3. El check no marca como mismatch páginas confirmadas como renderizadas por JS en la muestra CSR/SSR de v1.2, evitando falsos positivos.
-
-**Plans**: 2 plans (completed)
-
-### Phase 18: Diagnósticos de Lighthouse desde PSI
-
-**Goal**: El reporte muestra diagnósticos de Lighthouse accionables (formatos de imagen, CSS/JS sin usar, render-blocking) sin costo extra de API.
-**Depends on**: Nada (aislado en `packages/psi`)
-**Requirements**: PERF-05, PERF-06
-**Success Criteria** (what must be TRUE):
-
-  1. El reporte muestra diagnósticos curados (WebP/AVIF, CSS sin usar, recursos que bloquean el renderizado, compresión de texto, CSS/JS sin minificar) extraídos de la respuesta PSI que el auditor ya obtiene, sin llamadas adicionales a la API.
-  2. Cada diagnóstico aparece como issue con severidad `warning`/`ok` (nunca `critical`) y no duplica la señal ya cubierta por las métricas LCP/CLS/TTFB/INP existentes.
-
-**Plans**: 2 plans (completed)
-
-### Phase 19: Agrupación por plantilla
-
-**Goal**: El usuario puede ver qué le pasa a una plantilla de página completa (ej. "producto"), no solo qué tipo de error se repite.
-**Depends on**: Nada directamente (decisión de UI compartida antes del visualizador de Phase 20)
-**Requirements**: TEMPLATE-01, TEMPLATE-02
-**Success Criteria** (what must be TRUE):
-
-  1. Cada página del sitio queda clasificada en una plantilla (home / categoría / producto / artículo / otras) mediante heurística de segmentos de URL, sin asumir un CMS específico.
-  2. El reporte permite ver los issues agrupados por plantilla, como eje complementario a la agrupación por tipo de issue ya existente (v1.2).
-
-**Plans**: 2 plans (completed)
-
-### Phase 20: Visualizador de arquitectura
-
-**Goal**: El usuario puede ver de un vistazo la arquitectura jerárquica de su sitio, con señales de profundidad, páginas huérfanas y plantilla por nodo.
-**Depends on**: Phase 16 (grafo/BFS compartido y persistido)
-**Requirements**: ARCH-01, ARCH-02, ARCH-03, ARCH-04
-**Success Criteria** (what must be TRUE):
-
-  1. El reporte incluye un árbol jerárquico en SVG puro, agrupado por nivel de profundidad (0/1/2/3+).
-  2. Cada nodo del árbol muestra URL/título, profundidad, indicador de página huérfana e indicador de página a más de 3 clics.
-  3. El árbol reusa el grafo/BFS ya calculado y persistido en Phase 16, sin volver a parsear el HTML de las páginas.
-  4. Cuando la clasificación de plantilla (Phase 19) ya está disponible, el nodo también muestra la plantilla de esa página.
-
-**Plans**: 3 plans (completed)
-**UI hint**: yes
-
 </details>
 
 <details>
@@ -163,13 +99,81 @@ Detalle completo: `.planning/milestones/v1.5-ROADMAP.md`. Audit: `.planning/mile
 
 </details>
 
+### 🚧 v1.6 Meta Tags / Social (Phases 28-32) - In Progress
+
+**Milestone Goal:** Nueva categoría de score "Meta Tags/Social" que audita Open Graph/Twitter Card/charset por página, con panel visual de preview social (Google/Facebook/LinkedIn/X), métricas de performance propias (response time/HTML size) y snippets de fix listos para copiar.
+
+Aditivo sobre v1.0-v1.5 — no toca el pipeline de crawl/checks/scoring existente salvo por el rebalanceo de pesos explícito de este mismo milestone. Secuencia de riesgo ascendente según research (`.planning/research/SUMMARY.md`), con un reordenamiento pedido por Juan sobre la propuesta original: primero la única pieza que toca `crawl.ts` (performance por página, aislada porque ningún milestone anterior lo había modificado), luego la decisión de scoring (categoría "social" + retiro de ONPAGE-05) *antes* de escribir los checks nuevos — para no construir checks contra un modelo de scoring que cambia bajo ellos —, después los checks de meta/social en sí (motor puro + checks de página), luego la validación de red de `og:image` (infra nueva, mismo patrón de dedupe+cap+concurrencia que `linkChecker.ts`/`brokenResourcesCheck`), y por último el panel de preview visual + snippets de fix, que consumen los resultados de las dos fases anteriores.
+
+- [ ] **Phase 28: Performance por página** - Response time + HTML size medidos en el crawl, con umbrales de severidad
+- [ ] **Phase 29: Scoring — categoría Social + retiro de ONPAGE-05** - Sexta categoría de score con pesos rebalanceados, ONPAGE-05 retirado sin duplicados
+- [ ] **Phase 30: Checks de meta tags/social** - OG/Twitter Card/charset/duplicados por página
+- [ ] **Phase 31: Validación de og:image** - Fetcher dedupeado, alcanzabilidad, dimensiones y peso
+- [ ] **Phase 32: Panel de preview social + snippets de fix** - Preview Google/Facebook/LinkedIn/X + snippet HTML copiable
+
+## Phase Details
+
+### Phase 28: Performance por página
+**Goal**: El crawler mide y persiste el tiempo de respuesta y el tamaño del HTML de cada página auditada, sin requests adicionales, y el auditor advierte cuando alguno de los dos supera el umbral esperado.
+**Depends on**: Nada (primera fase de v1.6; toca únicamente `packages/crawler/src/crawl.ts` y el schema de `Page`, el único componente que ningún milestone anterior había modificado)
+**Requirements**: PAGEPERF-01, PAGEPERF-02, PAGEPERF-03
+**Success Criteria** (what must be TRUE):
+  1. Cada página crawleada persiste su tiempo de respuesta (ms) y su tamaño de HTML (bytes), capturados durante el mismo request del crawl, sin llamadas HTTP extra.
+  2. Una página con tiempo de respuesta superior a 1500ms o HTML superior a 300KB genera un issue de severidad error; entre 600-1500ms o 100-300KB, un issue de severidad warning.
+  3. Un re-crawl de un sitio ya auditado en milestones anteriores sigue completando sin timeouts ni regresiones (smoke test contra un sitio real).
+**Plans**: TBD
+
+### Phase 29: Scoring — categoría Social + retiro de ONPAGE-05
+**Goal**: El score general reconoce una sexta categoría "Meta Tags/Social" con pesos rebalanceados explícitamente, y el check ONPAGE-05 (ahora redundante con la categoría nueva) se retira sin duplicar issues.
+**Depends on**: Nada directamente (cambio de tipos/constantes en `packages/scoring` y en el registry de `packages/checks`; independiente de Phase 28, se secuencia antes de Phase 30 para no escribir checks contra un modelo de scoring que todavía puede cambiar)
+**Requirements**: SCORE-01, SCORE-02, SOCIAL-09
+**Success Criteria** (what must be TRUE):
+  1. El modelo de scoring reconoce `"social"` como categoría válida y los pesos de las 6 categorías (técnico, on-page, CWV, datos estructurados, AEO, social) suman 1.0, con on-page (.15→.10) y datos estructurados (.10→.05) reducidos explícitamente para cederle peso a social (.10 nuevo).
+  2. El check `ONPAGE-05` ya no está activo en el catálogo de checks; ninguna auditoría nueva produce issues duplicados (mismo fingerprint) entre `onpage` y `social` para la misma señal de Open Graph.
+  3. El cambio de catálogo de checks queda documentado como corte de versión: los scores de auditorías previas a v1.6 no son directamente comparables con los posteriores.
+**Plans**: TBD
+
+### Phase 30: Checks de meta tags/social
+**Goal**: El auditor detecta y reporta, por página, los problemas de Open Graph, Twitter Card, charset y duplicados de tags que afectan cómo se ve el sitio al compartirse.
+**Depends on**: Phase 29 (la categoría `social` y el retiro de ONPAGE-05 ya deben existir en el modelo de scoring antes de que estos checks aterricen ahí)
+**Requirements**: SOCIAL-01, SOCIAL-02, SOCIAL-03, SOCIAL-04, SOCIAL-05, SOCIAL-06, SOCIAL-07, SOCIAL-08
+**Success Criteria** (what must be TRUE):
+  1. El auditor extrae de cada página, a partir del mismo HTML ya parseado por el crawl (sin segundo parseo), og:title/description/image/url/type, twitter:card y charset, vía un motor puro testeable con fixtures.
+  2. El auditor genera issues de presencia/longitud para og:title (10-60 chars), og:description (55-200 chars), og:image (URL absoluta HTTPS) y og:url (coherente con canonical), y de presencia para og:type.
+  3. El auditor detecta tags OG duplicados con valores distintos (mismo `property`) y marca twitter:card ausente o con valor inválido, evaluando el resto de twitter:* como error sólo cuando falta también el equivalente OG (regla anti-falso-positivo).
+  4. El auditor advierte cuando el charset no está declarado dentro del primer 1KB del HTML.
+**Plans**: TBD
+
+### Phase 31: Validación de og:image
+**Goal**: El auditor verifica que la imagen social (og:image) de cada página sea alcanzable, tenga dimensiones adecuadas y no pese demasiado, sin sobrecargar el sitio auditado con requests repetidos.
+**Depends on**: Phase 30 (necesita las URLs de og:image ya extraídas por el motor de meta/social)
+**Requirements**: IMG-01, IMG-02, IMG-03, IMG-04
+**Success Criteria** (what must be TRUE):
+  1. El auditor deduplica las URLs de og:image antes de verificarlas — una misma imagen repetida en decenas de páginas se verifica una sola vez — con el mismo patrón de dedupe+cap+concurrencia que `linkChecker.ts`/`brokenResourcesCheck` (TECH-13).
+  2. El auditor marca como error las og:image con status 4xx/5xx o cuyo content-type no es una imagen.
+  3. El auditor advierte (warning) imágenes entre 200×200 y 600×315px o con ratio lejos de 1.91:1, y marca error si son menores a 200×200px.
+  4. El auditor marca error si la imagen pesa más de 5MB y warning si pesa entre 1MB y 5MB.
+**Plans**: TBD
+
+### Phase 32: Panel de preview social + snippets de fix
+**Goal**: El usuario ve, dentro del reporte, cómo se vería su página al compartirse en Google/Facebook/LinkedIn/X, y puede copiar el snippet HTML exacto para arreglar cada problema detectado.
+**Depends on**: Phase 30 (checks de meta/social) y Phase 31 (validación de og:image) — el panel consume los resultados de ambas
+**Requirements**: PREVIEW-01, PREVIEW-02, PREVIEW-03, PREVIEW-04, FIX-01, FIX-02
+**Success Criteria** (what must be TRUE):
+  1. El reporte muestra un panel de preview social por página con 3 layouts: estilo SERP de Google, Facebook/LinkedIn (comparten layout 1.91:1) y X/Twitter (summary vs summary_large_image).
+  2. Las imágenes de terceros del preview se cargan vía proxy server-side con allowlist del origen auditado, nunca vía hotlink directo a la imagen del sitio del usuario.
+  3. Cada issue de meta/social muestra un snippet HTML de fix prellenado con los valores reales de esa página (title/URL existentes), no un template genérico con placeholders.
+  4. El snippet es accesible por teclado y copiable con un botón dentro del panel Meta Tags/Social.
+**Plans**: TBD
+**UI hint**: yes
+
 ### 📋 Next (Planned)
 
-Próximo trabajo previsto tras v1.5:
+Próximo trabajo previsto tras v1.6:
 
 - Deploy a producción: web → Vercel; worker → Railway/VPS; Resend con dominio verificado; revisión GDPR ligera.
 - v2 monetización: planes de pago, auditorías/URLs ilimitadas, Stripe.
-- v2 enriquecimiento: agrupación por plantilla del veredicto CSR/SSR (RENDER-04), re-crawl basado en render (RENDER-05), formatos extra de export DOCX/CSV (EXPORT-06), columna persistida `Page.renderVerdict` (REPORT-05), Domain Rating como contexto, fingerprint extendido (FPRINT-10..14) y fixes extendidos (CMSFIX-06/07) — ver `.planning/milestones/v1.5-REQUIREMENTS.md`.
+- v2 enriquecimiento: agrupación por plantilla del veredicto CSR/SSR (RENDER-04), re-crawl basado en render (RENDER-05), formatos extra de export DOCX/CSV (EXPORT-06), columna persistida `Page.renderVerdict` (REPORT-05), Domain Rating como contexto, fingerprint extendido (FPRINT-10..14), fixes extendidos (CMSFIX-06/07), y lo diferido explícitamente de v1.6 (SOCIAL-10..12, CMSFIX-08, IMG-05) — ver `.planning/REQUIREMENTS.md`.
 
 ## Progress
 
@@ -202,13 +206,19 @@ Próximo trabajo previsto tras v1.5:
 | 25. Fingerprint de stack técnico — contrato de datos y motor de detección | v1.5 | 4/4 | Complete ✅ | 2026-07-21 |
 | 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 5/5 | Complete ✅ | 2026-07-22 |
 | 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 3/3 | Complete ✅ | 2026-07-25 |
+| 28. Performance por página | v1.6 | 0/TBD | Not started | - |
+| 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 0/TBD | Not started | - |
+| 30. Checks de meta tags/social | v1.6 | 0/TBD | Not started | - |
+| 31. Validación de og:image | v1.6 | 0/TBD | Not started | - |
+| 32. Panel de preview social + snippets de fix | v1.6 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-07-05*
-*Granularity: standard (7 phases v1.0 + 3 phases v1.1 + 5 phases v1.2 + 5 phases v1.3 + 4 phases v1.4 + 3 phases v1.5)*
+*Granularity: standard (7 phases v1.0 + 3 phases v1.1 + 5 phases v1.2 + 5 phases v1.3 + 4 phases v1.4 + 3 phases v1.5 + 5 phases v1.6)*
 *v1.0 MVP shipped: 2026-07-06 (phases 1-7)*
 *v1.1 UI/UX shipped: 2026-07-06 (phases 8-10)*
 *v1.2 render + exports shipped: 2026-07-08 (phases 11-15) — coverage 19/19 requirements*
 *v1.3 checks + arquitectura shipped: 2026-07-09 (phases 16-20) — coverage 13/13 requirements*
 *v1.4 visualización avanzada + resolución de URL shipped: 2026-07-10 (phases 21-24) — coverage 7/7 requirements*
 *v1.5 fingerprinting + fixes por CMS shipped: 2026-07-25 (phases 25-27) — coverage 18/18 requirements*
+*v1.6 roadmap created: 2026-07-31 (phases 28-32) — coverage 24/24 requirements mapped, pending execution*

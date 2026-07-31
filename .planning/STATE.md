@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-07-31T18:07:05.762Z"
 last_activity: 2026-07-31
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,31 +17,35 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-25 after Phase 27)
+See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Milestone v1.5 completo — cierre pendiente (audit → complete → cleanup)
+**Current focus:** Milestone v1.6 Meta Tags/Social — roadmap creado (Phases 28-32), lista para planear Phase 28
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-31 — Milestone v1.6 started
+Phase: 28 of 32 (Performance por página) — not started
+Plan: — (roadmap recién creado, sin planes aún)
+Status: Ready to plan
+Last activity: 2026-07-31 — ROADMAP.md v1.6 creado (5 fases, 24/24 requirements mapeados)
 
-## Milestone v1.5 — Phases
+Progress: [░░░░░░░░░░] 0%
+
+## Milestone v1.6 — Phases
 
 | Phase | Nombre | Requirements | UI |
 |-------|--------|--------------|-----|
-| 25 | Fingerprint de stack técnico — contrato de datos y motor de detección | FPRINT-01..08 | no |
-| 26 | Wiring en el worker + tabla de stack en el reporte | FPRINT-09, STACKUI-01..03 | sí |
-| 27 | Motor de recomendaciones por CMS — patrón adaptador + fallback | CMSFIX-01..05 | no |
+| 28 | Performance por página | PAGEPERF-01..03 | no |
+| 29 | Scoring — categoría Social + retiro de ONPAGE-05 | SCORE-01/02, SOCIAL-09 | no |
+| 30 | Checks de meta tags/social | SOCIAL-01..08 | no |
+| 31 | Validación de og:image | IMG-01..04 | no |
+| 32 | Panel de preview social + snippets de fix | PREVIEW-01..04, FIX-01/02 | sí |
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 12
+- Total plans completed: 12 (acumulado hasta v1.5)
 - Average duration: —
 - Total execution time: —
 
@@ -73,22 +77,22 @@ Last activity: 2026-07-31 — Milestone v1.6 started
 
 Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecting current work:
 
-- Research v1.5: motor de fingerprint propio (~150-300 líneas, patrón registry) en vez de `wappalyzer-core` (deprecado, GPL-3.0) o APIs pagas — requisito explícito de Juan.
-- Research v1.5: contrato de datos con `confidence` tipado (alto/medio/bajo/no-detectado) fijado antes de escribir reglas de detección o copy de fix (evita retrabajo en cascada sobre cada adapter/UI).
-- Research v1.5: detección independiente por eje (CMS, CDN, hosting, framework, analytics), nunca winner-take-all; recomendación de CMS resuelta en `buildReportModel` (tiempo de lectura), nunca persistida pre-calculada.
-- Phase 25: `@auditor/fingerprint` paquete puro (única dep runtime `cheerio`), `DetectedStack` con 6 ejes tipados por `Confidence` (alto/medio/bajo/no-detectado), `analytics` como array (coexistencia GA4+GTM+Meta Pixel), motor `detectStack` con resolución independiente por eje.
-- Phase 25 code-review: firma de GTM en `analytics.ts` corregida (matcheaba `dataLayer` genérico compartido con el snippet estándar de GA4 → falso positivo sistemático); needles de Meta Pixel/GA4 endurecidos.
-- Phase 27: `@auditor/cms-adapters` paquete puro (única dep `@auditor/fingerprint`), patrón adaptador por plataforma (`CmsAdapter.lookup`) + `registry` + `resolveCmsRecommendation` con gating por confianza y fallback genérico garantizado. Wix/Squarespace comparten módulo técnico, ramificado por `label`. Resuelto en `toReportIssue` de `report-model` vía `rawStack`, nunca persistido.
-- Phase 27 code-review: 3 warnings resueltos — `coverage.test.ts` ahora valida contra el `registry` real (no un mapa paralelo); umbral de confianza `ACTIVATING_CONFIDENCE` extraído a constante compartida en `types.ts`; copy de TECH-04 extendida para cubrir sub-casos de `canonicalDeep` (destino roto/en cadena/con noindex), aprobada por Juan.
-- Phase 27: 7 rutas de menú `[REVISAR]` verificadas contra Wix Support/Webflow Help Center/Squarespace Help Center (WebSearch) y actualizadas donde la UI real difería del copy original (Wix: panel renombrado a "SEO y accesibilidad"; robots.txt ahora en "SEO & GEO → Tools and settings"; Webflow: robots.txt/sitemap viven en subsecciones "Indexing"/"Sitemap" de la pestaña SEO; Squarespace: label oficial "Hide page from search results").
+- Research v1.6: única dependencia de producción nueva es `image-size@2.0.2` (cero dependencias transitivas) para dimensiones de `og:image`/`twitter:image` vía buffer parcial (Range request); todo lo demás se construye sobre lo ya instalado (Cheerio, `got` timings de Crawlee, `Buffer.byteLength`).
+- Research v1.6: panel de preview social se construye como mockup React/CSS con design tokens existentes, nunca screenshots reales — preserva la restricción dura de mantener Vercel libre de navegadores headless.
+- Roadmap v1.6: orden de fases ajustado sobre la propuesta de research — Scoring (categoría social + retiro de ONPAGE-05) se secuencia ANTES de los checks nuevos de SOCIAL-01..08 (Phase 29 antes de Phase 30), para no escribir checks contra un modelo de scoring que todavía puede cambiar. SOCIAL-09 (retiro de ONPAGE-05) se agrupó con la fase de Scoring, no con la de checks nuevos, porque es migración de scoring/código existente, no un check nuevo.
+- Roadmap v1.6: PAGEPERF aislado en Phase 28 (primera fase) porque toca `crawl.ts`, único componente que ningún milestone anterior había modificado.
+- Roadmap v1.6: IMG (validación de og:image) aislado en su propia fase (31) por ser infra nueva de red (fetcher dedupeado), mismo patrón que Phase 12 (render+Docker) en v1.2.
 
 ### Pending Todos
 
 - E2e `verify-cms-fix.mts` contra un audit real (ej. aprendoclub) con acceso a Postgres — diferido a Juan, corrida manual (`pnpm --filter @auditor/worker exec tsx scripts/verify-cms-fix.mts [auditId]`). No bloqueante, lógica ya cubierta por 21+48 tests automatizados.
+- Idea nueva (Juan, 2026-07-25): detección de stack de frontend para sitios "hechos a código" (Tailwind CSS, shadcn/ui, etc.) — candidato a FPRINT-15+ para un milestone futuro, sólo capturado en backlog (`PROJECT.md`).
 
 ### Blockers/Concerns
 
 - [Phase 25, no bloqueante] `resolveConfidence` topa CDNs multi-header (ej. Fastly) en confianza `medio` aunque haya 3+ headers del mismo vendor — el conteo (`Signature.test`) no se usa para subir confianza, solo para desempate de builder. Documentado como limitación conocida en `cdn.ts`.
+- [Research v1.6, gap a resolver antes de Phase 29] Peso exacto de la categoría "social" en `CATEGORY_WEIGHTS` (0.10 propuesto, tomado de onpage y schema) es punto de partida, no valor calibrado — requiere confirmación explícita de Juan durante la planeación de Phase 29.
+- [Research v1.6, gap a resolver antes de Phase 32] Estrategia de carga de imágenes de terceros en el reporte (proxy server-side con allowlist, decidido en PREVIEW-04) — no hay CSP configurada hoy en `apps/web/next.config.ts`; confirmar diseño exacto del proxy durante la planeación de Phase 32.
 
 ## Deferred Items
 
@@ -99,21 +103,24 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 | debug | pdf-export-crash-reading-s (crash export PDF, `TypeError: Cannot read properties of undefined (reading 'S')`, runtime Next server) | fixing — next_action pendiente: exportar `@react-pdf/renderer` vía `serverExternalPackages` | v1.4 close (2026-07-10) |
 | tech debt | SD-07 sin dedupe/cap de mensajes; `SchemaEntities.tsx` usa índice de array como key de React (bajo riesgo) | not started | v1.4 close (2026-07-10) |
 | v2 | Deploy a producción (Vercel/Railway/Resend/GDPR), monetización, RENDER-04/05, EXPORT-06, REPORT-05, Domain Rating, FPRINT-10..14, CMSFIX-06/07 | not started | v1.4 close (2026-07-10) / v1.5 REQUIREMENTS.md |
+| v1.6.x/v1.7 | SOCIAL-10..12 (previews WhatsApp/Discord/Slack/Telegram, og:image default compartida, alt de imágenes sociales), CMSFIX-08 (snippets por CMS vía cms-adapters), IMG-05 (favicon alcanzable) | not started | v1.6 REQUIREMENTS.md (2026-07-31) |
 
 ## Notas de ejecución (convenciones del proyecto, persisten entre milestones)
 
 - Cada fase: smart discuss (AskUserQuestion con grey areas batch) → planner (gsd-planner) → plan-checker (gsd-plan-checker) → executor(es) secuenciales en main tree → code-review (gsd-code-reviewer) + verify (gsd-verifier) en paralelo → fix warnings inline → commit.
-- `packages/db` es schema-first (`pnpm db:push`, sin carpeta migrations). Cuando el worker/report-model escribe una columna nueva (ej. `Page.responseHeaders`, `Audit.stack`), correr `pnpm db:push` contra la base de datos configurada antes de probar contra datos reales.
+- `packages/db` es schema-first (`pnpm db:push`, sin carpeta migrations). Cuando el worker/report-model escribe una columna nueva (ej. `Page.responseHeaders`, `Audit.stack`, y ahora `Page.ttfbMs`/`responseMs`/`htmlBytes`/`socialMeta` en v1.6), correr `pnpm db:push` contra la base de datos configurada antes de probar contra datos reales.
 - Backend de Postgres migrado de Neon a instancia propia (`shared-postgres`, tenant `auditor`) durante el deploy de producción (2026-07-24). `DATABASE_URL` actualizada por Juan localmente; el schema es provider-agnostic (`provider = "postgresql"` en Prisma), sin lógica acoplada a Neon en el código.
 - Verificar fixes de datos contra un audit real (ej. aprendoclub) con `tsx` (script `.mts` en el paquete relevante).
-- `packages/fingerprint` y `packages/cms-adapters` (nuevos en v1.5) deben mantenerse desacoplados de `@auditor/db`/`@auditor/crawler`/`@auditor/checks` en runtime — el único punto de contacto entre recomendaciones y checks es el `checkId` string ya persistido en `Issue`.
+- `packages/fingerprint` y `packages/cms-adapters` (v1.5) deben mantenerse desacoplados de `@auditor/db`/`@auditor/crawler`/`@auditor/checks` en runtime — el único punto de contacto entre recomendaciones y checks es el `checkId` string ya persistido en `Issue`. El nuevo `packages/meta-social` (v1.6, motor puro de extracción/umbrales/snippets) debe seguir el mismo patrón: sin dependencias de runtime salvo Cheerio.
+- `buildReportModel` sigue siendo la única fuente de verdad para reporte web + los 3 exports; lo derivado de v1.6 (preview social, snippet de fix, perf por página) se resuelve en lectura ahí, mismo patrón que el fingerprint/CMS de v1.5.
 
 ## Session Continuity
 
-Last session: 2026-07-25T00:00:00.000Z
-Stopped at: Phase 27 complete (verificación + nyquist + security pasados), milestone v1.5 100% completo — pendiente lifecycle (audit → complete → cleanup)
+Last session: 2026-07-31T18:07:05.762Z
+Stopped at: ROADMAP.md v1.6 creado (Phases 28-32, 24/24 requirements mapeados) — pendiente aprobación de Juan y arranque de Phase 28
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Revisar y aprobar el roadmap v1.6 (`.planning/ROADMAP.md`).
+- Planear Phase 28 con `/gsd-plan-phase 28`.
