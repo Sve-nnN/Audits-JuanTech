@@ -5,7 +5,25 @@ import { scoreCategory } from "./categoryScore";
 describe("CATEGORY_WEIGHTS", () => {
   it("sums to 1.0", () => {
     const sum = Object.values(CATEGORY_WEIGHTS).reduce((a, b) => a + b, 0);
+    // Epsilon comparison on purpose, NOT strict equality: the floating-point
+    // sum of 0.3+0.3+0.1+0.05+0.15+0.1 is not exactly 1, so `=== 1` would
+    // fail. Final score rounding is Math.round (half-up) in scoreOverall.
     expect(sum).toBeCloseTo(1.0, 5);
+  });
+
+  it("pins the exact weight of each of the six categories", () => {
+    // The sum guardrail above passes just as well with onpage and schema
+    // swapped (0.05/0.1 still totals 1.0), so it cannot detect a botched
+    // rebalance. This assertion pins the six values AND the exact key set:
+    // toEqual on the whole object fails on any extra or missing key.
+    expect(CATEGORY_WEIGHTS).toEqual({
+      tech: 0.3,
+      perf: 0.3,
+      onpage: 0.1,
+      schema: 0.05,
+      aeo: 0.15,
+      social: 0.1,
+    });
   });
 });
 
@@ -27,7 +45,7 @@ describe("scorePerfCategory", () => {
 });
 
 describe("scoreOverall", () => {
-  it("computes a weighted average across all 5 categories", () => {
+  it("computes a weighted average across every scored category", () => {
     const perfect = scoreCategory([]); // 100, good
     const result = scoreOverall(
       { tech: perfect, onpage: perfect, schema: perfect, aeo: perfect },
@@ -46,6 +64,20 @@ describe("scoreOverall", () => {
     // perf excluded entirely; remaining 4 categories are all 100 -> still 100
     expect(result.overall).toBe(100);
     expect(result.byCategory.perf).toBeUndefined();
+  });
+
+  it("renormalizes weights when social has no data", () => {
+    // Mirror image of the perf case: PSI IS available, but no check emits
+    // `social` issues yet (Phase 30 lands them). social is excluded and
+    // totalWeight renormalizes to 0.3+0.3+0.1+0.05+0.15 = 0.90, so the
+    // overall matches the case above where every present category is 100.
+    const perfect = scoreCategory([]);
+    const result = scoreOverall(
+      { tech: perfect, onpage: perfect, schema: perfect, aeo: perfect },
+      { mobileAvgScore: 100, desktopAvgScore: 100 }
+    );
+    expect(result.overall).toBe(100);
+    expect(result.byCategory.social).toBeUndefined();
   });
 
   it("lands in a plausible range for a mostly-healthy site (reference: ~86/100)", () => {
