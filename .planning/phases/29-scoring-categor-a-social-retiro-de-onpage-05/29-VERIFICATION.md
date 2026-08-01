@@ -1,7 +1,14 @@
 ---
 phase: 29-scoring-categor-a-social-retiro-de-onpage-05
 verified: 2026-08-01T23:39:34Z
-status: human_needed
+status: passed
+human_validated: 2026-08-02
+human_validation_notes: >
+  Juan aceptó las 4 prohibiciones judgment-tier y el render visual (nadie
+  tocó el layout, sólo el orden del array CATEGORY_ORDER) sin re-verificar
+  a mano. Además pidió cerrar W-01/W-04/W-06 ahora (commit 3d34a2c) y
+  cambió la resolución de W-05 de "aceptable" a "ocultar la barra sin
+  datos" (aplicado en el mismo commit).
 score: 20/21 must-haves verified
 behavior_unverified: 1
 overrides_applied: 0
