@@ -4,17 +4,17 @@ milestone: v1.6
 milestone_name: Meta Tags / Social
 current_phase: 29
 current_phase_name: scoring-categor-a-social-retiro-de-onpage-05
-status: executing
-stopped_at: Completed 29-03-PLAN.md
-last_updated: "2026-08-01T23:21:28.191Z"
+status: verifying
+stopped_at: Completed 29-04-PLAN.md
+last_updated: "2026-08-01T23:27:06.162Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 29 execution started
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 7
-  completed_plans: 5
-  percent: 0
+  completed_plans: 6
+  percent: 20
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 Phase: 29 (scoring-categor-a-social-retiro-de-onpage-05) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-01 — Phase 29 execution started
 
-Progress: [███████░░░] 71%
+Progress: [█████████░] 86%
 
 ## Deferred Verification
 
@@ -85,6 +85,7 @@ Progress: [███████░░░] 71%
 | Phase 29 P01 | 9min | 2 tasks | 7 files |
 | Phase 29 P02 | 4min | 2 tasks | 3 files |
 | Phase 29 P03 | 5min | 2 tasks | 7 files |
+| Phase 29 P04 | 2min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 29: la exhaustividad de los arrays Category[] se prueba contra Object.keys(CATEGORY_WEIGHTS) en runtime, nunca contra una lista literal paralela (seria un cuarto sitio capaz de desincronizarse)
 - [Phase ?]: Phase 29: CATEGORY_ORDER de apps/web vive en app/components/ui/labels.ts junto a CATEGORY_LABEL; page.tsx lo importa (un archivo de pagina de App Router no exporta simbolos sueltos ni puede importarlo un test)
 - [Phase ?]: Phase 29: la paridad de copy entre las labels de la UI y las de packages/export se protege con un literal escrito a mano en el test de la web, sin crear una dependencia de apps/web a @auditor/export
+- [Phase ?]: Phase 29: el corte de version v1.6 se registra como UNA fila de Key Decisions que junta el rebalanceo de pesos y el retiro del check (misma decision de producto, consecuencias inseparables en el diff)
+- [Phase ?]: Phase 29: el falso 'Resuelto' de la primera auditoria posterior al corte queda declarado en PROJECT.md como NO capado ni filtrado — capar o filtrar es alcance de una fase con UI (Phase 32)
+- [Phase ?]: Phase 29: la categoria social vacia entre Phase 29 y Phase 30 se registra como estado conocido y deliberado, no como defecto
 
 ### Pending Todos
 
@@ -145,8 +149,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-01T23:21:16.692Z
-Stopped at: Completed 29-03-PLAN.md
+Last session: 2026-08-01T23:27:06.155Z
+Stopped at: Completed 29-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

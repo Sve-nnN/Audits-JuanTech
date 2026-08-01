@@ -152,7 +152,7 @@ Plans:
   2. El check `ONPAGE-05` ya no está activo en el catálogo de checks; ninguna auditoría nueva produce issues duplicados (mismo fingerprint) entre `onpage` y `social` para la misma señal de Open Graph.
   3. El cambio de catálogo de checks queda documentado como corte de versión: los scores de auditorías previas a v1.6 no son directamente comparables con los posteriores.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
@@ -166,7 +166,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 29-04-PLAN.md — Corte de versión registrado en PROJECT.md + gate de fase (typecheck y suite completos, sin caché)
+- [x] 29-04-PLAN.md — Corte de versión registrado en PROJECT.md + gate de fase (typecheck y suite completos, sin caché)
 
 **UI hint**: no
 
@@ -253,7 +253,7 @@ Próximo trabajo previsto tras v1.6:
 | 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 5/5 | Complete ✅ | 2026-07-22 |
 | 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 3/3 | Complete ✅ | 2026-07-25 |
 | 28. Performance por página | v1.6 | 2/3 | In Progress|  |
-| 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 3/4 | In Progress|  |
+| 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 4/4 | In Progress|  |
 | 30. Checks de meta tags/social | v1.6 | 0/TBD | Not started | - |
 | 31. Validación de og:image | v1.6 | 0/TBD | Not started | - |
 | 32. Panel de preview social + snippets de fix | v1.6 | 0/TBD | Not started | - |
