@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 29
 current_phase_name: scoring-categor-a-social-retiro-de-onpage-05
 status: executing
-stopped_at: Completed 29-02-PLAN.md
-last_updated: "2026-08-01T23:13:24.686Z"
+stopped_at: Completed 29-03-PLAN.md
+last_updated: "2026-08-01T23:21:28.191Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 29 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 ## Current Position
 
 Phase: 29 (scoring-categor-a-social-retiro-de-onpage-05) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-08-01 — Phase 29 execution started
 
-Progress: [██████░░░░] 57%
+Progress: [███████░░░] 71%
 
 ## Deferred Verification
 
@@ -84,6 +84,7 @@ Progress: [██████░░░░] 57%
 | Phase 28 P02 | 5min | 2 tasks | 5 files |
 | Phase 29 P01 | 9min | 2 tasks | 7 files |
 | Phase 29 P02 | 4min | 2 tasks | 3 files |
+| Phase 29 P03 | 5min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 29: etiqueta de la categoria es 'Meta Tags / Social', verbatim identica en packages/export/src/labels.ts y apps/web/app/components/ui/labels.ts
 - [Phase ?]: Phase 29: el modulo de ONPAGE-05 se borra del arbol con git rm, sin migracion ni backfill: las filas Issue historicas quedan intactas y cms-adapters les sigue resolviendo copy de fix en tiempo de lectura
 - [Phase ?]: Phase 29: el falso 'Resuelto' que produce la primera auditoria posterior al corte v1.6 se documenta en el docblock de registry.test.ts y NO se capa ni se filtra en la UI (alcance de una fase posterior)
+- [Phase ?]: Phase 29: la exhaustividad de los arrays Category[] se prueba contra Object.keys(CATEGORY_WEIGHTS) en runtime, nunca contra una lista literal paralela (seria un cuarto sitio capaz de desincronizarse)
+- [Phase ?]: Phase 29: CATEGORY_ORDER de apps/web vive en app/components/ui/labels.ts junto a CATEGORY_LABEL; page.tsx lo importa (un archivo de pagina de App Router no exporta simbolos sueltos ni puede importarlo un test)
+- [Phase ?]: Phase 29: la paridad de copy entre las labels de la UI y las de packages/export se protege con un literal escrito a mano en el test de la web, sin crear una dependencia de apps/web a @auditor/export
 
 ### Pending Todos
 
@@ -141,8 +145,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-01T23:13:24.680Z
-Stopped at: Completed 29-02-PLAN.md
+Last session: 2026-08-01T23:21:16.692Z
+Stopped at: Completed 29-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
