@@ -34,8 +34,8 @@ Requirements para el milestone Meta Tags / Social. Cada uno mapea a fases del ro
 
 ### SCORE — scoring
 
-- [ ] **SCORE-01**: categoría "social" nueva en `Category` union + `WEIGHTS`
-- [ ] **SCORE-02**: rebalanceo de pesos (onpage .15→.10, schema .10→.05, social .10 nuevo), documentado como corte de versión de catálogo (scores pre/post v1.6 no directamente comparables)
+- [x] **SCORE-01**: categoría "social" nueva en `Category` union + `WEIGHTS`
+- [x] **SCORE-02**: rebalanceo de pesos (onpage .15→.10, schema .10→.05, social .10 nuevo), documentado como corte de versión de catálogo (scores pre/post v1.6 no directamente comparables)
 
 ### PREVIEW — panel visual de preview social
 
@@ -89,8 +89,8 @@ Cuál fase cubre cuáles requirements.
 | PAGEPERF-01 | Phase 28 | Complete |
 | PAGEPERF-02 | Phase 28 | Complete |
 | PAGEPERF-03 | Phase 28 | Complete |
-| SCORE-01 | Phase 29 | Pending |
-| SCORE-02 | Phase 29 | Pending |
+| SCORE-01 | Phase 29 | Complete |
+| SCORE-02 | Phase 29 | Complete |
 | SOCIAL-09 | Phase 29 | Pending |
 | SOCIAL-01 | Phase 30 | Pending |
 | SOCIAL-02 | Phase 30 | Pending |

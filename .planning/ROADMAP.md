@@ -152,12 +152,12 @@ Plans:
   2. El check `ONPAGE-05` ya no está activo en el catálogo de checks; ninguna auditoría nueva produce issues duplicados (mismo fingerprint) entre `onpage` y `social` para la misma señal de Open Graph.
   3. El cambio de catálogo de checks queda documentado como corte de versión: los scores de auditorías previas a v1.6 no son directamente comparables con los posteriores.
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 29-01-PLAN.md — Tracer: la categoría `social` de punta a punta (union `Category`, pesos rebalanceados, fan-out de compilación cerrado) + endurecimiento de los tests de peso
+- [x] 29-01-PLAN.md — Tracer: la categoría `social` de punta a punta (union `Category`, pesos rebalanceados, fan-out de compilación cerrado) + endurecimiento de los tests de peso
 - [ ] 29-02-PLAN.md — Retiro de ONPAGE-05: guardarrailes negativos en rojo, luego borrado del módulo y limpieza del barrel
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -253,7 +253,7 @@ Próximo trabajo previsto tras v1.6:
 | 26. Wiring en el worker + tabla de stack en el reporte | v1.5 | 5/5 | Complete ✅ | 2026-07-22 |
 | 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 3/3 | Complete ✅ | 2026-07-25 |
 | 28. Performance por página | v1.6 | 2/3 | In Progress|  |
-| 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 0/TBD | Not started | - |
+| 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 1/4 | In Progress|  |
 | 30. Checks de meta tags/social | v1.6 | 0/TBD | Not started | - |
 | 31. Validación de og:image | v1.6 | 0/TBD | Not started | - |
 | 32. Panel de preview social + snippets de fix | v1.6 | 0/TBD | Not started | - |

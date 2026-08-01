@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Meta Tags / Social
 current_phase: 29
-current_phase_name: performance-por-p-gina
+current_phase_name: scoring-categor-a-social-retiro-de-onpage-05
 status: executing
-stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-08-01T22:58:39.622Z"
+stopped_at: Completed 29-01-PLAN.md
+last_updated: "2026-08-01T23:08:03.120Z"
 last_activity: 2026-08-01
-last_activity_desc: Phase 28 waves 1-3 ejecutadas y commiteadas; columnas `responseMs`/`htmlBytes` aplicadas a Postgres de producción (ALTER TABLE manual vía SSH, confirmado por Juan); checkpoint de smoke-test de re-crawl real diferido por decisión de Juan — milestone sigue con Phase 29 (sin dependencia de código con 28)
+last_activity_desc: Phase 29 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 7
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 28 — performance-por-p-gina
+**Current focus:** Phase 29 — scoring-categor-a-social-retiro-de-onpage-05
 
 ## Current Position
 
-Phase: 29 (scoring-social) — starting (Phase 28 code complete, verificación humana diferida)
-Plan: — (Phase 29 aún sin planear)
+Phase: 29 (scoring-categor-a-social-retiro-de-onpage-05) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-08-01 — Phase 28 waves 1-3 ejecutadas y commiteadas; columnas `responseMs`/`htmlBytes` aplicadas a Postgres de producción (ALTER TABLE manual vía SSH, confirmado por Juan); checkpoint de smoke-test de re-crawl real diferido por decisión de Juan — milestone sigue con Phase 29 (sin dependencia de código con 28)
+Last activity: 2026-08-01 — Phase 29 execution started
 
-Progress: [███████░░░] 67%
+Progress: [████░░░░░░] 43%
 
 ## Deferred Verification
 
@@ -82,6 +82,7 @@ Progress: [███████░░░] 67%
 | Phase 25 P04 | 14min | 3 tasks | 5 files |
 | Phase 28 P01 | 6min | 3 tasks | 10 files |
 | Phase 28 P02 | 5min | 2 tasks | 5 files |
+| Phase 29 P01 | 9min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 28: responseMs y htmlBytes se escriben en las ramas create Y update del prisma.page.upsert para que un re-crawl no deje valores rancios
 - [Phase ?]: Phase 28: Guardarrail de colision de checkId lee packages/psi/src/issues.ts por fs (readFileSync + import.meta.url), nunca por import, para no agregar @auditor/psi al grafo que resuelve apps/web
 - [Phase ?]: Phase 28: La capacidad de deteccion del guardarrail se prueba con datos sinteticos (findCollisions), nunca mutando codigo de produccion
+- [Phase ?]: Phase 29: social entra al final del union Category y de CATEGORY_WEIGHTS (orden cronologico de introduccion, no alfabetico)
+- [Phase ?]: Phase 29: el guardarrail de suma de pesos usa toBeCloseTo(1.0, 5) por punto flotante; el hueco de valores invertidos se cierra con un assert toEqual del objeto completo, no con un segundo test de suma
+- [Phase ?]: Phase 29: CATEGORY_ORDER se exporta desde report-model/build.ts pero NO se agrega a index.ts — la API publica del paquete no se amplia
+- [Phase ?]: Phase 29: etiqueta de la categoria es 'Meta Tags / Social', verbatim identica en packages/export/src/labels.ts y apps/web/app/components/ui/labels.ts
 
 ### Pending Todos
 
@@ -133,8 +138,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-01T15:16:31.825Z
-Stopped at: Completed 28-02-PLAN.md
+Last session: 2026-08-01T23:07:53.119Z
+Stopped at: Completed 29-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
