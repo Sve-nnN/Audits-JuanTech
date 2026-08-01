@@ -8,12 +8,13 @@ describe("toMarkdown", () => {
     const md = toMarkdown(buildModel({ overall: 72 }));
     expect(md).toContain("example.com");
     expect(md).toContain("72");
-    // all five categories present in CATEGORY_ORDER
+    // all six categories present in CATEGORY_ORDER
     expect(md).toContain("SEO Técnico");
     expect(md).toContain("Rendimiento / CWV");
     expect(md).toContain("On-Page");
     expect(md).toContain("Datos Estructurados");
     expect(md).toContain("AEO");
+    expect(md).toContain("Meta Tags / Social");
   });
 
   it("emits the 5 issue lines in fixed order: checkId -> page -> value -> criterion -> recommendation", () => {

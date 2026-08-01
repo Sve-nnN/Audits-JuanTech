@@ -11,7 +11,9 @@ vi.mock("@auditor/db", () => ({
 }));
 
 import { prisma } from "@auditor/db";
-import { buildReportModel, toReportStack, MAX_PRIORITY_ROWS } from "./build";
+import { buildReportModel, toReportStack, MAX_PRIORITY_ROWS, CATEGORY_ORDER } from "./build";
+import { CATEGORY_WEIGHTS } from "@auditor/scoring";
+import type { Category } from "@auditor/scoring";
 import type { AxisResult, DetectedStack } from "@auditor/fingerprint";
 
 const auditFindUnique = vi.mocked(prisma.audit.findUnique);
@@ -116,6 +118,30 @@ beforeEach(() => {
   // Default: no page rows unless a test opts in (keeps graphless tests simple).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pageFindMany.mockResolvedValue([] as any);
+});
+
+/**
+ * Guardarraíl de exhaustividad de CATEGORY_ORDER.
+ *
+ * Este es el sitio crítico de los tres que declaran un orden de categorías:
+ * `CATEGORY_ORDER` siembra los buckets de `issuesByCategory` y el `if (bucket)`
+ * de `build.ts` descarta SIN ERROR todo issue cuya categoría no esté listada.
+ * TypeScript no exige exhaustividad en un array `Category[]`, así que una
+ * categoría nueva en el union puede quedar fuera sin romper compilación y sin
+ * poner rojo ningún test: sus issues simplemente desaparecen del reporte y de
+ * los tres exports. Este test convierte ese defecto silencioso en suite roja.
+ *
+ * La fuente de verdad en runtime es `Object.keys(CATEGORY_WEIGHTS)`, exhaustivo
+ * por construcción al estar tipado `Record<Category, number>`. Deliberadamente
+ * no se declara acá una lista literal de categorías, que sería otro sitio más
+ * capaz de desincronizarse.
+ */
+describe("CATEGORY_ORDER", () => {
+  it("cubre todas las categorías de CATEGORY_WEIGHTS", () => {
+    expect([...CATEGORY_ORDER].sort()).toEqual(
+      (Object.keys(CATEGORY_WEIGHTS) as Category[]).sort()
+    );
+  });
 });
 
 describe("buildReportModel", () => {

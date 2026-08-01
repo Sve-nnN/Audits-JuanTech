@@ -41,7 +41,7 @@ export function makeCandidates(count: number): ReportIssue[] {
   );
 }
 
-const CATS: Category[] = ["tech", "perf", "onpage", "schema", "aeo"];
+export const CATS: Category[] = ["tech", "perf", "onpage", "schema", "aeo", "social"];
 
 function scoreResult(score: number): CategoryScoreResult {
   return {
@@ -71,6 +71,7 @@ export function buildModel(opts: BuildModelOptions = {}): ReportModel {
     onpage: [] as ReportIssue[],
     schema: [] as ReportIssue[],
     aeo: [] as ReportIssue[],
+    social: [] as ReportIssue[],
   } as Record<Category, ReportIssue[]>;
 
   if (opts.includeCategoryData !== false) {
