@@ -31,7 +31,7 @@ const STATUS_CLASS: Record<
 /**
  * CategoryCard (COMP-02) — card compacta por categoría: etiqueta + score + estado.
  *
- * Consistente para las 5 categorías del reporte. El score y el caption de estado
+ * Consistente para las 6 categorías del reporte. El score y el caption de estado
  * comparten el mapa estado→color del ScoreGauge (good/needs_improvement/critical
  * → success/warning/critical). Con `score=null` muestra un guion y "sin datos" en
  * tono muted, sin acento de color.

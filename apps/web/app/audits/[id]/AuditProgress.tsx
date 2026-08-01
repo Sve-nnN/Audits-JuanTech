@@ -19,7 +19,7 @@ const PHASE_ORDER: Phase[] = ["crawling", "rendering", "analyzing", "performance
 const PHASE_LABEL: Record<Phase, string> = {
   crawling: "Rastreando páginas",
   rendering: "Verificando renderizado (JS) en una muestra de páginas",
-  analyzing: "Analizando checks (SEO técnico, on-page, datos estructurados y AEO)",
+  analyzing: "Analizando checks (SEO técnico, on-page, datos estructurados, AEO y meta tags/social)",
   performance: "Midiendo rendimiento y Core Web Vitals (PageSpeed Insights)",
 };
 

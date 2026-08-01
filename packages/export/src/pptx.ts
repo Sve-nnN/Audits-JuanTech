@@ -18,7 +18,9 @@ import { CATEGORY_ORDER, CATEGORY_LABEL, STATUS_LABEL } from "./labels";
  * BASE_SLIDES (always present):
  *   1  Portada             — dominio + fecha + score general + pill de estado
  *   2  Resumen ejecutivo   — doughnut del score + tiles (críticos/adv/páginas)
- *   3  Scores por categoría — bar chart horizontal de las 5 categorías
+ *   3  Scores por categoría — bar chart horizontal de las categorías con score medido
+ *      (hasta 6; una categoría sin datos aún, como social antes de v1.6 Phase 30, se
+ *      excluye del gráfico y se lista en una nota al pie en vez de graficarse en 0)
  *   4  Desglose de severidad — doughnut de conteos por severidad
  *   5  Metodología         — qué mide la auditoría (copy curada)
  *   6  Próximos pasos      — CTA + recomendaciones priorizadas
@@ -474,8 +476,12 @@ export function buildPptxDeck(model: ReportModel): PptxDeck {
   {
     const s = addSlide();
     slideHeader(pptx, s, "Scores por categoría");
-    const labels = CATEGORY_ORDER.map((c) => CATEGORY_LABEL[c]);
-    const values = CATEGORY_ORDER.map((c) => model.byCategory[c as Category]?.score ?? 0);
+    // Only chart categories with an actual measured score (EXPORT/W-05):
+    // plotting an unmeasured category as a 0-value bar with showValue: true
+    // reads as "this scored zero", not "not measured yet".
+    const measuredCategories = CATEGORY_ORDER.filter((c) => model.byCategory[c as Category] !== undefined);
+    const labels = measuredCategories.map((c) => CATEGORY_LABEL[c]);
+    const values = measuredCategories.map((c) => model.byCategory[c as Category]!.score);
     s.addChart(pptx.ChartType.bar, [{ name: "Score", labels, values }], {
       x: 0.9,
       y: 1.45,
@@ -499,11 +505,11 @@ export function buildPptxDeck(model: ReportModel): PptxDeck {
       valGridLine: { color: BORDER, size: 1 },
       catGridLine: { style: "none" },
     });
-    // "sin datos" note for categories without a persisted score.
+    // "sin datos" note for categories excluded from the chart above (not plotted as 0).
     const missing = CATEGORY_ORDER.filter((c) => model.byCategory[c as Category] === undefined);
     if (missing.length > 0) {
       const names = missing.map((c) => CATEGORY_LABEL[c]).join(", ");
-      s.addText(`Sin datos: ${names} (se muestran como 0).`, {
+      s.addText(`Sin datos todavía (no incluidas arriba): ${names}.`, {
         x: MARGIN,
         y: 5.8,
         w: W - 2 * MARGIN,

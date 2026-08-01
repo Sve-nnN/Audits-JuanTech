@@ -181,6 +181,7 @@ Plans:
   2. El auditor genera issues de presencia/longitud para og:title (10-60 chars), og:description (55-200 chars), og:image (URL absoluta HTTPS) y og:url (coherente con canonical), y de presencia para og:type.
   3. El auditor detecta tags OG duplicados con valores distintos (mismo `property`) y marca twitter:card ausente o con valor inválido, evaluando el resto de twitter:* como error sólo cuando falta también el equivalente OG (regla anti-falso-positivo).
   4. El auditor advierte cuando el charset no está declarado dentro del primer 1KB del HTML.
+  5. Guardarraíl de SOCIAL-09: sobre una página con las 4 etiquetas OG básicas presentes, ningún issue nuevo de esta fase colisiona por fingerprint (mismo `checkId:url`) con lo que emitía el retirado `ONPAGE-05` — verificado con un test explícito, no sólo por construcción (checkIds `SOCIAL-01..08` son distintos de `ONPAGE-05` por diseño, pero esta fase debe probarlo, no asumirlo; ver Phase 29 VERIFICATION.md W-06).
 
 **Plans**: TBD
 

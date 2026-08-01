@@ -171,8 +171,8 @@ export default async function AuditReportPage({ params }: PageProps) {
             <div className={styles.heroBody}>
               <h2 className={styles.heroTitle}>Score general</h2>
               <p className={styles.heroText}>
-                Promedio ponderado de SEO técnico, rendimiento, on-page, datos estructurados y
-                AEO, calculado con los hallazgos de esta auditoría.
+                Promedio ponderado de SEO técnico, rendimiento, on-page, datos estructurados,
+                AEO y meta tags/social, calculado con los hallazgos de esta auditoría.
               </p>
               {hasScores ? (
                 <Badge variant={STATUS_BADGE_VARIANT[overallStatus]}>

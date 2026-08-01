@@ -90,10 +90,19 @@ export function scoreOverall(
   const byCategory: Partial<Record<Category, CategoryScoreResult>> = { ...categoryScores };
   if (perfScore) byCategory.perf = perfScore;
 
-  const present = (Object.keys(byCategory) as Category[]).filter((cat) => byCategory[cat] !== undefined);
+  // Guard against an unknown category string reaching this point (e.g. a typo
+  // in a hand-written `category: "social"` literal in a new check, persisted
+  // verbatim by the worker into an untyped `string` column and cast back to
+  // `Category` on read). Without this filter, `CATEGORY_WEIGHTS[cat]` is
+  // `undefined` for that key and every downstream sum becomes `NaN`,
+  // silently persisting `overall: null` for the whole audit — see v1.6 Phase
+  // 29 VERIFICATION.md W-01.
+  const present = (Object.keys(byCategory) as Category[]).filter(
+    (cat) => byCategory[cat] !== undefined && CATEGORY_WEIGHTS[cat] !== undefined
+  );
   const totalWeight = present.reduce((sum, cat) => sum + CATEGORY_WEIGHTS[cat], 0);
 
-  if (present.length === 0 || totalWeight === 0) {
+  if (present.length === 0 || totalWeight === 0 || !Number.isFinite(totalWeight)) {
     return { overall: 0, status: statusForScore(0), byCategory };
   }
 
