@@ -7,6 +7,9 @@ import type { PageTemplate, Confidence } from "@auditor/report-model";
  * Copy extraído verbatim desde audits/[id]/page.tsx para evitar drift.
  */
 
+/** Orden de presentación de las categorías en el reporte (SCORE-01). */
+export const CATEGORY_ORDER: Category[] = ["tech", "perf", "onpage", "schema", "aeo", "social"];
+
 export const CATEGORY_LABEL: Record<Category, string> = {
   tech: "SEO Técnico",
   perf: "Rendimiento / CWV",

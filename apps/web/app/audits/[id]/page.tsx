@@ -18,6 +18,7 @@ import { ExportMenu } from "../../components/ui/ExportMenu";
 import { Reveal } from "../../components/motion/useReveal";
 import {
   CATEGORY_LABEL,
+  CATEGORY_ORDER,
   STATUS_LABEL,
   STRATEGY_LABEL,
   TEMPLATE_LABEL,
@@ -36,8 +37,6 @@ export const dynamic = 'force-dynamic'
 interface PageProps {
   params: Promise<{ id: string }>;
 }
-
-const CATEGORY_ORDER: Category[] = ["tech", "perf", "onpage", "schema", "aeo"];
 
 /** Estado de score → variante de Badge (reusa el eje de severidad, DS-02). */
 const STATUS_BADGE_VARIANT: Record<ScoreStatus, "ok" | "warning" | "critical"> = {
