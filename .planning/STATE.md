@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Meta Tags / Social
 current_phase: 28
-current_phase_name: Performance por página
+current_phase_name: performance-por-p-gina
 status: executing
-stopped_at: ROADMAP.md v1.6 creado (Phases 28-32, 24/24 requirements mapeados) — pendiente aprobación de Juan y arranque de Phase 28
-last_updated: "2026-07-31T22:54:03.621Z"
-last_activity: 2026-07-31
-last_activity_desc: ROADMAP.md v1.6 creado (5 fases, 24/24 requirements mapeados)
+stopped_at: Completed 28-01-PLAN.md
+last_updated: "2026-08-01T15:08:46.402Z"
+last_activity: 2026-08-01
+last_activity_desc: Phase 28 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Milestone v1.6 Meta Tags/Social — roadmap creado (Phases 28-32), lista para planear Phase 28
+**Current focus:** Phase 28 — performance-por-p-gina
 
 ## Current Position
 
-Phase: 28 of 32 (Performance por página) — not started
-Plan: — (roadmap recién creado, sin planes aún)
+Phase: 28 (performance-por-p-gina) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-31 — ROADMAP.md v1.6 creado (5 fases, 24/24 requirements mapeados)
+Last activity: 2026-08-01 — Phase 28 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Milestone v1.6 — Phases
 
@@ -74,6 +74,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 25 P01 | 6 min | 2 tasks | 5 files |
 | Phase 25 P03 | 4min | 2 tasks | 8 files |
 | Phase 25 P04 | 14min | 3 tasks | 5 files |
+| Phase 28 P01 | 6min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - Roadmap v1.6: orden de fases ajustado sobre la propuesta de research — Scoring (categoría social + retiro de ONPAGE-05) se secuencia ANTES de los checks nuevos de SOCIAL-01..08 (Phase 29 antes de Phase 30), para no escribir checks contra un modelo de scoring que todavía puede cambiar. SOCIAL-09 (retiro de ONPAGE-05) se agrupó con la fase de Scoring, no con la de checks nuevos, porque es migración de scoring/código existente, no un check nuevo.
 - Roadmap v1.6: PAGEPERF aislado en Phase 28 (primera fase) porque toca `crawl.ts`, único componente que ningún milestone anterior había modificado.
 - Roadmap v1.6: IMG (validación de og:image) aislado en su propia fase (31) por ser infra nueva de red (fetcher dedupeado), mismo patrón que Phase 12 (render+Docker) en v1.2.
+- [Phase ?]: Phase 28: checkIds PERF-10 (tiempo de respuesta) y PERF-11 (tamano HTML) en lugar de PERF-07/PERF-08, que ya estan ocupados por diagnosticos de PSI y colisionarian fingerprints en el diff historico
+- [Phase ?]: Phase 28: extractPageMetrics tipa response de forma laxa (TimedResponse) + cast en el call site, porque el PlainResponse de Crawlee no declara timings aunque got-scraping lo adjunta en runtime
+- [Phase ?]: Phase 28: responseMs y htmlBytes se escriben en las ramas create Y update del prisma.page.upsert para que un re-crawl no deje valores rancios
 
 ### Pending Todos
 
@@ -120,8 +124,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-07-31T18:07:05.762Z
-Stopped at: ROADMAP.md v1.6 creado (Phases 28-32, 24/24 requirements mapeados) — pendiente aprobación de Juan y arranque de Phase 28
+Last session: 2026-08-01T15:08:34.470Z
+Stopped at: Completed 28-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

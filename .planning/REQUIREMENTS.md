@@ -28,9 +28,9 @@ Requirements para el milestone Meta Tags / Social. Cada uno mapea a fases del ro
 
 ### PAGEPERF — métricas de página (nuevas, independientes de PSI)
 
-- [ ] **PAGEPERF-01**: response time por página medido en el crawl (instrumentar `crawl.ts`), sin requests extra
-- [ ] **PAGEPERF-02**: HTML size por página, persistido en `Page` (migración Prisma)
-- [ ] **PAGEPERF-03**: umbrales de severidad — response time warning >600ms / error >1500ms; HTML size warning >100KB / error >300KB
+- [x] **PAGEPERF-01**: response time por página medido en el crawl (instrumentar `crawl.ts`), sin requests extra
+- [x] **PAGEPERF-02**: HTML size por página, persistido en `Page` (migración Prisma)
+- [x] **PAGEPERF-03**: umbrales de severidad — response time warning >600ms / error >1500ms; HTML size warning >100KB / error >300KB
 
 ### SCORE — scoring
 
@@ -86,9 +86,9 @@ Cuál fase cubre cuáles requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PAGEPERF-01 | Phase 28 | Pending |
-| PAGEPERF-02 | Phase 28 | Pending |
-| PAGEPERF-03 | Phase 28 | Pending |
+| PAGEPERF-01 | Phase 28 | Complete |
+| PAGEPERF-02 | Phase 28 | Complete |
+| PAGEPERF-03 | Phase 28 | Complete |
 | SCORE-01 | Phase 29 | Pending |
 | SCORE-02 | Phase 29 | Pending |
 | SOCIAL-09 | Phase 29 | Pending |
