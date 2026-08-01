@@ -155,9 +155,17 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 29-01-PLAN.md — Tracer: la categoría `social` de punta a punta (union `Category`, pesos rebalanceados, fan-out de compilación cerrado) + endurecimiento de los tests de peso
 - [ ] 29-02-PLAN.md — Retiro de ONPAGE-05: guardarrailes negativos en rojo, luego borrado del módulo y limpieza del barrel
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 29-03-PLAN.md — Guardarrailes de exhaustividad de `CATEGORY_ORDER` en report-model, export y apps/web
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 29-04-PLAN.md — Corte de versión registrado en PROJECT.md + gate de fase (typecheck y suite completos, sin caché)
 
 **UI hint**: no

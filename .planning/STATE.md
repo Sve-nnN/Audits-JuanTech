@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Meta Tags / Social
-current_phase: 28
+current_phase: 29
 current_phase_name: performance-por-p-gina
 status: executing
 stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-08-01T15:16:40.154Z"
+last_updated: "2026-08-01T22:58:39.622Z"
 last_activity: 2026-08-01
-last_activity_desc: Phase 28 execution started
+last_activity_desc: Phase 28 waves 1-3 ejecutadas y commiteadas; columnas `responseMs`/`htmlBytes` aplicadas a Postgres de producción (ALTER TABLE manual vía SSH, confirmado por Juan); checkpoint de smoke-test de re-crawl real diferido por decisión de Juan — milestone sigue con Phase 29 (sin dependencia de código con 28)
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 3
+  total_plans: 7
   completed_plans: 2
   percent: 0
 ---
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 Phase: 29 (scoring-social) — starting (Phase 28 code complete, verificación humana diferida)
 Plan: — (Phase 29 aún sin planear)
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-08-01 — Phase 28 waves 1-3 ejecutadas y commiteadas; columnas `responseMs`/`htmlBytes` aplicadas a Postgres de producción (ALTER TABLE manual vía SSH, confirmado por Juan); checkpoint de smoke-test de re-crawl real diferido por decisión de Juan — milestone sigue con Phase 29 (sin dependencia de código con 28)
 
 Progress: [███████░░░] 67%
