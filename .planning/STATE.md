@@ -28,12 +28,18 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 ## Current Position
 
-Phase: 28 (performance-por-p-gina) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-08-01 — Phase 28 execution started
+Phase: 29 (scoring-social) — starting (Phase 28 code complete, verificación humana diferida)
+Plan: — (Phase 29 aún sin planear)
+Status: Ready to plan
+Last activity: 2026-08-01 — Phase 28 waves 1-3 ejecutadas y commiteadas; columnas `responseMs`/`htmlBytes` aplicadas a Postgres de producción (ALTER TABLE manual vía SSH, confirmado por Juan); checkpoint de smoke-test de re-crawl real diferido por decisión de Juan — milestone sigue con Phase 29 (sin dependencia de código con 28)
 
 Progress: [███████░░░] 67%
+
+## Deferred Verification
+
+| Phase | State | Resume |
+|-------|-------|--------|
+| 28 | verification_deferred_human — falta Task 3 de `28-03-PLAN.md` (smoke test de re-crawl real contra un sitio ya auditado + decisión de Juan sobre FA-1/FA-2, umbrales de PAGEPERF-03) | `/gsd-execute-phase 28` (retoma wave 3; Task 1 y Task 2 ya están completas — Task 2, aplicar el schema a Postgres, se hizo manualmente el 2026-08-01 vía `ALTER TABLE` directo con superusuario sobre `shared-postgres`/`auditor`, mismo resultado que `prisma db push`) |
 
 ## Milestone v1.6 — Phases
 
