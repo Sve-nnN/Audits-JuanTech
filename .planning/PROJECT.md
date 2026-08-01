@@ -81,12 +81,15 @@ Seis milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca),
 - ✓ Fingerprint de stack técnico: captura de headers curados + nombres de cookie sin requests adicionales, motor `detectStack` propio (registry de signatures por eje, sin dependencias externas pagas/GPL) con detección independiente por eje (CMS, builder WordPress, CDN/proxy, hosting, framework JS, analytics) tipada por confianza (alto/medio/bajo/no-detectado), nunca forzando una respuesta sin señal — v1.5 (FPRINT-01..08, Phase 25)
 - ✓ Persistencia del stack detectado (una detección por auditoría, sin re-detectar por vista) + tabla "Stack técnico detectado" al inicio del reporte, tokens-only, ambos temas — v1.5 (FPRINT-09, STACKUI-01..03, Phase 26)
 - ✓ Motor de recomendaciones por CMS: patrón adaptador (WordPress con builder, Shopify, Webflow, Wix/Squarespace) con fallback genérico garantizado, resuelto en lectura en `buildReportModel` (nunca persistido, gratis en exports) — v1.5 (CMSFIX-01..05, Phase 27)
+- ✓ Categoría de score "Meta Tags/Social" (sexta categoría, peso 0.10) con rebalanceo explícito de on-page (.15→.10) y datos estructurados (.10→.05), y retiro de `ONPAGE-05` (redundante con la categoría nueva) sin migrar historial — corte de versión documentado — v1.6 (SCORE-01/02, SOCIAL-09, Phase 29)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-v1.6 en definición — Meta Tags/Social (score propio, panel visual, performance por página, fix snippets).
+v1.6 en definición — Meta Tags/Social (checks nuevos de meta/social, panel visual, performance por página ya implementado pendiente de verificación humana, fix snippets).
+
+- [ ] PAGEPERF-01/02/03 — código completo (Phase 28), verificación humana del smoke-test de re-crawl real diferida (ver STATE.md → Deferred Verification)
 
 ### Out of Scope
 
@@ -151,6 +154,7 @@ v1.6 en definición — Meta Tags/Social (score propio, panel visual, performanc
 | TECH-04 (canonical) resuelto como un solo copy por plataforma que cubre tanto ubicación del campo como destino roto/en cadena/con noindex, en vez de checkIds separados | Los checks de canonical básico y canonicalDeep comparten el mismo checkId `TECH-04`; separar requeriría tocar el catálogo de checks fuera de scope de la fase | ✓ Good — v1.5 Phase 27, redacción validada por Juan |
 | Resolución de recomendación por CMS en `buildReportModel` (lectura), nunca persistida en DB | Mismo patrón que el fingerprint: evita recomputar/guardar un derivado que cambiaría si se recalibra el copy; llega gratis a exports sin tocar `packages/export` | ✓ Good — v1.5 Phase 27, cero commits en `packages/export` durante la fase |
 | v1.6: el modelo de scoring pasa de cinco a seis categorías con `social` (Meta Tags / Social) en 0.10, tomando peso de on-page (0.15 → 0.10) y de datos estructurados (0.10 → 0.05), y el check de Open Graph de la categoría on-page (`ONPAGE-05`) se retira del catálogo activo | La categoría Meta Tags / Social absorbe la señal de Open Graph, que a partir de Phase 30 pasa a evaluarse con checks propios y mucho más detalle (`SOCIAL-01..08`); dejar el check viejo activo duplicaría la misma señal en dos categorías del score | ✓ Good — v1.6 Phase 29. Corte de versión: los scores generales de auditorías anteriores a v1.6 no son directamente comparables con los posteriores, porque cambió el catálogo de checks y el reparto de pesos. Sin migración de datos: las filas `Issue` históricas quedan intactas y `packages/cms-adapters` les sigue resolviendo su copy de fix en tiempo de lectura. Consecuencia operativa en el diff: como el check retirado emitía siempre una fila por página (nunca cero), la primera auditoría posterior al corte de un sitio ya auditado va a mostrar hasta una fila "Resuelto" por página que el usuario no corrigió; se documenta acá y NO se capa ni se filtra en esta fase — capar o filtrar es alcance de producto de una fase con UI. Estado conocido y deliberado en la ventana entre Phase 29 y Phase 30: la categoría social aparece en el reporte sin datos, porque todavía no hay checks que emitan en ella |
+| `scoreOverall` filtra categorías ausentes de `CATEGORY_WEIGHTS` (en vez de confiar en el tipo `Category` del caller) y guarda contra `totalWeight` no finito; el gráfico de barras del PPTX excluye categorías sin score medido en vez de graficarlas en 0 | El verificador de Phase 29 (W-01) encontró que `IssueDraft.category` es `string` sin enum en DB, y Phase 30 va a escribir `category: "social"` a mano en 8 checks nuevos — un typo ahí NaNea el score general de la auditoría en silencio. Graficar una categoría sin datos en 0 con el valor impreso (W-05) comunica "midió cero", no "no midió todavía" | ✓ Good — v1.6 Phase 29, fix aplicado tras verificación humana (commit `3d34a2c`), a pedido explícito de Juan antes de arrancar Phase 30 |
 
 ## Evolution
 
@@ -170,4 +174,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-31 — Milestone v1.6 Meta Tags/Social iniciado*
+*Last updated: 2026-08-01 — Phase 29 (Scoring — categoría Social + retiro ONPAGE-05) completa*
