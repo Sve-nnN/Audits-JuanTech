@@ -153,6 +153,7 @@ Plans:
   3. El cambio de catálogo de checks queda documentado como corte de versión: los scores de auditorías previas a v1.6 no son directamente comparables con los posteriores.
 
 **Plans**: TBD
+**UI hint**: no
 
 ### Phase 30: Checks de meta tags/social
 
