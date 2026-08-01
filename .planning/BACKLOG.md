@@ -32,3 +32,27 @@ Tres piezas. La **#1 (grafo expandido) ya se implementó** como quick fix (commi
 3. **Validación por propiedad/tipo con errores individuales**: validar cada entidad y propiedad contra el vocabulario de schema.org y mostrar por nodo: "BlogPosting is a valid schema.org type", "articleSection is a valid property", y advertencias como "Product is missing reviews" (columnas error/warning/success por fila, como el treelist de Classy Schema). Es la pieza más grande — requiere una fuente del vocabulario schema.org (tipos + propiedades válidas + a qué tipo pertenece cada propiedad).
 
 **Referencia:** HTML de Classy Schema (treelist DevExtreme `dx-treelist` con columnas de error/warning/success + expanders con descripciones de schema.org) guardado en el hilo de conversación del 2026-07-09.
+
+## v1.7 (candidatas)
+
+**Origen:** Pedido directo de Juan (2026-08-01), durante la corrida autónoma de v1.6, referenciando https://www.opengraph.to/ como inspiración de producto (API, docs, MCP server, home).
+
+### API-01 — API pública segmentada por categoría de auditoría
+Endpoints tipo `/api/v1/opengraph`, `/api/v1/onpage`, `/api/v1/technical`, etc. (no necesariamente una auditoría completa por endpoint, segmentada por categoría de check). Autenticación vía API key generable por el usuario desde su cuenta. Requiere: diseño de rate limiting/cuota por key (separado de la cuota de email del free tier), modelo de datos para API keys (creación/revocación/scopes), y definición de qué categorías se exponen como endpoint independiente vs sólo como parte de la auditoría completa existente.
+
+### DOCS-01 — Documentación tipo blog, categorizada
+Sección de artículos (estilo https://www.opengraph.to/articles) donde cada artículo explica un tipo de error/check, categorizado por categoría del reporte (técnico, on-page, CWV, datos estructurados, AEO, social). Contenido derivable del catálogo de checks ya existente (`packages/checks/src/registry.ts` + los `checkId` documentados) — candidato a generarse semi-automáticamente desde ahí en vez de escribirse 100% a mano.
+
+### MCP-01 — MCP server con API key por usuario
+Server MCP (ej. `auditor-mcp`, instalable vía `npx`) con tools tipo `inspect_og`/`suggest_og_tags` (y potencialmente equivalentes para otras categorías), autenticado con la misma API key de API-01. Referencia funcional: OpenGraph MCP Server (`opengraph-mcp`, dos tools: `inspect_og` fetch+score de OG tags, `suggest_og_tags` genera HTML recomendado).
+
+### AUTH-01 — Sistema de sesiones seguro (JWT/cookies) + rol admin
+Sesiones con expiración configurable (X días/horas), logout, cookies httpOnly/secure o JWT firmado — decidir cuál durante research (ambos son legítimos, trade-offs de revocación vs statelessness). Un correo maestro/admin (`juancarlosanguloabud@gmail.com`) sin límites de cuota/rate-limit. Reemplaza o convive con el flujo actual de verificación por email/double-opt-in (a definir en discuss: ¿el admin también pasa por double opt-in, o tiene bypass total?).
+
+### SEC-01 — Auditoría OWASP Top 10 del sistema completo
+Pasada completa de seguridad (OWASP Top 10 2021 o la versión vigente al momento) sobre todo el sistema — no sólo lo nuevo de v1.7, sino el pipeline existente (auth, quota, API nueva, MCP server). Candidato a `gsd-security-auditor`/threat model formal en vez de checklist ad-hoc.
+
+### HOME-01 — Rediseño de home inspirado en opengraph.to
+Home más orientado a SEO (server-rendered, metadata rica) y que muestre auditorías recientemente inspeccionadas (requiere decidir: ¿todas las auditorías públicas son listables, o sólo si el usuario opta in? implicancia de privacidad — hoy el email/sitio auditado no es necesariamente público).
+
+**Notas generales:** Scope grande, multi-feature — tratar como milestone propio (v1.7) vía `/gsd-new-milestone`, no como fase suelta. Varias piezas tienen implicancias de seguridad/privacidad que merecen su propio research antes de roadmap (API keys + rate limiting, modelo de sesión JWT vs cookie, qué datos de auditorías son público-listables para el home).
