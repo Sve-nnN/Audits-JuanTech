@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 29
 current_phase_name: scoring-categor-a-social-retiro-de-onpage-05
 status: executing
-stopped_at: Completed 29-01-PLAN.md
-last_updated: "2026-08-01T23:08:03.120Z"
+stopped_at: Completed 29-02-PLAN.md
+last_updated: "2026-08-01T23:13:24.686Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 29 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 7
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 ## Current Position
 
 Phase: 29 (scoring-categor-a-social-retiro-de-onpage-05) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-08-01 — Phase 29 execution started
 
-Progress: [████░░░░░░] 43%
+Progress: [██████░░░░] 57%
 
 ## Deferred Verification
 
@@ -83,6 +83,7 @@ Progress: [████░░░░░░] 43%
 | Phase 28 P01 | 6min | 3 tasks | 10 files |
 | Phase 28 P02 | 5min | 2 tasks | 5 files |
 | Phase 29 P01 | 9min | 2 tasks | 7 files |
+| Phase 29 P02 | 4min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 29: el guardarrail de suma de pesos usa toBeCloseTo(1.0, 5) por punto flotante; el hueco de valores invertidos se cierra con un assert toEqual del objeto completo, no con un segundo test de suma
 - [Phase ?]: Phase 29: CATEGORY_ORDER se exporta desde report-model/build.ts pero NO se agrega a index.ts — la API publica del paquete no se amplia
 - [Phase ?]: Phase 29: etiqueta de la categoria es 'Meta Tags / Social', verbatim identica en packages/export/src/labels.ts y apps/web/app/components/ui/labels.ts
+- [Phase ?]: Phase 29: el modulo de ONPAGE-05 se borra del arbol con git rm, sin migracion ni backfill: las filas Issue historicas quedan intactas y cms-adapters les sigue resolviendo copy de fix en tiempo de lectura
+- [Phase ?]: Phase 29: el falso 'Resuelto' que produce la primera auditoria posterior al corte v1.6 se documenta en el docblock de registry.test.ts y NO se capa ni se filtra en la UI (alcance de una fase posterior)
 
 ### Pending Todos
 
@@ -138,8 +141,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-01T23:07:53.119Z
-Stopped at: Completed 29-01-PLAN.md
+Last session: 2026-08-01T23:13:24.680Z
+Stopped at: Completed 29-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
