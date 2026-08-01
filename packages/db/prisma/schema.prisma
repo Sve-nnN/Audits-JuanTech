@@ -128,6 +128,10 @@ model Page {
   responseHeaders Json?
   /** Nombres de cookie (no valores) parseados de Set-Cookie — Phase 25 (FPRINT-01). */
   cookieNames String[]
+  /** Tiempo de respuesta del request de crawl en milisegundos, tomado de los timings de got (`timings.phases.total`, medido desde nuestro rastreador, no desde un usuario real). NULL en páginas fallidas y en auditorías anteriores a v1.6 (sin backfill) — Phase 28 (PAGEPERF-01). */
+  responseMs  Int?
+  /** Tamaño del HTML SIN COMPRIMIR en bytes UTF-8 (`Buffer.byteLength`), no el tamaño transferido por la red. NULL en páginas fallidas y en auditorías anteriores a v1.6 (sin backfill) — Phase 28 (PAGEPERF-02). Nota de seguridad (T-28-01): `Int` de Postgres es de 32 bits (máximo 2 147 483 647), suficiente porque Node falla antes por el límite de tamaño de string; no cambiar a `BigInt` sin releer esa nota. */
+  htmlBytes   Int?
 
   issues      Issue[]
   perfMetrics PerfMetric[]

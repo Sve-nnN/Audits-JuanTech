@@ -16,5 +16,7 @@ export function makePage(overrides: Partial<Page> & { url: string }): Page {
     fetchedAt: overrides.fetchedAt ?? new Date(),
     error: overrides.error ?? null,
     createdAt: overrides.createdAt ?? new Date(),
+    responseMs: overrides.responseMs ?? null,
+    htmlBytes: overrides.htmlBytes ?? null,
   } as Page;
 }

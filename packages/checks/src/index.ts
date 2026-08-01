@@ -14,3 +14,4 @@ export * from "./checks/tech";
 export * from "./checks/network";
 export * from "./checks/schema";
 export * from "./checks/aeo";
+export * from "./checks/perf";

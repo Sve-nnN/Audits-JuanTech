@@ -4,6 +4,7 @@ import { normalizeUrl, sameRegistrableDomain } from "./normalizeUrl";
 import { isAllowed, DEFAULT_USER_AGENT } from "./robots";
 import { discoverSitemapUrls } from "./sitemap";
 import { curateHeaders, parseCookieNames } from "./captureHeaders";
+import { extractPageMetrics, type TimedResponse } from "./pageMetrics";
 
 const HARD_URL_CAP = 500;
 const DEFAULT_MAX_CONCURRENCY = 5;
@@ -112,6 +113,15 @@ export async function runCrawl(options: RunCrawlOptions): Promise<CrawlSummary> 
         const responseHeaders = curateHeaders(response?.headers ?? {});
         const cookieNames = parseCookieNames(response?.headers?.["set-cookie"]);
         const html = typeof body === "string" ? body : body?.toString("utf-8");
+        // Per-page performance metrics derived from the very same request —
+        // no extra fetch (PAGEPERF-01/02). `responseMs` comes from got's
+        // timings, `htmlBytes` from the already-loaded HTML string. The cast
+        // mirrors `redirectUrls` above: Crawlee's PlainResponse type omits
+        // `timings`, which got-scraping does attach at runtime.
+        const { responseMs, htmlBytes } = extractPageMetrics(
+          response as TimedResponse | undefined,
+          html
+        );
         // Extract the HTML <title> once from the already-loaded Cheerio `$`
         // (no HTML re-parse anywhere else — ARCH-03). Empty/missing => NULL.
         const title = $("title").first().text().trim() || null;
@@ -131,6 +141,8 @@ export async function runCrawl(options: RunCrawlOptions): Promise<CrawlSummary> 
             html,
             responseHeaders: responseHeaders as never,
             cookieNames,
+            responseMs,
+            htmlBytes,
             fetchedAt: new Date(),
           },
           update: {
@@ -142,6 +154,8 @@ export async function runCrawl(options: RunCrawlOptions): Promise<CrawlSummary> 
             html,
             responseHeaders: responseHeaders as never,
             cookieNames,
+            responseMs,
+            htmlBytes,
             fetchedAt: new Date(),
             error: null,
           },

@@ -13,12 +13,14 @@ import {
   type EntityGraph,
 } from "./checks/schema";
 import { aeoPageChecks, aeoSiteChecks, aeoNetworkChecks } from "./checks/aeo";
+import { perfPageChecks } from "./checks/perf";
 
 export const pageChecks: PageCheck[] = [
   ...onPageChecks,
   ...techPageChecks,
   ...schemaPageChecks,
   ...aeoPageChecks,
+  ...perfPageChecks,
 ];
 export const siteChecks: SiteCheck[] = [...techSiteChecks, ...schemaSiteChecks, ...aeoSiteChecks];
 export const networkChecks: NetworkCheck[] = [...baseNetworkChecks, ...aeoNetworkChecks];
