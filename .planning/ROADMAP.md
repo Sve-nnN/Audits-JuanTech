@@ -152,7 +152,14 @@ Plans:
   2. El check `ONPAGE-05` ya no está activo en el catálogo de checks; ninguna auditoría nueva produce issues duplicados (mismo fingerprint) entre `onpage` y `social` para la misma señal de Open Graph.
   3. El cambio de catálogo de checks queda documentado como corte de versión: los scores de auditorías previas a v1.6 no son directamente comparables con los posteriores.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 29-01-PLAN.md — Tracer: la categoría `social` de punta a punta (union `Category`, pesos rebalanceados, fan-out de compilación cerrado) + endurecimiento de los tests de peso
+- [ ] 29-02-PLAN.md — Retiro de ONPAGE-05: guardarrailes negativos en rojo, luego borrado del módulo y limpieza del barrel
+- [ ] 29-03-PLAN.md — Guardarrailes de exhaustividad de `CATEGORY_ORDER` en report-model, export y apps/web
+- [ ] 29-04-PLAN.md — Corte de versión registrado en PROJECT.md + gate de fase (typecheck y suite completos, sin caché)
+
 **UI hint**: no
 
 ### Phase 30: Checks de meta tags/social
