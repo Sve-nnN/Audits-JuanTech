@@ -458,16 +458,18 @@ Nótese que el `as Record<Category, ReportIssue[]>` es un cast mentiroso: el tip
 | A2 | Ninguna auditoría en producción supera hoy las ~500 páginas, así que el peor caso de "falsos resueltos" es ~500 filas | Pitfall 4 | Si un sitio auditado tiene menos páginas, el impacto es menor y la opción (a) "sólo documentar" basta. No verifiqué el conteo real en la base de producción. |
 | A3 | La etiqueta en español para la categoría será "Meta Tags / Social" | Pitfall 2, Code Examples | Es el nombre que usan ROADMAP y REQUIREMENTS para el milestone, pero no está lockeado como copy de UI en CONTEXT.md. Al ser una decisión de copy visible, conviene confirmarla con Juan (o dejarla explícita en el plan). Alternativas plausibles: "Social / Open Graph", "Meta Tags Sociales". |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **¿Qué hacer con los falsos "Resueltos" de la primera auditoría post-corte?** (Pitfall 4)
    - Lo que sabemos: `ONPAGE-05` emitía 1 issue por página siempre; `diffIssues` los marcará todos como `resolved`; ni `build.ts:218-225` ni `page.tsx:240-251` tienen cap.
    - Lo que no está claro: si SOCIAL-09 criterio #3 ("documentado como corte de versión") pretendía cubrir esto o sólo la comparabilidad de scores.
    - Recomendación: mínimo, documentarlo (cumple el criterio literal). Ideal, agregar en el plan una tarea de cap/nota en la UI — o registrarlo como deuda explícita para Phase 32 (que sí tiene UI). **Decisión de Juan.**
+   - **(RESUELTO — orquestador, 2026-08-01): documentar, no capar.** La fase 29 no agrega lógica de cap ni de filtrado sobre `resolvedIssues`, ni en `packages/report-model/src/build.ts` ni en la página de reporte. La consecuencia queda escrita en tres lugares: el docblock de `packages/checks/src/registry.test.ts` (plan 29-02, tarea 1), la fila de Key Decisions de `.planning/PROJECT.md` (plan 29-04, tarea 1) y la prohibición registrada en `must_haves` del plan 29-04. Capar o filtrar es alcance de producto de una fase con UI y queda como deuda conocida para Phase 32; está registrado como `T-29-05` (Information Disclosure, severidad low, disposición accept) en el threat model del plan 29-04.
 
 2. **¿Agregar `"social"` a los `CATEGORY_ORDER` de presentación en Phase 29 (opción A) o diferirlo a Phase 30 (opción B)?** (Pitfall 2)
    - Lo que sabemos: A produce una categoría visiblemente vacía durante una fase; B hereda a Phase 30 el riesgo de descarte silencioso de S-1.
    - Recomendación: **A**, con el test de exhaustividad del Pattern 2 para que nunca vuelva a poder omitirse.
+   - **(RESUELTO — orquestador, 2026-08-01): opción A.** La categoría entra en los `CATEGORY_ORDER` de presentación ya en la fase 29. Los cuatro sitios (S-1..S-4) se cierran entre el plan 29-01 (tarea 1: `build.ts` y `export/src/labels.ts`, que además rompen compilación) y el plan 29-03 (tarea 1: fixtures de export; tarea 2: `apps/web`), y cada paquete que declara un orden de categorías queda cubierto por un test de exhaustividad en runtime contra `Object.keys(CATEGORY_WEIGHTS)`. La categoría visiblemente vacía durante una fase es un estado conocido y aceptado, no un defecto: markdown y PDF la imprimen como "sin datos" y el PPTX la grafica como 0 con su nota de ausencia.
 
 3. **¿Se confirma el peso 0.10 para `social`?**
    - `.planning/STATE.md:111` lo marcaba como *"punto de partida, no valor calibrado — requiere confirmación explícita de Juan durante la planeación de Phase 29"*.
