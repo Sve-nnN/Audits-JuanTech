@@ -13,6 +13,7 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   onpage: "On-Page",
   schema: "Datos Estructurados",
   aeo: "AEO (Visibilidad en IA)",
+  social: "Meta Tags / Social",
 };
 
 export const STATUS_LABEL: Record<ScoreStatus, string> = {

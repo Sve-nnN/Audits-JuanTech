@@ -22,7 +22,7 @@ import type { PageTemplate } from "./template";
 /** Max priority rows the on-screen table renders (screen cap, NOT the total). */
 export const MAX_PRIORITY_ROWS = 60;
 
-const CATEGORY_ORDER: Category[] = ["tech", "perf", "onpage", "schema", "aeo"];
+export const CATEGORY_ORDER: Category[] = ["tech", "perf", "onpage", "schema", "aeo", "social"];
 
 /** Shape persisted at `Audit.scores` by the worker (Phase 6, SCORE-01..05 + DIFF-01/02). */
 interface AuditScores {

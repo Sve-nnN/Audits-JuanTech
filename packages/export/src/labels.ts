@@ -7,7 +7,7 @@ import type { Category, ScoreStatus } from "@auditor/scoring";
  * on the web app.
  */
 
-export const CATEGORY_ORDER: Category[] = ["tech", "perf", "onpage", "schema", "aeo"];
+export const CATEGORY_ORDER: Category[] = ["tech", "perf", "onpage", "schema", "aeo", "social"];
 
 export const CATEGORY_LABEL: Record<Category, string> = {
   tech: "SEO Técnico",
@@ -15,6 +15,7 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   onpage: "On-Page",
   schema: "Datos Estructurados",
   aeo: "AEO (Visibilidad en IA)",
+  social: "Meta Tags / Social",
 };
 
 export const STATUS_LABEL: Record<ScoreStatus, string> = {

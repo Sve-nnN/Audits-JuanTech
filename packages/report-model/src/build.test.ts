@@ -180,6 +180,36 @@ describe("buildReportModel", () => {
     expect(templateTotal + nullUrlCount).toBe(detailIssues.length);
   });
 
+  /**
+   * Guardarraíl del descarte silencioso de `issuesByCategory` (build.ts:243-249):
+   * los buckets se siembran desde CATEGORY_ORDER y el `if (bucket)` tira sin
+   * error todo issue cuya categoría no esté en ese array. Una categoría nueva
+   * en el union `Category` pero ausente de CATEGORY_ORDER desaparece del
+   * acordeón del reporte y de los exports sin ningún test rojo. Este test hace
+   * pasar un issue `social` de punta a punta por buildReportModel (SCORE-01).
+   */
+  it("conserva un issue de categoría social hasta issuesByCategory.social", async () => {
+    const socialIssue = makeIssue({
+      category: "social",
+      severity: "warning",
+      checkId: "SOCIAL-01:og-title",
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit() as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue] as any) // priorityCandidates
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue] as any); // issuesForDetail
+
+    const model = await buildReportModel("audit-1");
+
+    expect(model).not.toBeNull();
+    expect(model!.issuesByCategory.social).toHaveLength(1);
+    expect(model!.issuesByCategory.social[0]!.checkId).toBe("SOCIAL-01:og-title");
+  });
+
   it("returns null for a non-existent audit", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     auditFindUnique.mockResolvedValueOnce(null as any);

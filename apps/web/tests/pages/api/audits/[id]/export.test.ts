@@ -43,6 +43,7 @@ function fixtureModel(): ReportModel {
     onpage: [],
     schema: [],
     aeo: [],
+    social: [],
   };
   const emptyByTemplate = {
     home: [],

@@ -2,12 +2,14 @@ import { statusForScore, type ScoreStatus } from "./status";
 import type { CategoryScoreResult } from "./categoryScore";
 
 /**
- * The five report categories (mirrors the reference report: SEO Técnico,
- * On-Page, Datos Estructurados, Rendimiento/CWV, AEO). `perf` is scored
- * separately from PerfMetric (PSI), never from Issues — see
- * `scorePerfCategory` below.
+ * The six report categories (mirrors the reference report: SEO Técnico,
+ * On-Page, Datos Estructurados, Rendimiento/CWV, AEO, plus Meta Tags /
+ * Social added in v1.6). `perf` is scored separately from PerfMetric (PSI),
+ * never from Issues — see `scorePerfCategory` below. `social` follows the
+ * regular Issue-derived pattern (like tech/onpage/schema/aeo), NOT the
+ * special `perf` one.
  */
-export type Category = "tech" | "onpage" | "schema" | "perf" | "aeo";
+export type Category = "tech" | "onpage" | "schema" | "perf" | "aeo" | "social";
 
 /**
  * Default category weights for the overall score, tuned to land in the
@@ -19,13 +21,20 @@ export type Category = "tech" | "onpage" | "schema" | "perf" | "aeo";
  * Weights sum to 1.0; if a category is missing from a given audit (e.g. no
  * PSI sample succeeded), `scoreOverall` renormalizes across the categories
  * that ARE present rather than silently treating the missing one as 0.
+ *
+ * Version cut-off (SCORE-02): the v1.6 rebalance moves weight from `onpage`
+ * (.15 → .10) and `schema` (.10 → .05) into the new `social` category (.10).
+ * Overall scores from audits run BEFORE v1.6 are therefore not directly
+ * comparable with the ones produced after it — a score delta across that
+ * boundary reflects the model change, not a change in the audited site.
  */
 export const CATEGORY_WEIGHTS: Record<Category, number> = {
   tech: 0.3,
   perf: 0.3,
-  onpage: 0.15,
-  schema: 0.1,
+  onpage: 0.1, // .15 → .10 (SCORE-02)
+  schema: 0.05, // .10 → .05 (SCORE-02)
   aeo: 0.15,
+  social: 0.1, // new in v1.6 (SCORE-02)
 };
 
 /** Mobile/desktop PSI weighting for the perf category score, matching the reference report. */
@@ -64,10 +73,10 @@ export interface OverallScoreResult {
 }
 
 /**
- * Computes the overall score (0-100) as a weighted average of the five
- * category scores. `categoryScores` holds the four Issue-derived categories
- * (tech/onpage/schema/aeo); `perf` is supplied separately (PSI averages) and
- * scored internally via `scorePerfCategory`.
+ * Computes the overall score (0-100) as a weighted average of the six
+ * category scores. `categoryScores` holds the five Issue-derived categories
+ * (tech/onpage/schema/aeo/social); `perf` is supplied separately (PSI
+ * averages) and scored internally via `scorePerfCategory`.
  *
  * Any category absent from the input (score is `undefined`/perf is `null`)
  * is excluded and the remaining weights are renormalized to sum to 1, so a
