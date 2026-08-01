@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 28
 current_phase_name: performance-por-p-gina
 status: executing
-stopped_at: Completed 28-01-PLAN.md
-last_updated: "2026-08-01T15:08:46.402Z"
+stopped_at: Completed 28-02-PLAN.md
+last_updated: "2026-08-01T15:16:40.154Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 28 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 ## Current Position
 
 Phase: 28 (performance-por-p-gina) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-08-01 — Phase 28 execution started
 
-Progress: [███░░░░░░░] 33%
+Progress: [███████░░░] 67%
 
 ## Milestone v1.6 — Phases
 
@@ -75,6 +75,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 25 P03 | 4min | 2 tasks | 8 files |
 | Phase 25 P04 | 14min | 3 tasks | 5 files |
 | Phase 28 P01 | 6min | 3 tasks | 10 files |
+| Phase 28 P02 | 5min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 28: checkIds PERF-10 (tiempo de respuesta) y PERF-11 (tamano HTML) en lugar de PERF-07/PERF-08, que ya estan ocupados por diagnosticos de PSI y colisionarian fingerprints en el diff historico
 - [Phase ?]: Phase 28: extractPageMetrics tipa response de forma laxa (TimedResponse) + cast en el call site, porque el PlainResponse de Crawlee no declara timings aunque got-scraping lo adjunta en runtime
 - [Phase ?]: Phase 28: responseMs y htmlBytes se escriben en las ramas create Y update del prisma.page.upsert para que un re-crawl no deje valores rancios
+- [Phase ?]: Phase 28: Guardarrail de colision de checkId lee packages/psi/src/issues.ts por fs (readFileSync + import.meta.url), nunca por import, para no agregar @auditor/psi al grafo que resuelve apps/web
+- [Phase ?]: Phase 28: La capacidad de deteccion del guardarrail se prueba con datos sinteticos (findCollisions), nunca mutando codigo de produccion
 
 ### Pending Todos
 
@@ -124,8 +127,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-01T15:08:34.470Z
-Stopped at: Completed 28-01-PLAN.md
+Last session: 2026-08-01T15:16:31.825Z
+Stopped at: Completed 28-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
