@@ -21,6 +21,7 @@
     "@auditor/render": "workspace:*",
     "@auditor/report-model": "workspace:*",
     "@auditor/scoring": "workspace:*",
+    "@crawlee/cheerio": "^3.17.0",
     "bullmq": "^5.34.0",
     "ioredis": "5.10.1"
   },
