@@ -63,6 +63,29 @@ describe("extractMetaSocial", () => {
     expect(firstValue(data, "twitter:card")).toBe("summary_large_image");
   });
 
+  it("lee la clave del atributo name cuando property viene presente pero vacío", () => {
+    const $ = cheerio.load(
+      '<meta property="" name="og:title" content="Titular social valido" />',
+    );
+    expect(extractMetaSocial($).tags.get("og:title")).toEqual(["Titular social valido"]);
+  });
+
+  it("indexa las dos claves cuando una sola etiqueta sirve a los dos vocabularios", () => {
+    const $ = cheerio.load(
+      '<meta property="og:image" name="twitter:image" content="https://example.com/a.png" />',
+    );
+    const data = extractMetaSocial($);
+    expect(data.tags.get("og:image")).toEqual(["https://example.com/a.png"]);
+    expect(data.tags.get("twitter:image")).toEqual(["https://example.com/a.png"]);
+  });
+
+  it("cuenta una sola vez la etiqueta que repite la misma clave en los dos atributos", () => {
+    const $ = cheerio.load(
+      '<meta property="og:title" name="og:title" content="Titular unico" />',
+    );
+    expect(extractMetaSocial($).tags.get("og:title")).toEqual(["Titular unico"]);
+  });
+
   it("firstValue devuelve undefined para una clave que no existe", () => {
     const data = loadFixture("yoast.html");
     expect(firstValue(data, "og:video")).toBeUndefined();

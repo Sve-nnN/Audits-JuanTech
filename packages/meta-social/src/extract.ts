@@ -32,20 +32,30 @@ export function extractMetaSocial($: CheerioAPI): MetaSocialData {
   const tags = new Map<string, string[]>();
 
   $("meta").each((_, el) => {
-    const rawKey = $(el).attr("property") ?? $(el).attr("name");
-    if (!rawKey) return;
-
-    const key = rawKey.trim().toLowerCase();
-    if (!SOCIAL_PREFIXES.some((prefix) => key.startsWith(prefix))) return;
-
     // A tag present with an empty `content` is a failure, not a pass: it
     // carries no value for the preview, so it never creates an entry.
     const content = $(el).attr("content")?.trim();
     if (!content) return;
 
-    const existing = tags.get(key);
-    if (existing) existing.push(content);
-    else tags.set(key, [content]);
+    // Los dos atributos se leen siempre, nunca uno como respaldo del otro: una
+    // sola etiqueta puede servir a los dos vocabularios a la vez y quedarse con
+    // el primero perdería la mitad de la declaración.
+    const seen = new Set<string>();
+    for (const rawKey of [$(el).attr("property"), $(el).attr("name")]) {
+      if (!rawKey) continue;
+
+      const key = rawKey.trim().toLowerCase();
+      if (!SOCIAL_PREFIXES.some((prefix) => key.startsWith(prefix))) continue;
+
+      // La misma clave en los dos atributos es una única declaración, no dos:
+      // contarla dos veces la volvería un duplicado inventado para SOCIAL-06.
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const existing = tags.get(key);
+      if (existing) existing.push(content);
+      else tags.set(key, [content]);
+    }
   });
 
   return { tags };
