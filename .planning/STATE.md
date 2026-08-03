@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 31
 current_phase_name: validaci-n-de-og-image
 status: executing
-stopped_at: Completed 31-02-PLAN.md
-last_updated: "2026-08-03T17:42:15.184Z"
+stopped_at: Completed 31-03-PLAN.md
+last_updated: "2026-08-03T20:45:32.947Z"
 last_activity: 2026-08-03
 last_activity_desc: Phase 31 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 18
-  completed_plans: 14
+  completed_plans: 15
   percent: 40
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 ## Current Position
 
 Phase: 31 (validaci-n-de-og-image) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-03 — Phase 31 execution started
 
-Progress: [████████░░] 78%
+Progress: [████████░░] 83%
 
 ## Deferred Verification
 
@@ -96,6 +96,7 @@ Progress: [████████░░] 78%
 | Phase 30 P06 | 32min | 3 tasks | 8 files |
 | Phase 31 P01 | 16min | 3 tasks | 9 files |
 | Phase 31 P02 | 9min | 2 tasks | 2 files |
+| Phase 31 P03 | 12 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 31: la lectura del cuerpo de la imagen vive dentro del bloque que posee el temporizador de aborto, para que el presupuesto de 5 s cubra tambien la lectura y un servidor que gotea bytes no quede sin cota de tiempo
 - [Phase ?]: Phase 31: el 416 se trata en la misma rama que 405 y 501 (reintento unico sin cabecera de rango): un rango que empieza en cero siempre es satisfacible, asi que no es un resultado esperado ni prueba de imagen rota
 - [Phase ?]: Phase 31: readDimensions devuelve tambien el campo type que informa image-size, porque 31-04 lo necesita para la rama de formato no soportado junto al content-type de la cabecera; la excepcion se atrapa y su mensaje nunca se lee (T-31-08)
+- [Phase 31]: Un solo motivo publico (destino no verificable) para los dos veredictos internos de la defensa SSRF — El lector del reporte no puede hacer nada distinto segun cual de las dos condiciones internas se cumpla, y un vocabulario de dos entradas obligaria a cada consumidor a reconocer las dos
+- [Phase 31]: El destino rechazado por la defensa se reporta como no verificable (severidad ok) con subtipo de ambito propio, nunca como roto — Un destino que no se pudo verificar es ausencia de prueba, no prueba de defecto; marcarlo como roto convertiria la defensa en una fabrica de falsos positivos
 
 ### Pending Todos
 
@@ -185,8 +188,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-03T17:42:15.175Z
-Stopped at: Completed 31-02-PLAN.md
+Last session: 2026-08-03T20:45:19.237Z
+Stopped at: Completed 31-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
