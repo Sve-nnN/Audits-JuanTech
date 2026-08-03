@@ -14,6 +14,7 @@ import {
 } from "./checks/schema";
 import { aeoPageChecks, aeoSiteChecks, aeoNetworkChecks } from "./checks/aeo";
 import { perfPageChecks } from "./checks/perf";
+import { socialPageChecks } from "./checks/social";
 
 export const pageChecks: PageCheck[] = [
   ...onPageChecks,
@@ -21,6 +22,7 @@ export const pageChecks: PageCheck[] = [
   ...schemaPageChecks,
   ...aeoPageChecks,
   ...perfPageChecks,
+  ...socialPageChecks,
 ];
 export const siteChecks: SiteCheck[] = [...techSiteChecks, ...schemaSiteChecks, ...aeoSiteChecks];
 export const networkChecks: NetworkCheck[] = [...baseNetworkChecks, ...aeoNetworkChecks];
