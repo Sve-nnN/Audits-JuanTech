@@ -43,3 +43,28 @@ export const OG_DESC_MAX = 200;
  * declares a cap of its own.
  */
 export const MAX_MEASURED_VALUE_CHARS = 80;
+
+/**
+ * The four card values X currently accepts, in the order the vocabulary
+ * documents them.
+ *
+ * It lives here and not inside the check because Phase 32 paints the social
+ * preview against exactly this list: a copy redeclared in the check file
+ * guarantees that the panel and the issue end up contradicting each other.
+ *
+ * The retired values `photo`, `gallery` and `product` are deliberately absent,
+ * so a page still declaring one of them is reported as not admitted. That
+ * retirement is assumption A1 of the phase research — ecosystem knowledge, not
+ * a fact verified against an official source, because X also retired its
+ * public card validator and left no automatable oracle behind.
+ *
+ * The type annotation is explicit and not a const assertion on purpose: the
+ * check compares against a plain `string` read from the audited site, and a
+ * tuple of literals would fail the typecheck on that comparison.
+ */
+export const TWITTER_CARD_VALUES: readonly string[] = [
+  "summary",
+  "summary_large_image",
+  "app",
+  "player",
+];

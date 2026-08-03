@@ -8,4 +8,5 @@ export {
   OG_DESC_MIN,
   OG_DESC_MAX,
   MAX_MEASURED_VALUE_CHARS,
+  TWITTER_CARD_VALUES,
 } from "./thresholds";
