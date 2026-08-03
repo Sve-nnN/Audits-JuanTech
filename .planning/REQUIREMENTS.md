@@ -21,8 +21,8 @@ Requirements para el milestone Meta Tags / Social. Cada uno mapea a fases del ro
 
 ### IMG — validación de og:image (infra nueva)
 
-- [ ] **IMG-01**: fetcher de imágenes dedupeado por URL (HEAD + GET parcial), mismo patrón que `brokenResourcesCheck` (TECH-13)
-- [ ] **IMG-02**: og:image alcanzable — sin 4xx/5xx, content-type es imagen
+- [x] **IMG-01**: fetcher de imágenes dedupeado por URL (HEAD + GET parcial), mismo patrón que `brokenResourcesCheck` (TECH-13)
+- [x] **IMG-02**: og:image alcanzable — sin 4xx/5xx, content-type es imagen
 - [ ] **IMG-03**: dimensiones — error si <200×200; warning si 200×200–600×315 o ratio lejos de 1.91:1
 - [ ] **IMG-04**: peso — error sobre 5MB; warning entre 1MB y 5MB
 
@@ -100,8 +100,8 @@ Cuál fase cubre cuáles requirements.
 | SOCIAL-06 | Phase 30 | Complete |
 | SOCIAL-07 | Phase 30 | Complete |
 | SOCIAL-08 | Phase 30 | Complete |
-| IMG-01 | Phase 31 | Pending |
-| IMG-02 | Phase 31 | Pending |
+| IMG-01 | Phase 31 | Complete |
+| IMG-02 | Phase 31 | Complete |
 | IMG-03 | Phase 31 | Pending |
 | IMG-04 | Phase 31 | Pending |
 | PREVIEW-01 | Phase 32 | Pending |

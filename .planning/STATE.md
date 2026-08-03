@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Meta Tags / Social
 current_phase: 31
-current_phase_name: "Validación de og:image"
+current_phase_name: validaci-n-de-og-image
 status: executing
-stopped_at: Completed 30-06-PLAN.md
-last_updated: "2026-08-03T16:58:55.099Z"
+stopped_at: Completed 31-01-PLAN.md
+last_updated: "2026-08-03T17:28:39.376Z"
 last_activity: 2026-08-03
-last_activity_desc: Phase 30 complete, transitioned to Phase 31
+last_activity_desc: Phase 31 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 18
-  completed_plans: 12
+  completed_plans: 13
   percent: 40
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 30 — checks-de-meta-tags-social
+**Current focus:** Phase 31 — validaci-n-de-og-image
 
 ## Current Position
 
-Phase: 31 — Validación de og:image
-Plan: Not started
+Phase: 31 (validaci-n-de-og-image) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-08-03 — Phase 30 complete, transitioned to Phase 31
+Last activity: 2026-08-03 — Phase 31 execution started
 
-Progress: [█████████░] 92%
+Progress: [███████░░░] 72%
 
 ## Deferred Verification
 
@@ -94,6 +94,7 @@ Progress: [█████████░] 92%
 | Phase 30 P04 | 9min | 3 tasks | 7 files |
 | Phase 30 P05 | 6min | 2 tasks | 6 files |
 | Phase 30 P06 | 32min | 3 tasks | 8 files |
+| Phase 31 P01 | 16min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 30: SOCIAL-08 acotado a severidad warning con la limitación de charset por header HTTP declarada en el criterion (D-3), sin ampliar el alcance a packages/crawler
 - [Phase ?]: 30-06: la remediacion de calibracion (quitar la fila ok a SOCIAL-06 y SOCIAL-08) NO se aplica de oficio; se devuelve a planeacion con el numero medido a la vista
 - [Phase ?]: 30-06: el perfil yoast se mide con la URL que declara su propio fixture, sin modificar un artefacto de 30-01 que sujeta extract.test.ts
+- [Phase ?]: Phase 31: emision-por-pagina — IMG-01 deduplica el fetch por URL de imagen pero hace fan-out de la emision, una fila por pagina afectada con su propio pageId y fingerprint (checkpoint irreversible: los fingerprints se persisten sin migracion)
+- [Phase ?]: Phase 31: el sondeo de imagen abre UN solo GET con cabecera Range, nunca un HEAD previo; ante 405 o 501 reintenta el mismo GET sin rango (desviacion documentada de la letra de IMG-01 y de 31-CONTEXT.md)
+- [Phase ?]: Phase 31: la clave de dedupe se calcula con normalizeUrl pero la peticion va contra la forma absoluta sin normalizar, porque el reordenamiento de parametros invalida firmas de CDN
+- [Phase ?]: Phase 31: ssrfGuard es la primera defensa de destino del proyecto — resuelve pidiendo TODAS las direcciones, clasifica por octetos y se revalida en cada salto de redireccion; un destino rechazado por la defensa NO emite fila de imagen rota
 
 ### Pending Todos
 
@@ -176,8 +181,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-03T03:14:45.657Z
-Stopped at: Completed 30-06-PLAN.md
+Last session: 2026-08-03T17:28:22.980Z
+Stopped at: Completed 31-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

@@ -204,10 +204,10 @@ Plans:
   3. El auditor advierte (warning) imágenes entre 200×200 y 600×315px o con ratio lejos de 1.91:1, y marca error si son menores a 200×200px.
   4. El auditor marca error si la imagen pesa más de 5MB y warning si pesa entre 1MB y 5MB.
 
-**Plans**: 5 plans
+**Plans**: 1/5 plans executed
 **Wave 1**
 
-- [ ] 31-01-PLAN.md — Tracer de punta a punta (dedupe, cap, fan-out por página, una rama de fallo) + defensa SSRF de destino
+- [x] 31-01-PLAN.md — Tracer de punta a punta (dedupe, cap, fan-out por página, una rama de fallo) + defensa SSRF de destino
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -279,7 +279,7 @@ Próximo trabajo previsto tras v1.6:
 | 28. Performance por página | v1.6 | 2/3 | In Progress|  |
 | 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 4/4 | In Progress|  |
 | 30. Checks de meta tags/social | v1.6 | 6/6 | In Progress|  |
-| 31. Validación de og:image | v1.6 | 0/TBD | Not started | - |
+| 31. Validación de og:image | v1.6 | 1/5 | In Progress|  |
 | 32. Panel de preview social + snippets de fix | v1.6 | 0/TBD | Not started | - |
 
 ---
