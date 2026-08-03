@@ -48,10 +48,103 @@ export type ImageProbeResult =
     }
   | { ok: false; url: string; status: number | null; reason: string };
 
-type FetchOutcome = { kind: "response"; res: Response } | { kind: "error"; reason: string };
+/**
+ * Reads at most `maxBytes` of the response body, chunk by chunk, and **always
+ * cancels the reader**.
+ *
+ * The cap is a hard count of accumulated bytes; it never trusts that the
+ * server honoured the `Range` header, because RFC 7233 explicitly allows a
+ * server to ignore it and answer `200` with the whole resource, and plenty of
+ * CDNs do exactly that. The cancel in the final branch is the piece that
+ * actually closes the connection when the server still had megabytes to send —
+ * without it the cap protects nothing at all (threat T-31-03).
+ */
+export async function readUpTo(res: Response, maxBytes: number): Promise<Uint8Array> {
+  if (!res.body) return new Uint8Array(0);
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (total < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      chunks.push(value);
+      total += value.byteLength;
+    }
+  } finally {
+    // Siempre: tanto si la lectura terminó por agotamiento como si terminó por
+    // tope. El error de la propia cancelación se traga para que no enmascare
+    // el resultado ya obtenido.
+    await reader.cancel().catch(() => {});
+  }
+
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out.subarray(0, Math.min(total, maxBytes));
+}
 
 /**
- * Issues exactly one ranged (or, on retry, unranged) `GET`.
+ * Accepts a header value only when it is a finite, non-negative integer.
+ *
+ * Everything else — a value with decimals, negative, in exponential notation
+ * beyond the finite range, or plainly not a number — becomes `null`. This is
+ * the precision contract of IMG-04 and it is not relaxed: without it a hostile
+ * header value propagates all the way into the weight threshold comparison
+ * (threat T-31-07).
+ */
+function toByteCount(raw: string | null | undefined): number | null {
+  if (raw === null || raw === undefined) return null;
+  const trimmed = raw.trim();
+  if (trimmed === "") return null;
+  const value = Number(trimmed);
+  if (!Number.isFinite(value)) return null;
+  if (!Number.isInteger(value) || value < 0) return null;
+  return value;
+}
+
+/**
+ * Derives the size of the whole file, which depends on the status.
+ *
+ * On a `206` the length header describes **the returned fragment**, not the
+ * file: the total only appears on the right-hand side of the range header
+ * (`bytes 0-65535/1234567`), and an asterisk there means unknown. Confusing
+ * the two is a silent defect — every image would measure exactly the fragment
+ * size and the weight threshold would never be crossed. When the server
+ * exposes neither header (chunked transfer, or a range with unknown total) the
+ * answer is `null` and the weight evaluation is skipped for that image: never
+ * a full download just to measure the weight.
+ */
+export function deriveTotalBytes(res: Response): number | null {
+  if (res.status === 206) {
+    const contentRange = res.headers.get("content-range");
+    const declared = contentRange?.split("/")[1]?.trim();
+    if (!declared || declared === "*") return null;
+    return toByteCount(declared);
+  }
+  return toByteCount(res.headers.get("content-length"));
+}
+
+type FetchOutcome =
+  | { kind: "response"; res: Response; head: Uint8Array }
+  | { kind: "error"; reason: string };
+
+/**
+ * Issues exactly one ranged (or, on retry, unranged) `GET` and reads its
+ * bounded head.
+ *
+ * The body read lives **inside** the same block that owns the abort timer, so
+ * the 5 s budget covers the read too. Clearing the timer as soon as the
+ * headers arrive would leave a server that dribbles bytes forever without any
+ * time bound, which is the same denial of service the byte cap exists to stop.
+ * The cost is reading up to 64 KiB of a body we may end up discarding (a
+ * redirect, an error page, a response we are about to retry without the range
+ * header) — bounded, and cheaper than a second request.
  *
  * The failure reason belongs to a short vocabulary of our own and is never
  * the message of the thrown error: a network error message is text the
@@ -71,7 +164,8 @@ async function requestOnce(url: string, withRange: boolean): Promise<FetchOutcom
       redirect: "manual",
       signal: controller.signal,
     });
-    return { kind: "response", res };
+    const head = await readUpTo(res, IMAGE_HEAD_BYTES);
+    return { kind: "response", res, head };
   } catch (error) {
     const aborted =
       controller.signal.aborted || (error instanceof Error && error.name === "AbortError");
@@ -98,16 +192,23 @@ export async function probeImage(url: string): Promise<ImageProbeResult> {
     }
 
     let res = outcome.res;
+    let head = outcome.head;
 
     // El servidor rechaza el método o la petición con rango: se reintenta una
-    // única vez el mismo GET sin la cabecera de rango. Es la única forma de
-    // respaldo por método que esta fase admite.
-    if (res.status === 405 || res.status === 501) {
+    // única vez el mismo GET sin la cabecera de rango, con el mismo corte de
+    // lectura. Es la única forma de respaldo por método que esta fase admite.
+    //
+    // El 416 entra en la misma rama: un rango que empieza en cero sobre un
+    // recurso no vacío siempre es satisfacible, así que ese status no es un
+    // resultado esperado, y si aparece la respuesta correcta es pedir lo mismo
+    // sin rango, no darlo por roto.
+    if (res.status === 405 || res.status === 501 || res.status === 416) {
       const retry = await requestOnce(currentUrl, false);
       if (retry.kind === "error") {
         return { ok: false, url: currentUrl, status: null, reason: retry.reason };
       }
       res = retry.res;
+      head = retry.head;
     }
 
     if (REDIRECT_STATUSES.has(res.status)) {
@@ -148,9 +249,9 @@ export async function probeImage(url: string): Promise<ImageProbeResult> {
       url: currentUrl,
       status: res.status,
       contentType: rawContentType ? rawContentType.toLowerCase().trim() : null,
-      // Explícitamente nulos en este plan: 31-02 los llena leyendo el cuerpo
-      // por trozos con corte a IMAGE_HEAD_BYTES, sin cambiar esta firma.
-      totalBytes: null,
+      totalBytes: deriveTotalBytes(res),
+      // Se llena en la Tarea 2 leyendo las dimensiones de `head`, el fragmento
+      // que esta misma petición ya trajo.
       dimensions: null,
     };
   }
