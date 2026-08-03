@@ -15,6 +15,12 @@ import {
   readDimensions,
   readUpTo,
 } from "./imageProbe";
+import {
+  MAX_REDIRECT_HOPS,
+  REASON_INVALID_REDIRECT,
+  REASON_TOO_MANY_REDIRECTS,
+} from "./redirects";
+import { REASON_NOT_PUBLIC } from "./ssrfGuard";
 
 /** Cuerpos que la fábrica sabe simular. `endless` es el servidor hostil. */
 type FakeBody =
@@ -242,6 +248,131 @@ describe("readDimensions — dimensiones desde el fragmento parcial", () => {
 
   it("dimensiones desde buffer: un fragmento vacío devuelve nulo sin llamar a la librería", () => {
     expect(readDimensions(new Uint8Array(0))).toBeNull();
+  });
+});
+
+/**
+ * El camino de redirecciones es el control de seguridad central de la fase:
+ * validar sólo la URL inicial es el bypass clásico de esta defensa. Sin estos
+ * casos, un refactor que sacara la revalidación del bucle dejaría la suite en
+ * verde.
+ */
+describe("probeImage — redirecciones", () => {
+  it("ssrf: un Location hacia la dirección de metadatos se rechaza en el salto, sin abrir la segunda conexión", async () => {
+    lookupMock
+      .mockReset()
+      .mockResolvedValueOnce([{ address: "93.184.216.34", family: 4 }]) // salto 1: público
+      .mockResolvedValueOnce([{ address: "169.254.169.254", family: 4 }]); // salto 2: metadatos
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 302, headers: { location: "http://interno.example/" } }).res,
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await probeImage("https://cdn.example.com/og.png");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1); // nunca se abrió el salto 2
+    expect(result).toMatchObject({ ok: false, status: null, reason: REASON_NOT_PUBLIC });
+    // La URL reportada es la del salto rechazado, no la inicial: nombrar el
+    // destino que se refutó es todo el diagnóstico.
+    expect((result as { url: string }).url).toBe("http://interno.example/");
+  });
+
+  it("un salto hacia un destino público se sigue, así que el rechazo anterior no es un no-op", async () => {
+    lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 301, headers: { location: "https://cdn.example.com/final.png" } })
+          .res,
+      )
+      .mockResolvedValueOnce(
+        fakeResponse({
+          status: 200,
+          headers: { "content-type": "image/png", "content-length": "4096" },
+          body: { kind: "chunks", chunks: [pngHeader(1200, 630)] },
+        }).res,
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await probeImage("https://cdn.example.com/og.png");
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]![0]).toBe("https://cdn.example.com/final.png");
+    expect(result).toMatchObject({
+      ok: true,
+      url: "https://cdn.example.com/final.png",
+      status: 200,
+      dimensions: { width: 1200, height: 630 },
+    });
+  });
+
+  it("un Location relativo se resuelve contra la URL del salto en curso, no contra la inicial", async () => {
+    lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 302, headers: { location: "/estatico/og.png" } }).res,
+      )
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 200, headers: { "content-type": "image/png" } }).res,
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await probeImage("https://cdn.example.com/carpeta/og.png");
+
+    expect(fetchMock.mock.calls[1]![0]).toBe("https://cdn.example.com/estatico/og.png");
+    expect(result).toMatchObject({ ok: true, url: "https://cdn.example.com/estatico/og.png" });
+  });
+
+  it("una cadena más larga que el presupuesto de saltos se corta y no gira sin fin", async () => {
+    lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+    const fetchMock = vi.fn(
+      async () =>
+        fakeResponse({ status: 302, headers: { location: "https://cdn.example.com/otra.png" } })
+          .res,
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await probeImage("https://cdn.example.com/og.png");
+
+    expect(fetchMock).toHaveBeenCalledTimes(MAX_REDIRECT_HOPS + 1);
+    expect(result).toMatchObject({ ok: false, status: null, reason: REASON_TOO_MANY_REDIRECTS });
+  });
+
+  it("un 3xx sin cabecera de destino se reporta con su status, sin inventar un salto", async () => {
+    lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+    const fetchMock = vi.fn().mockResolvedValue(fakeResponse({ status: 307 }).res);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await probeImage("https://cdn.example.com/og.png");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      ok: false,
+      url: "https://cdn.example.com/og.png",
+      status: 307,
+      reason: "HTTP 307",
+    });
+  });
+
+  it("un Location que no es una URL ni resuelto contra la base se reporta como redirección no válida", async () => {
+    lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(fakeResponse({ status: 302, headers: { location: "http://" } }).res);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await probeImage("https://cdn.example.com/og.png");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      ok: false,
+      url: "https://cdn.example.com/og.png",
+      status: 302,
+      reason: REASON_INVALID_REDIRECT,
+    });
   });
 });
 
