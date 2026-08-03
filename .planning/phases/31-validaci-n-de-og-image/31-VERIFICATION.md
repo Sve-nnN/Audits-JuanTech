@@ -2,6 +2,15 @@
 phase: 31-validaci-n-de-og-image
 verified: 2026-08-03T21:30:00Z
 status: passed
+human_validated: 2026-08-03
+human_validation_notes: >
+  Juan confirmó las 3 decisiones de calibración/producto: (1) regla de dos
+  señales de IMG-02 ACEPTADA — evita falso positivo de content-type genérico
+  con bytes válidos (CDN mal configurado); (2) banda de proporción 1.7-2.1
+  ACEPTADA (ya confirmada antes durante 31-04); (3) base binaria MiB para
+  umbrales de peso ACEPTADA (ya confirmada antes durante 31-04). El ítem
+  diferido (tasa real de og-image-undetermined contra sitio real) queda
+  como verificación manual pendiente, no bloqueante, sin fecha fija.
 score: 4/4 success criteria verified
 behavior_unverified: 0
 deferred_manual: 1
