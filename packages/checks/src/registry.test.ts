@@ -53,6 +53,16 @@ const ORIGIN = "https://example.com";
 const URL = "https://example.com/page";
 const PERF_CHECK_IDS = ["PERF-10", "PERF-11"] as const;
 const RETIRED_CHECK_ID = "ONPAGE-05";
+const SOCIAL_CHECK_IDS = [
+  "SOCIAL-01",
+  "SOCIAL-02",
+  "SOCIAL-03",
+  "SOCIAL-04",
+  "SOCIAL-05",
+  "SOCIAL-06",
+  "SOCIAL-07",
+  "SOCIAL-08",
+] as const;
 
 describe("registry — pageChecks", () => {
   it("incluye los dos checks de performance por página", () => {
@@ -70,6 +80,13 @@ describe("registry — pageChecks", () => {
   it("ya no incluye el check retirado en v1.6", () => {
     const registered = pageChecks.map((c) => c.checkId);
     expect(registered).not.toContain(RETIRED_CHECK_ID);
+  });
+
+  it("incluye los ocho checks de la categoría social", () => {
+    const registered = pageChecks.map((c) => c.checkId);
+    for (const id of SOCIAL_CHECK_IDS) {
+      expect(registered).toContain(id);
+    }
   });
 });
 
@@ -135,5 +152,48 @@ describe("registry — runAllChecks ejecuta los checks de performance de punta a
     });
 
     expect(issues.filter((i) => i.checkId === RETIRED_CHECK_ID)).toEqual([]);
+  });
+
+  it("emite al menos una fila de problema de cada uno de los ocho checks sociales", async () => {
+    // El HTML está roto a propósito en las ocho dimensiones que evalúa la
+    // categoría: og:title duplicado con contenidos distintos y los dos por
+    // debajo del mínimo, og:description muy corta, og:image relativa, og:url
+    // apuntando a otro dominio, y ausencia total de og:type, twitter:card y
+    // declaración de charset. Sin canonical explícita, para que SOCIAL-04
+    // caiga en el respaldo de la URL de la propia página.
+    //
+    // El aserto se hace sobre fila de PROBLEMA y no sobre fila de aprobado a
+    // propósito: la fila `ok` existe por convención de la fase 30 y es
+    // candidata a quitarse en una recalibración futura, mientras que la fila
+    // de problema es lo que prueba de verdad la alcanzabilidad — el check no
+    // sólo está en la lista, corrió sobre HTML real y emitió su veredicto.
+    const page = makePage({
+      url: URL,
+      html:
+        "<html><head>" +
+        '<meta property="og:title" content="Corto" />' +
+        '<meta name="og:title" content="Otro" />' +
+        '<meta property="og:description" content="Breve" />' +
+        '<meta property="og:image" content="/img/og.png" />' +
+        '<meta property="og:url" content="https://otro-dominio.com/x" />' +
+        "</head><body><h1>Hola</h1></body></html>",
+    });
+
+    const { issues } = await runAllChecks({
+      pages: [page],
+      origin: ORIGIN,
+      sitemapUrls: [],
+      includeNetworkChecks: false,
+    });
+
+    for (const id of SOCIAL_CHECK_IDS) {
+      const rows = issues.filter((i) => i.checkId === id);
+      expect(rows.length).toBeGreaterThanOrEqual(1);
+      for (const row of rows) {
+        expect(row.category).toBe("social");
+        expect(row.pageId).toBe(page.id);
+      }
+      expect(rows.some((r) => r.severity !== "ok")).toBe(true);
+    }
   });
 });
