@@ -107,7 +107,7 @@ Aditivo sobre v1.0-v1.5 — no toca el pipeline de crawl/checks/scoring existent
 
 - [ ] **Phase 28: Performance por página** - Response time + HTML size medidos en el crawl, con umbrales de severidad
 - [x] **Phase 29: Scoring — categoría Social + retiro de ONPAGE-05** - Sexta categoría de score con pesos rebalanceados, ONPAGE-05 retirado sin duplicados (completed 2026-08-01)
-- [ ] **Phase 30: Checks de meta tags/social** - OG/Twitter Card/charset/duplicados por página
+- [x] **Phase 30: Checks de meta tags/social** - OG/Twitter Card/charset/duplicados por página (completed 2026-08-03)
 - [ ] **Phase 31: Validación de og:image** - Fetcher dedupeado, alcanzabilidad, dimensiones y peso
 - [ ] **Phase 32: Panel de preview social + snippets de fix** - Preview Google/Facebook/LinkedIn/X + snippet HTML copiable
 
@@ -204,7 +204,13 @@ Plans:
   3. El auditor advierte (warning) imágenes entre 200×200 y 600×315px o con ratio lejos de 1.91:1, y marca error si son menores a 200×200px.
   4. El auditor marca error si la imagen pesa más de 5MB y warning si pesa entre 1MB y 5MB.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+- [ ] 31-01-PLAN.md — Tracer de punta a punta (dedupe, cap, fan-out por página, una rama de fallo) + defensa SSRF de destino
+- [ ] 31-02-PLAN.md — Transporte completo: corte de lectura a 64 KiB, tamaño total 206/200 y dimensiones desde el buffer parcial
+- [ ] 31-03-PLAN.md — Herencia SSRF a TECH-12/TECH-13 y runner de concurrencia compartido
+- [ ] 31-04-PLAN.md — Umbrales en `@auditor/meta-social` y las nueve ramas de clasificación (IMG-02/03/04)
+- [ ] 31-05-PLAN.md — Guardarraíles de integración: registry con red activa y colisión de fingerprints de la categoría social
 
 ### Phase 32: Panel de preview social + snippets de fix
 
