@@ -5,6 +5,7 @@ import type { IssueDraft, NetworkCheck } from "../../types";
 import { pageFingerprint, siteFingerprint } from "../../util";
 import { MAX_URLS_PER_NETWORK_CHECK } from "./linkChecker";
 import { probeImages } from "./imageProbe";
+import { isGuardRejection } from "./ssrfGuard";
 
 const CHECK_ID = "IMG-01";
 
@@ -125,6 +126,12 @@ export const ogImageNetworkCheck: NetworkCheck = {
         // 31-04 agrega aquí las ramas de tipo de contenido, dimensiones y peso.
         continue;
       }
+
+      // Un destino que rechazó nuestra propia defensa nunca llegó a hablar con
+      // el servidor: es ausencia de prueba, no prueba de defecto, y reportarlo
+      // como imagen rota sería un falso positivo. La rama de advertencia por
+      // no verificable la agrega 31-04, junto al resto de los casos bloqueados.
+      if (isGuardRejection(result.reason)) continue;
 
       const measuredValue = `${result.status ? `HTTP ${result.status}` : result.reason} · ${cap(entry.fetchUrl)}`;
 

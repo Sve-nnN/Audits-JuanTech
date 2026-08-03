@@ -1,4 +1,5 @@
 import { mapWithConcurrency, DEFAULT_NETWORK_CONCURRENCY } from "./concurrency";
+import { assertPublicDestination } from "./ssrfGuard";
 
 /**
  * HTTP transport for the social-image probe (IMG-01..04).
@@ -84,6 +85,12 @@ async function requestOnce(url: string, withRange: boolean): Promise<FetchOutcom
 export async function probeImage(url: string): Promise<ImageProbeResult> {
   let currentUrl = url;
 
+  // Primera de las dos validaciones: la URL inicial, antes de abrir nada.
+  const initialVerdict = await assertPublicDestination(currentUrl);
+  if (!initialVerdict.ok) {
+    return { ok: false, url: currentUrl, status: null, reason: initialVerdict.reason };
+  }
+
   for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop += 1) {
     const outcome = await requestOnce(currentUrl, true);
     if (outcome.kind === "error") {
@@ -119,6 +126,14 @@ export async function probeImage(url: string): Promise<ImageProbeResult> {
           reason: "redirección no válida",
         };
       }
+      // Segunda validación, en CADA salto: validar sólo la URL inicial es el
+      // bypass clásico de esta defensa — un destino público que redirige al
+      // bucle local.
+      const hopVerdict = await assertPublicDestination(next);
+      if (!hopVerdict.ok) {
+        return { ok: false, url: next, status: null, reason: hopVerdict.reason };
+      }
+
       currentUrl = next;
       continue;
     }

@@ -10,6 +10,15 @@ vi.mock("./imageProbe", async (importOriginal) => {
   return { ...actual, probeImages: vi.fn() };
 });
 
+// The end-to-end case runs the real transport, which validates the destination
+// before connecting: the resolver is mocked so the suite never issues a real
+// DNS query and the case does not depend on the network.
+const { lookupMock } = vi.hoisted(() => ({ lookupMock: vi.fn() }));
+vi.mock("node:dns/promises", () => ({
+  lookup: lookupMock,
+  default: { lookup: lookupMock },
+}));
+
 import { probeImages, type ImageProbeResult } from "./imageProbe";
 import { ogImageNetworkCheck } from "./ogImageNetwork";
 
@@ -179,6 +188,7 @@ describe("IMG-01 de punta a punta por runAllChecks", () => {
   it("una og:image que responde 404 llega al resultado como fila crítica de la categoría social", async () => {
     const actual = await vi.importActual<typeof import("./imageProbe")>("./imageProbe");
     mockedProbeImages.mockImplementation(actual.probeImages);
+    lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
 
     vi.stubGlobal(
       "fetch",
