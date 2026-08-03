@@ -5,7 +5,29 @@ import { pageFingerprint } from "../../util";
 const CHECK_ID = "SOCIAL-06";
 
 const CRITERION =
-  "Cada propiedad de Open Graph debe declararse una sola vez; ante etiquetas repetidas con valores distintos las plataformas usan la primera y descartan el resto";
+  "Cada propiedad de Open Graph de valor único debe declararse una sola vez; ante etiquetas repetidas con valores distintos las plataformas usan la primera y descartan el resto";
+
+/**
+ * Las únicas propiedades de Open Graph que admiten un solo valor.
+ *
+ * Es una lista blanca y no una lista negra porque el protocolo define familias
+ * enteras de arrays (`og:image*`, `og:video*`, `og:audio*`,
+ * `og:locale:alternate`) donde repetir la etiqueta con valores distintos es la
+ * forma documentada de declarar varios recursos o varios idiomas alternos. Un
+ * WordPress multilingüe con Yoast o Polylang emite una etiqueta
+ * `og:locale:alternate` por idioma en cada página: marcarlas sería un falso
+ * positivo sistemático en el universo objetivo. Cualquier extensión de un
+ * proveedor que no esté en esta lista se trata como repetible.
+ */
+const SINGLE_VALUED_OG_KEYS = new Set([
+  "og:title",
+  "og:description",
+  "og:url",
+  "og:type",
+  "og:site_name",
+  "og:locale",
+  "og:determiner",
+]);
 
 /** SOCIAL-06: duplicate Open Graph keys declared with conflicting values. */
 export const ogDuplicatesCheck: PageCheck = {
@@ -36,6 +58,8 @@ export const ogDuplicatesCheck: PageCheck = {
     const issues: IssueDraft[] = [];
 
     for (const [key, values] of ogEntries) {
+      if (!SINGLE_VALUED_OG_KEYS.has(key)) continue;
+
       // Las dos condiciones juntas, nunca una sola: repetir la misma etiqueta
       // con el mismo valor exacto es redundante pero no ambiguo y no se marca.
       const distinct = new Set(values);
@@ -51,9 +75,10 @@ export const ogDuplicatesCheck: PageCheck = {
           source: url,
           criterion: CRITERION,
           recommendation: `Deja una sola etiqueta ${key} con el valor correcto y elimina las repetidas: las plataformas toman la primera y descartan el resto, así que las demás sólo producen señales contradictorias.`,
-          // El subtipo es la clave cruda, inyectiva por construcción: cualquier
-          // reescritura de caracteres podría dar el mismo fingerprint a dos
-          // claves distintas y colapsarlas a una sola fila en el diff.
+          // El subtipo es la clave, y por el filtro de arriba sólo puede ser
+          // una de las siete constantes de `SINGLE_VALUED_OG_KEYS`: no es texto
+          // que controle el sitio auditado, así que no necesita la cota de
+          // T-30-06 que sí aplican los checks que copian el contenido.
           fingerprint: pageFingerprint(`${CHECK_ID}:${key}`, url),
           pageId: page.id,
         });

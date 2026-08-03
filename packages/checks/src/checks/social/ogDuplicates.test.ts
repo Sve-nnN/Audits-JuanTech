@@ -90,6 +90,35 @@ describe("ogDuplicatesCheck (SOCIAL-06)", () => {
     expect(issues).toHaveLength(0);
   });
 
+  it("no marca las propiedades de array que el protocolo declara repetibles", () => {
+    // og:image y og:locale:alternate no tienen forma de valor único: repetir la
+    // etiqueta es la manera documentada de declarar varios recursos o varios
+    // idiomas alternos, y todo WordPress multilingüe las emite así.
+    const issues = run(
+      head(
+        meta("og:image", "https://example.com/a.png"),
+        meta("og:image", "https://example.com/b.png"),
+        meta("og:locale:alternate", "es_ES"),
+        meta("og:locale:alternate", "en_US"),
+      ),
+    );
+    expect(warnings(issues)).toHaveLength(0);
+    expect(issues[0]?.severity).toBe("ok");
+  });
+
+  it("nunca copia una clave larga controlada por el sitio a un campo persistido", () => {
+    // La lista blanca es también la mitigación de T-30-06 en este check: una
+    // clave de vocabulario extendido no llega a ninguna fila, así que ningún
+    // texto de longitud arbitraria del sitio auditado entra a la base.
+    const hostile = `og:${"a".repeat(5000)}x`;
+    const issues = run(head(meta(hostile, "Primero"), meta(hostile, "Segundo")));
+    for (const issue of issues) {
+      expect(issue.title.length).toBeLessThan(200);
+      expect(issue.recommendation?.length ?? 0).toBeLessThan(300);
+      expect(issue.fingerprint).not.toContain("aaaa");
+    }
+  });
+
   it("emite la fila de aprobado, sin subtipo, cuando la clave og aparece una sola vez", () => {
     const issues = run(head(meta("og:title", "Único")));
     expect(issues).toHaveLength(1);
