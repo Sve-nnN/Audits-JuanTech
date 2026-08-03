@@ -68,3 +68,55 @@ export const TWITTER_CARD_VALUES: readonly string[] = [
   "app",
   "player",
 ];
+
+/** Minimum width, in pixels, below which the platforms ignore the image entirely. */
+export const OG_IMAGE_MIN_WIDTH = 200;
+
+/** Minimum height, in pixels, below which the platforms ignore the image entirely. */
+export const OG_IMAGE_MIN_HEIGHT = 200;
+
+/** Width below which the share preview renders as a small thumbnail instead of a large image. */
+export const OG_IMAGE_SMALL_WIDTH = 600;
+
+/** Height below which the share preview renders as a small thumbnail instead of a large image. */
+export const OG_IMAGE_SMALL_HEIGHT = 315;
+
+/**
+ * The aspect ratio the three major platforms recommend (1.91:1).
+ *
+ * It exists for the wording of the recommendation and is **not** used in any
+ * comparison: the verdict is decided by the two explicit band ends below.
+ */
+export const OG_IMAGE_TARGET_RATIO = 1.91;
+
+/**
+ * Lower end of the accepted width/height band.
+ *
+ * The band is declared as two explicit ends and never as "the target ratio
+ * plus or minus a tolerance": a subtraction in floating point makes the end of
+ * a tolerance not exactly representable, so the verdict of an image landing
+ * right on that end would be undefined. With two ends the comparison is a
+ * plain strict less-than / greater-than and both exact ends pass.
+ *
+ * The band accepts the three recommended proportions (1200x630 = 1.9048,
+ * 1200x628 = 1.9108, 1200x627 = 1.9139) and also 16:9 (1.7778), which a large
+ * part of the CMS universe serves by default and penalising it would be a
+ * massive false positive. It rejects square (1.0) and 4:3 (1.333).
+ */
+export const OG_IMAGE_RATIO_MIN = 1.7;
+
+/** Upper end of the accepted width/height band. See `OG_IMAGE_RATIO_MIN`. */
+export const OG_IMAGE_RATIO_MAX = 2.1;
+
+/**
+ * Weight above which a social image is reported as heavier than recommended.
+ *
+ * The limits of the requirement ("1MB" / "5MB") are read in binary units, the
+ * ones filesystem tooling uses, so the constants are round products of powers
+ * of two. The ceiling below corresponds to the **strictest** platform limit (X
+ * and LinkedIn, 5 MB), not to Facebook's, which is higher (8 MB).
+ */
+export const OG_IMAGE_HEAVY_BYTES = 1 * 1_024 * 1_024;
+
+/** Weight above which the strictest platforms reject the image outright. */
+export const OG_IMAGE_MAX_BYTES = 5 * 1_024 * 1_024;
