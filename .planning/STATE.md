@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 31
 current_phase_name: validaci-n-de-og-image
 status: executing
-stopped_at: Completed 31-03-PLAN.md
-last_updated: "2026-08-03T20:45:32.947Z"
+stopped_at: Completed 31-04-PLAN.md
+last_updated: "2026-08-03T21:10:40.874Z"
 last_activity: 2026-08-03
 last_activity_desc: Phase 31 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
   percent: 40
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 ## Current Position
 
 Phase: 31 (validaci-n-de-og-image) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-08-03 — Phase 31 execution started
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 89%
 
 ## Deferred Verification
 
@@ -97,6 +97,7 @@ Progress: [████████░░] 83%
 | Phase 31 P01 | 16min | 3 tasks | 9 files |
 | Phase 31 P02 | 9min | 2 tasks | 2 files |
 | Phase 31 P03 | 12 min | 2 tasks | 5 files |
+| Phase 31 P04 | 18min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -154,6 +155,11 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 31: readDimensions devuelve tambien el campo type que informa image-size, porque 31-04 lo necesita para la rama de formato no soportado junto al content-type de la cabecera; la excepcion se atrapa y su mensaje nunca se lee (T-31-08)
 - [Phase 31]: Un solo motivo publico (destino no verificable) para los dos veredictos internos de la defensa SSRF — El lector del reporte no puede hacer nada distinto segun cual de las dos condiciones internas se cumpla, y un vocabulario de dos entradas obligaria a cada consumidor a reconocer las dos
 - [Phase 31]: El destino rechazado por la defensa se reporta como no verificable (severidad ok) con subtipo de ambito propio, nunca como roto — Un destino que no se pudo verificar es ausencia de prueba, no prueba de defecto; marcarlo como roto convertiria la defensa en una fabrica de falsos positivos
+- [Phase ?]: Phase 31: sin carve-out por status de bloqueo en og:image — 401, 402, 403, 405, 406, 429 y 999 se clasifican como un 404 (error de inalcanzable); el precedente de TECH-12 queda anotado y no aplicado porque 31-CONTEXT.md lockeo lo contrario
+- [Phase ?]: Phase 31: la rama de no verificable va antes que la de inalcanzable y no mira el status, porque sus dos casos posibles llegan con status nulo
+- [Phase ?]: Phase 31: la banda de proporcion de og:image se declara con dos extremos explicitos (1.7 y 2.1) y nunca como objetivo mas o menos tolerancia, para que el veredicto del borde sea representable en coma flotante
+- [Phase ?]: Phase 31: los umbrales de peso de og:image se interpretan en base binaria (1 MiB y 5 MiB) y el veredicto se calcula sobre el entero de bytes; el redondeo a un decimal es solo de presentacion
+- [Phase ?]: Phase 31: og-image-suboptimal es un unico subtipo para los dos avisos de dimension (tamaño y proporcion), porque no pueden coexistir y dos subtipos prometerian una fila que nunca aparece
 
 ### Pending Todos
 
@@ -188,8 +194,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-03T20:45:19.237Z
-Stopped at: Completed 31-03-PLAN.md
+Last session: 2026-08-03T21:10:40.863Z
+Stopped at: Completed 31-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
