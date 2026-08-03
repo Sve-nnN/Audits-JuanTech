@@ -263,7 +263,7 @@ describe("registry — runAllChecks con los checks de red activos", () => {
     mockedProbeImages.mockReset();
     mockedCheckLinks.mockReset();
     mockedAssertPublicDestination.mockReset();
-    mockedAssertPublicDestination.mockResolvedValue({ ok: true });
+    mockedAssertPublicDestination.mockResolvedValue({ ok: true, addresses: ["93.184.216.34"] });
     // Los checks de red del grupo AEO piden por su cuenta; sin esto saldrían a
     // internet aunque las tres puertas de la capa de red estén simuladas.
     vi.stubGlobal(

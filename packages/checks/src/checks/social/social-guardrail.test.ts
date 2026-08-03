@@ -245,7 +245,7 @@ describe("guardarraíl SC#5 con la red activa — IMG-01 no colisiona con los oc
         text: async () => "",
       }),
     );
-    vi.mocked(assertPublicDestination).mockResolvedValue({ ok: true });
+    vi.mocked(assertPublicDestination).mockResolvedValue({ ok: true, addresses: ["93.184.216.34"] });
     // Una imagen a la vez chica y pesada: dispara DOS ramas evaluables sobre la
     // misma página, que es el único escenario capaz de autocolisionar.
     vi.mocked(probeImages).mockImplementation(async (urls) =>

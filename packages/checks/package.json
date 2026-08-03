@@ -19,7 +19,8 @@
     "@auditor/meta-social": "workspace:*",
     "cheerio": "^1.2.0",
     "image-size": "^2.0.2",
-    "robots-parser": "^3.0.1"
+    "robots-parser": "^3.0.1",
+    "undici": "^7.18.2"
   },
   "devDependencies": {
     "@auditor/scoring": "workspace:*",

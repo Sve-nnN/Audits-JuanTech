@@ -11,6 +11,7 @@ vi.mock("node:dns/promises", () => ({
 import {
   isPrivateAddress,
   assertPublicDestination,
+  pinnedDispatcher,
   REASON_NOT_PUBLIC,
   REASON_UNRESOLVABLE,
 } from "./ssrfGuard";
@@ -106,8 +107,12 @@ describe("assertPublicDestination: resolución del nombre", () => {
       { address: "2606:2800:220:1:248:1893:25c8:1946", family: 6 },
     ]);
 
+    // El veredicto devuelve las direcciones que clasificó, no sólo el sí: son
+    // las que el transporte tiene que fijar para que no haya una segunda
+    // resolución que las contradiga.
     await expect(assertPublicDestination("https://example.com/x.png")).resolves.toEqual({
       ok: true,
+      addresses: ["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946"],
     });
   });
 
@@ -144,6 +149,27 @@ describe("assertPublicDestination: resolución del nombre", () => {
       reason: REASON_NOT_PUBLIC,
     });
     expect(lookupMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("pinnedDispatcher: la dirección validada se fija en la conexión", () => {
+  it("rechaza conectar cuando la dirección fijada es privada, en vez de caer al resolutor del sistema", async () => {
+    // La clasificación se repite dentro del agente a propósito: es la última
+    // puerta antes del socket. Se ejercita a través de una petición real contra
+    // una dirección interna, que debe fallar por rechazo nuestro y no abrir nada.
+    const agent = pinnedDispatcher(["127.0.0.1"]);
+    await expect(
+      fetch("https://cdn.example.com/og.png", { dispatcher: agent } as RequestInit),
+    ).rejects.toThrow();
+    await agent.destroy();
+  });
+
+  it("rechaza conectar cuando la lista de direcciones viene vacía", async () => {
+    const agent = pinnedDispatcher([]);
+    await expect(
+      fetch("https://cdn.example.com/og.png", { dispatcher: agent } as RequestInit),
+    ).rejects.toThrow();
+    await agent.destroy();
   });
 });
 

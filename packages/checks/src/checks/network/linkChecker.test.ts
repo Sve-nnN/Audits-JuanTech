@@ -27,7 +27,7 @@ function response(status: number): Response {
 describe("checkLinks", () => {
   beforeEach(() => {
     mockedAssert.mockReset();
-    mockedAssert.mockResolvedValue({ ok: true });
+    mockedAssert.mockResolvedValue({ ok: true, addresses: ["93.184.216.34"] });
   });
 
   afterEach(() => {
@@ -55,7 +55,7 @@ describe("checkLinks", () => {
   });
 
   it("ssrf: un destino aceptado por la defensa sigue el flujo normal", async () => {
-    mockedAssert.mockResolvedValue({ ok: true });
+    mockedAssert.mockResolvedValue({ ok: true, addresses: ["93.184.216.34"] });
     const fetchSpy = vi.fn().mockResolvedValue(response(200));
     vi.stubGlobal("fetch", fetchSpy);
 

@@ -1,6 +1,11 @@
 import { imageSize } from "image-size";
 import { mapWithConcurrency, DEFAULT_NETWORK_CONCURRENCY } from "./concurrency";
-import { assertPublicDestination, REASON_NOT_PUBLIC, REASON_UNRESOLVABLE } from "./ssrfGuard";
+import {
+  assertPublicDestination,
+  pinnedDispatcher,
+  REASON_NOT_PUBLIC,
+  REASON_UNRESOLVABLE,
+} from "./ssrfGuard";
 
 /**
  * HTTP transport for the social-image probe (IMG-01..04).
@@ -203,19 +208,32 @@ type FetchOutcome =
  * destination can influence, and it ends up persisted in an `Issue` row
  * (control V7 / threat T-31-05).
  */
-async function requestOnce(url: string, withRange: boolean): Promise<FetchOutcome> {
+async function requestOnce(
+  url: string,
+  withRange: boolean,
+  addresses: string[],
+): Promise<FetchOutcome> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), IMAGE_PROBE_TIMEOUT_MS);
+  // La conexión se abre contra la dirección que la defensa ya clasificó, no
+  // contra lo que el sistema de nombres conteste ahora: entre la validación y
+  // esta línea el nombre puede haber cambiado de dirección (amenaza T-31-01).
+  const dispatcher = pinnedDispatcher(addresses);
   try {
     const headers: Record<string, string> = withRange
       ? { Range: `bytes=0-${IMAGE_HEAD_BYTES - 1}` }
       : {};
+    // La aserción existe porque `@types/node` embebe su propia copia de los
+    // tipos de undici: en ejecución es el mismo objeto que el transporte
+    // espera, pero las dos declaraciones de `Dispatcher` no son asignables
+    // entre sí.
     const res = await fetch(url, {
       method: "GET",
       headers,
       redirect: "manual",
       signal: controller.signal,
-    });
+      dispatcher,
+    } as RequestInit);
     const head = await readUpTo(res, IMAGE_HEAD_BYTES);
     return { kind: "response", res, head };
   } catch (error) {
@@ -224,6 +242,9 @@ async function requestOnce(url: string, withRange: boolean): Promise<FetchOutcom
     return { kind: "error", reason: aborted ? "tiempo agotado" : "sin respuesta" };
   } finally {
     clearTimeout(timeout);
+    // El agente es de una sola petición: sin esto queda un socket abierto por
+    // cada sondeo, y con 12 en vuelo eso es un descriptor por imagen.
+    void dispatcher.destroy().catch(() => {});
   }
 }
 
@@ -236,9 +257,10 @@ export async function probeImage(url: string): Promise<ImageProbeResult> {
   if (!initialVerdict.ok) {
     return { ok: false, url: currentUrl, status: null, reason: initialVerdict.reason };
   }
+  let addresses = initialVerdict.addresses;
 
   for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop += 1) {
-    const outcome = await requestOnce(currentUrl, true);
+    const outcome = await requestOnce(currentUrl, true, addresses);
     if (outcome.kind === "error") {
       return { ok: false, url: currentUrl, status: null, reason: outcome.reason };
     }
@@ -255,7 +277,7 @@ export async function probeImage(url: string): Promise<ImageProbeResult> {
     // resultado esperado, y si aparece la respuesta correcta es pedir lo mismo
     // sin rango, no darlo por roto.
     if (res.status === 405 || res.status === 501 || res.status === 416) {
-      const retry = await requestOnce(currentUrl, false);
+      const retry = await requestOnce(currentUrl, false, addresses);
       if (retry.kind === "error") {
         return { ok: false, url: currentUrl, status: null, reason: retry.reason };
       }
@@ -287,6 +309,7 @@ export async function probeImage(url: string): Promise<ImageProbeResult> {
         return { ok: false, url: next, status: null, reason: hopVerdict.reason };
       }
 
+      addresses = hopVerdict.addresses;
       currentUrl = next;
       continue;
     }

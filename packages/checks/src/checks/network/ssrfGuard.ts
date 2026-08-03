@@ -1,5 +1,6 @@
 import { isIP } from "node:net";
 import { lookup } from "node:dns/promises";
+import { Agent } from "undici";
 
 /**
  * Destination validation for the network checks (threats T-31-01 / T-31-02).
@@ -12,11 +13,14 @@ import { lookup } from "node:dns/promises";
  * that resolves to one public and one loopback address is rejected: it would
  * be enough for the network stack to pick the second one.
  *
- * **Residual risk accepted at L1.** A name rebound between the moment we
- * resolve it and the moment the connection is actually opened is not covered
- * without a custom transport agent that pins the resolved address. That gap is
- * accepted at this assurance level and documented here so nobody assumes it
- * is closed.
+ * **Rebinding is closed by pinning, not by resolving twice.** Classifying the
+ * addresses is worth nothing if the transport resolves the name again on its
+ * own: between the two resolutions an authoritative server under the
+ * attacker's control answers something public first and the loopback (or the
+ * metadata address) second, and the connection opens against the internal
+ * destination. So the verdict carries the addresses it validated and the
+ * caller opens the connection through `pinnedDispatcher`, whose resolver
+ * hands back exactly that address instead of asking the system again.
  */
 
 /** Rejected because the destination resolves somewhere we must never connect to. */
@@ -25,7 +29,15 @@ export const REASON_NOT_PUBLIC = "destino no público";
 /** Rejected because the destination could not be resolved at all. */
 export const REASON_UNRESOLVABLE = "destino no resoluble";
 
-export type DestinationVerdict = { ok: true } | { ok: false; reason: string };
+/**
+ * On acceptance the verdict carries the very addresses that were classified.
+ * They are not decoration: they are what the connection must use, because a
+ * second resolution is a second chance for the attacker to answer something
+ * else.
+ */
+export type DestinationVerdict =
+  | { ok: true; addresses: string[] }
+  | { ok: false; reason: string };
 
 function isPrivateV4Octets(octets: number[]): boolean {
   const [a, b] = octets as [number, number, number, number];
@@ -142,19 +154,57 @@ export async function assertPublicDestination(url: string): Promise<DestinationV
     hostname.startsWith("[") && hostname.endsWith("]") ? hostname.slice(1, -1) : hostname;
 
   if (isIP(host) !== 0) {
-    return isPrivateAddress(host) ? { ok: false, reason: REASON_NOT_PUBLIC } : { ok: true };
+    return isPrivateAddress(host)
+      ? { ok: false, reason: REASON_NOT_PUBLIC }
+      : { ok: true, addresses: [host] };
   }
 
-  let addresses: { address: string }[];
+  let resolved: { address: string }[];
   try {
-    addresses = await lookup(host, { all: true });
+    resolved = await lookup(host, { all: true });
   } catch {
     return { ok: false, reason: REASON_UNRESOLVABLE };
   }
 
-  if (addresses.length === 0) return { ok: false, reason: REASON_UNRESOLVABLE };
-  if (addresses.some((entry) => isPrivateAddress(entry.address))) {
+  if (resolved.length === 0) return { ok: false, reason: REASON_UNRESOLVABLE };
+  if (resolved.some((entry) => isPrivateAddress(entry.address))) {
     return { ok: false, reason: REASON_NOT_PUBLIC };
   }
-  return { ok: true };
+  return { ok: true, addresses: resolved.map((entry) => entry.address) };
+}
+
+/**
+ * Transport agent that connects to an address already classified as public,
+ * instead of resolving the name a second time (threat T-31-01, DNS rebinding).
+ *
+ * The classification is repeated inside the resolver, on purpose and even
+ * though the caller already ran it: this function is the last gate before the
+ * socket, and an empty or tampered address list must fail closed here rather
+ * than fall back to the system resolver. The error message is our own closed
+ * vocabulary — it may surface in a network error and must never carry text the
+ * destination influences.
+ */
+export function pinnedDispatcher(addresses: string[]): Agent {
+  return new Agent({
+    connect: {
+      lookup: (_hostname, options, callback) => {
+        const pinned = addresses.filter((address) => !isPrivateAddress(address));
+        const first = pinned[0];
+        if (first === undefined) {
+          callback(new Error(REASON_NOT_PUBLIC), []);
+          return;
+        }
+        // El transporte pide el conjunto entero (`all`), no una dirección
+        // suelta, así que las dos formas de la respuesta tienen que estar.
+        if (options.all === true) {
+          callback(
+            null,
+            pinned.map((address) => ({ address, family: isIP(address) })),
+          );
+          return;
+        }
+        callback(null, first, isIP(first));
+      },
+    },
+  });
 }
