@@ -9,7 +9,7 @@ Requirements para el milestone Meta Tags / Social. Cada uno mapea a fases del ro
 
 ### SOCIAL — checks de meta/social por página
 
-- [ ] **SOCIAL-01**: og:title presente + longitud (10–60 chars)
+- [x] **SOCIAL-01**: og:title presente + longitud (10–60 chars)
 - [ ] **SOCIAL-02**: og:description presente + longitud (55–200 chars)
 - [ ] **SOCIAL-03**: og:image presente + URL absoluta HTTPS
 - [ ] **SOCIAL-04**: og:url presente + coherente con canonical
@@ -92,7 +92,7 @@ Cuál fase cubre cuáles requirements.
 | SCORE-01 | Phase 29 | Complete |
 | SCORE-02 | Phase 29 | Complete |
 | SOCIAL-09 | Phase 29 | Complete |
-| SOCIAL-01 | Phase 30 | Pending |
+| SOCIAL-01 | Phase 30 | Complete |
 | SOCIAL-02 | Phase 30 | Pending |
 | SOCIAL-03 | Phase 30 | Pending |
 | SOCIAL-04 | Phase 30 | Pending |

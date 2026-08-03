@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Meta Tags / Social
 current_phase: 30
-current_phase_name: Checks de meta tags/social
+current_phase_name: checks-de-meta-tags-social
 status: executing
-stopped_at: Completed 29-04-PLAN.md
-last_updated: "2026-08-03T01:32:41.334Z"
-last_activity: 2026-08-01
-last_activity_desc: Phase 29 complete, transitioned to Phase 30
+stopped_at: Completed 30-01-PLAN.md
+last_updated: "2026-08-03T01:51:04.588Z"
+last_activity: 2026-08-02
+last_activity_desc: Phase 30 execution started
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 6
+  completed_plans: 7
   percent: 20
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 29 — scoring-categor-a-social-retiro-de-onpage-05
+**Current focus:** Phase 30 — checks-de-meta-tags-social
 
 ## Current Position
 
-Phase: 30 — Checks de meta tags/social
-Plan: Not started
+Phase: 30 (checks-de-meta-tags-social) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-08-01 — Phase 29 complete, transitioned to Phase 30
+Last activity: 2026-08-02 — Phase 30 execution started
 
-Progress: [█████████░] 86%
+Progress: [█████░░░░░] 54%
 
 ## Deferred Verification
 
@@ -87,6 +87,7 @@ Progress: [█████████░] 86%
 | Phase 29 P02 | 4min | 2 tasks | 3 files |
 | Phase 29 P03 | 5min | 2 tasks | 7 files |
 | Phase 29 P04 | 2min | 2 tasks | 1 files |
+| Phase 30 P01 | 10min | 4 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 29: el corte de version v1.6 se registra como UNA fila de Key Decisions que junta el rebalanceo de pesos y el retiro del check (misma decision de producto, consecuencias inseparables en el diff)
 - [Phase ?]: Phase 29: el falso 'Resuelto' de la primera auditoria posterior al corte queda declarado en PROJECT.md como NO capado ni filtrado — capar o filtrar es alcance de una fase con UI (Phase 32)
 - [Phase ?]: Phase 29: la categoria social vacia entre Phase 29 y Phase 30 se registra como estado conocido y deliberado, no como defecto
+- [Phase ?]: Phase 30: checkId plano SOCIAL-01..SOCIAL-08 con subtipo sólo en el fingerprint (decisión del usuario, option-a): preserva el lookup exact-match de resolveCmsRecommendation del que depende CMSFIX-08 en v1.7
+- [Phase ?]: Phase 30: Los checks de hallazgo único de la categoría social comparten pageFingerprint(CHECK_ID, url) entre todas sus ramas, anulando el ejemplo SOCIAL-01:missing de 30-CONTEXT.md
+- [Phase ?]: Phase 30: extractMetaSocial recibe sólo el CheerioAPI ya cargado; la medición de charset de 30-05 vive en su propio módulo de bytes
+- [Phase ?]: Phase 30: El extractor acumula en Map con filtro de prefijo og:/twitter: (mitigación T-30-01); Object.fromEntries es la serialización canónica documentada para Phase 32
 
 ### Pending Todos
 
@@ -150,8 +155,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-01T23:27:06.155Z
-Stopped at: Completed 29-04-PLAN.md
+Last session: 2026-08-03T01:51:04.580Z
+Stopped at: Completed 30-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

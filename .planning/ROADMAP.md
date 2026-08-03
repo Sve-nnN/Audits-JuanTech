@@ -183,7 +183,14 @@ Plans:
   4. El auditor advierte cuando el charset no está declarado dentro del primer 1KB del HTML.
   5. Guardarraíl de SOCIAL-09: sobre una página con las 4 etiquetas OG básicas presentes, ningún issue nuevo de esta fase colisiona por fingerprint (mismo `checkId:url`) con lo que emitía el retirado `ONPAGE-05` — verificado con un test explícito, no sólo por construcción (checkIds `SOCIAL-01..08` son distintos de `ONPAGE-05` por diseño, pero esta fase debe probarlo, no asumirlo; ver Phase 29 VERIFICATION.md W-06).
 
-**Plans**: TBD
+**Plans**: 1/6 plans executed
+
+- [x] 30-01-PLAN.md
+- [ ] 30-02-PLAN.md
+- [ ] 30-03-PLAN.md
+- [ ] 30-04-PLAN.md
+- [ ] 30-05-PLAN.md
+- [ ] 30-06-PLAN.md
 
 ### Phase 31: Validación de og:image
 
@@ -255,7 +262,7 @@ Próximo trabajo previsto tras v1.6:
 | 27. Motor de recomendaciones por CMS — patrón adaptador + fallback | v1.5 | 3/3 | Complete ✅ | 2026-07-25 |
 | 28. Performance por página | v1.6 | 2/3 | In Progress|  |
 | 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 4/4 | In Progress|  |
-| 30. Checks de meta tags/social | v1.6 | 0/TBD | Not started | - |
+| 30. Checks de meta tags/social | v1.6 | 1/6 | In Progress|  |
 | 31. Validación de og:image | v1.6 | 0/TBD | Not started | - |
 | 32. Panel de preview social + snippets de fix | v1.6 | 0/TBD | Not started | - |
 
