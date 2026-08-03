@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 31
 current_phase_name: validaci-n-de-og-image
 status: executing
-stopped_at: Completed 31-01-PLAN.md
-last_updated: "2026-08-03T17:28:39.376Z"
+stopped_at: Completed 31-02-PLAN.md
+last_updated: "2026-08-03T17:42:15.184Z"
 last_activity: 2026-08-03
 last_activity_desc: Phase 31 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 18
-  completed_plans: 13
+  completed_plans: 14
   percent: 40
 ---
 
@@ -33,7 +33,7 @@ Plan: 2 of 5
 Status: Ready to execute
 Last activity: 2026-08-03 — Phase 31 execution started
 
-Progress: [███████░░░] 72%
+Progress: [████████░░] 78%
 
 ## Deferred Verification
 
@@ -95,6 +95,7 @@ Progress: [███████░░░] 72%
 | Phase 30 P05 | 6min | 2 tasks | 6 files |
 | Phase 30 P06 | 32min | 3 tasks | 8 files |
 | Phase 31 P01 | 16min | 3 tasks | 9 files |
+| Phase 31 P02 | 9min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 31: el sondeo de imagen abre UN solo GET con cabecera Range, nunca un HEAD previo; ante 405 o 501 reintenta el mismo GET sin rango (desviacion documentada de la letra de IMG-01 y de 31-CONTEXT.md)
 - [Phase ?]: Phase 31: la clave de dedupe se calcula con normalizeUrl pero la peticion va contra la forma absoluta sin normalizar, porque el reordenamiento de parametros invalida firmas de CDN
 - [Phase ?]: Phase 31: ssrfGuard es la primera defensa de destino del proyecto — resuelve pidiendo TODAS las direcciones, clasifica por octetos y se revalida en cada salto de redireccion; un destino rechazado por la defensa NO emite fila de imagen rota
+- [Phase ?]: Phase 31: la lectura del cuerpo de la imagen vive dentro del bloque que posee el temporizador de aborto, para que el presupuesto de 5 s cubra tambien la lectura y un servidor que gotea bytes no quede sin cota de tiempo
+- [Phase ?]: Phase 31: el 416 se trata en la misma rama que 405 y 501 (reintento unico sin cabecera de rango): un rango que empieza en cero siempre es satisfacible, asi que no es un resultado esperado ni prueba de imagen rota
+- [Phase ?]: Phase 31: readDimensions devuelve tambien el campo type que informa image-size, porque 31-04 lo necesita para la rama de formato no soportado junto al content-type de la cabecera; la excepcion se atrapa y su mensaje nunca se lee (T-31-08)
 
 ### Pending Todos
 
@@ -181,8 +185,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-03T17:28:22.980Z
-Stopped at: Completed 31-01-PLAN.md
+Last session: 2026-08-03T17:42:15.175Z
+Stopped at: Completed 31-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
