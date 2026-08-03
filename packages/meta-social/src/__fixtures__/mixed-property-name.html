@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Caso adversario: property y name mezclados</title>
+    <meta name="description" content="No pertenece a ninguno de los dos vocabularios sociales." />
+
+    <!-- Misma clave emitida por los dos atributos, con valores contradictorios y en este orden -->
+    <meta property="og:title" content="Titular emitido por property" />
+    <meta name="og:title" content="Titular emitido por name" />
+
+    <!-- Clave con mayusculas y minusculas mezcladas, mas espacios alrededor -->
+    <meta property=" OG:Description " content="Descripción con la clave sin normalizar" />
+
+    <!-- Etiqueta presente con el atributo de contenido vacio: no aporta valor -->
+    <meta property="og:image" content="" />
+
+    <!-- Cruce inverso: twitter por `property`, como emiten varios plugins de WordPress -->
+    <meta property="twitter:card" content="summary" />
+
+    <!-- Clave hostil bajo el prefijo de Open Graph: nombre reservado del prototipo -->
+    <meta property="og:__proto__" content="valor hostil" />
+
+    <!-- Clave hostil fuera de los dos vocabularios: el filtro de prefijo la descarta -->
+    <meta name="__proto__" content="valor hostil sin prefijo" />
+  </head>
+  <body>
+    <h1>Caso adversario</h1>
+  </body>
+</html>
