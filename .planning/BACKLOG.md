@@ -56,3 +56,12 @@ Pasada completa de seguridad (OWASP Top 10 2021 o la versión vigente al momento
 Home más orientado a SEO (server-rendered, metadata rica) y que muestre auditorías recientemente inspeccionadas (requiere decidir: ¿todas las auditorías públicas son listables, o sólo si el usuario opta in? implicancia de privacidad — hoy el email/sitio auditado no es necesariamente público).
 
 **Notas generales:** Scope grande, multi-feature — tratar como milestone propio (v1.7) vía `/gsd-new-milestone`, no como fase suelta. Varias piezas tienen implicancias de seguridad/privacidad que merecen su propio research antes de roadmap (API keys + rate limiting, modelo de sesión JWT vs cookie, qué datos de auditorías son público-listables para el home).
+
+## Milestone futuro (candidata, sin numerar aún) — Auditoría de `claude-seo`
+
+**Origen:** Pedido directo de Juan (2026-08-02), durante la corrida autónoma de v1.6 (Phase 30 ejecutando).
+
+### AUDIT-EXT-01 — Revisión completa de `github.com/AgricIDaniel/claude-seo` para extraer mejoras
+Revisar el repo completo (checks, catálogo de reglas, cualquier heurística de SEO técnico/on-page/contenido que implemente) y evaluar qué vale la pena portar o adaptar al catálogo de `packages/checks` existente. Restricción explícita de Juan: **todo lo que se agregue debe ser determinístico, sin dependencia de AI/LLM** — a pesar de que el repo de referencia se llama "claude-seo" (posiblemente usa IA en su propio pipeline), lo que se busca es la LÓGICA de detección/reglas, no una integración de IA. Si alguna mejora identificada requiere una API externa o un servicio de datos (ej. algo tipo PSI/CrUX, WHOIS, algún check que necesite una fuente de terceros), evaluarlo igual y documentar el trade-off (rate limits, costo, dependencia externa) — no descartarlo de entrada sólo por necesitar una API, pero sí dejar afuera cualquier cosa que dependa de un modelo de lenguaje para decidir un resultado del check.
+
+**Notas:** Antes de escribir roadmap, esto necesita una fase de research dedicada (leer el repo referenciado, mapear qué checks/reglas tiene contra el catálogo actual de `packages/checks/src/registry.ts`, identificar gaps reales vs. duplicados de lo que ya existe). Candidato a research previo vía `/gsd-new-milestone` (research automático) o un `/gsd-spike` acotado sólo de lectura del repo externo antes de comprometerse a fases concretas.
