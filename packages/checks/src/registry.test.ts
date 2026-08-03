@@ -1,4 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Los tres módulos que abren red por el camino de los NetworkCheck se simulan a
+// nivel de módulo, y la función de fetch global se simula aparte para los checks
+// de red del grupo AEO: sin las cuatro, activar la red convertiría cada corrida
+// de la suite en un cliente automático contra sitios de terceros.
+vi.mock("./checks/network/imageProbe", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./checks/network/imageProbe")>();
+  return { ...actual, probeImages: vi.fn() };
+});
+vi.mock("./checks/network/linkChecker", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./checks/network/linkChecker")>();
+  return { ...actual, checkLinks: vi.fn() };
+});
+vi.mock("./checks/network/ssrfGuard", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./checks/network/ssrfGuard")>();
+  return { ...actual, assertPublicDestination: vi.fn() };
+});
+
+import { probeImages } from "./checks/network/imageProbe";
+import { checkLinks } from "./checks/network/linkChecker";
+import { assertPublicDestination } from "./checks/network/ssrfGuard";
 import { pageChecks, runAllChecks } from "./registry";
 import { makePage } from "./testUtils";
 
@@ -47,6 +68,27 @@ import { makePage } from "./testUtils";
  *    marcar todos esos fingerprints como resueltos aunque el usuario no haya
  *    corregido nada. Queda documentado y NO se capa ni se filtra en la UI: la
  *    lógica de cap o filtrado es alcance de producto de una fase posterior.
+ *
+ * ---
+ *
+ * Por qué hasta la fase 31 todos los casos apagaban la red, y por qué ahora hay
+ * dos que no.
+ *
+ * Los `NetworkCheck` salen a internet, y una suite no puede depender de acceso
+ * saliente ni convertirse en un cliente automático contra sitios de terceros:
+ * por eso los cuatro casos originales apagan la red explícitamente y siguen
+ * haciéndolo. El costo de esa decisión es que la capa de red se registra
+ * por un camino distinto al de los checks de página — su propio barrel y su
+ * propio spread en `networkChecks` — y ningún caso lo recorría. Un check de red
+ * agregado al barrel de su carpeta pero no al catálogo, o al revés, pasaba
+ * completamente desapercibido, que es exactamente el defecto silencioso contra
+ * el que existe el resto de este archivo.
+ *
+ * Los dos casos con la red activa cierran ese hueco simulando a nivel de módulo
+ * las tres puertas de red de la capa (el sondeo de imagen, el verificador de
+ * enlaces y la validación de destino) más la función de fetch global. La
+ * validación de destino devuelve aceptación a propósito: estos casos prueban el
+ * REGISTRO del check, no la defensa, que ya tiene sus propios tests.
  */
 
 const ORIGIN = "https://example.com";
@@ -63,6 +105,20 @@ const SOCIAL_CHECK_IDS = [
   "SOCIAL-07",
   "SOCIAL-08",
 ] as const;
+
+/** Identificador del check de red de la categoría social, incorporado en la fase 31. */
+const SOCIAL_NETWORK_CHECK_ID = "IMG-01";
+
+/** Los tres checks que componen la capa de red del catálogo. */
+const NETWORK_CHECK_IDS = ["TECH-12", "TECH-13", SOCIAL_NETWORK_CHECK_ID] as const;
+
+const NETWORK_PAGE_HTML =
+  "<html><head>" +
+  '<meta property="og:image" content="https://cdn.example.com/og.png" />' +
+  "</head><body>" +
+  '<a href="https://otro-dominio.com/externo">externo</a>' +
+  '<img src="https://cdn.example.com/foto.png" alt="foto" />' +
+  "</body></html>";
 
 describe("registry — pageChecks", () => {
   it("incluye los dos checks de performance por página", () => {
@@ -194,6 +250,94 @@ describe("registry — runAllChecks ejecuta los checks de performance de punta a
         expect(row.pageId).toBe(page.id);
       }
       expect(rows.some((r) => r.severity !== "ok")).toBe(true);
+    }
+  });
+});
+
+describe("registry — runAllChecks con los checks de red activos", () => {
+  const mockedProbeImages = vi.mocked(probeImages);
+  const mockedCheckLinks = vi.mocked(checkLinks);
+  const mockedAssertPublicDestination = vi.mocked(assertPublicDestination);
+
+  beforeEach(() => {
+    mockedProbeImages.mockReset();
+    mockedCheckLinks.mockReset();
+    mockedAssertPublicDestination.mockReset();
+    mockedAssertPublicDestination.mockResolvedValue({ ok: true });
+    // Los checks de red del grupo AEO piden por su cuenta; sin esto saldrían a
+    // internet aunque las tres puertas de la capa de red estén simuladas.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        headers: new Headers(),
+        text: async () => "",
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("emite filas de IMG-01 con categoría social y el pageId de la página, y dedupea la petición", async () => {
+    mockedCheckLinks.mockResolvedValue([]);
+    mockedProbeImages.mockImplementation(async (urls) =>
+      urls.map((url) => ({
+        ok: true as const,
+        url,
+        status: 200,
+        contentType: "image/png",
+        totalBytes: 40 * 1024,
+        // Por debajo del piso: dispara una rama de problema conocida.
+        dimensions: { width: 150, height: 150, type: "png" },
+      })),
+    );
+
+    const page = makePage({ url: URL, html: NETWORK_PAGE_HTML });
+
+    const { issues } = await runAllChecks({
+      pages: [page],
+      origin: ORIGIN,
+      sitemapUrls: [],
+      includeNetworkChecks: true,
+    });
+
+    const rows = issues.filter((i) => i.checkId === SOCIAL_NETWORK_CHECK_ID);
+    expect(rows.length).toBeGreaterThanOrEqual(1);
+    for (const row of rows) {
+      expect(row.category).toBe("social");
+      // Es lo que prueba que el fan-out por página llegó vivo hasta el catálogo.
+      expect(row.pageId).toBe(page.id);
+    }
+
+    // El dedupe también funciona por el camino de producción: una sola llamada
+    // con un arreglo de una sola URL.
+    expect(mockedProbeImages).toHaveBeenCalledTimes(1);
+    expect(mockedProbeImages.mock.calls[0]?.[0]).toHaveLength(1);
+  });
+
+  it("emite filas de los tres checks de la capa de red, lo que convierte el registro en invariante", async () => {
+    mockedCheckLinks.mockImplementation(async (urls) =>
+      urls.map((url) => ({ ok: false as const, url, status: 404, reason: "HTTP 404" })),
+    );
+    mockedProbeImages.mockImplementation(async (urls) =>
+      urls.map((url) => ({ ok: false as const, url, status: 404, reason: "HTTP 404" })),
+    );
+
+    const page = makePage({ url: URL, html: NETWORK_PAGE_HTML });
+
+    const { issues } = await runAllChecks({
+      pages: [page],
+      origin: ORIGIN,
+      sitemapUrls: [],
+      includeNetworkChecks: true,
+    });
+
+    const emitted = new Set(issues.map((i) => i.checkId));
+    for (const id of NETWORK_CHECK_IDS) {
+      expect(emitted).toContain(id);
     }
   });
 });
