@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 30
 current_phase_name: checks-de-meta-tags-social
 status: executing
-stopped_at: Completed 30-01-PLAN.md
-last_updated: "2026-08-03T01:51:04.588Z"
+stopped_at: Completed 30-02-PLAN.md
+last_updated: "2026-08-03T02:00:55.896Z"
 last_activity: 2026-08-02
 last_activity_desc: Phase 30 execution started
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 7
+  completed_plans: 8
   percent: 20
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 ## Current Position
 
 Phase: 30 (checks-de-meta-tags-social) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-08-02 — Phase 30 execution started
 
-Progress: [█████░░░░░] 54%
+Progress: [██████░░░░] 62%
 
 ## Deferred Verification
 
@@ -88,6 +88,7 @@ Progress: [█████░░░░░] 54%
 | Phase 29 P03 | 5min | 2 tasks | 7 files |
 | Phase 29 P04 | 2min | 2 tasks | 1 files |
 | Phase 30 P01 | 10min | 4 tasks | 19 files |
+| Phase 30 P02 | 6min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 30: Los checks de hallazgo único de la categoría social comparten pageFingerprint(CHECK_ID, url) entre todas sus ramas, anulando el ejemplo SOCIAL-01:missing de 30-CONTEXT.md
 - [Phase ?]: Phase 30: extractMetaSocial recibe sólo el CheerioAPI ya cargado; la medición de charset de 30-05 vive en su propio módulo de bytes
 - [Phase ?]: Phase 30: El extractor acumula en Map con filtro de prefijo og:/twitter: (mitigación T-30-01); Object.fromEntries es la serialización canónica documentada para Phase 32
+- [Phase ?]: Phase 30: Rango social de og:description 55-200, deliberadamente distinto del 70-160 de la meta description de buscadores; los dos bordes exactos probados como ok
+- [Phase ?]: Phase 30: MAX_MEASURED_VALUE_CHARS (80) declarado una sola vez en @auditor/meta-social como tope compartido de la categoria social; 30-03 y 30-04 lo importan en vez de declarar el suyo
+- [Phase ?]: Phase 30: SOCIAL-05 verifica presencia de og:type y nunca compara el valor contra una coleccion cerrada (Deferred Idea de 30-CONTEXT.md)
 
 ### Pending Todos
 
@@ -155,8 +159,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-03T01:51:04.580Z
-Stopped at: Completed 30-01-PLAN.md
+Last session: 2026-08-03T02:00:43.010Z
+Stopped at: Completed 30-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
