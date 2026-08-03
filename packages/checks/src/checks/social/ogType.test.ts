@@ -81,8 +81,10 @@ describe("ogTypeCheck (SOCIAL-05)", () => {
   });
 
   it("queda registrado en el barrel socialPageChecks junto a los otros dos checks de la ola", () => {
+    // La aserción es de pertenencia y no de longitud exacta: cada ola
+    // posterior suma checks al mismo array, y un conteo fijo aquí pondría en
+    // rojo un archivo ajeno cada vez que la categoría crece.
     const ids = socialPageChecks.map((check) => check.checkId);
-    expect(socialPageChecks).toHaveLength(3);
     expect(ids).toEqual(expect.arrayContaining(["SOCIAL-01", "SOCIAL-02", "SOCIAL-05"]));
   });
 });
