@@ -841,30 +841,37 @@ No aplica: esta fase es greenfield aditiva (un check nuevo, una dependencia nuev
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> **Estado:** las seis preguntas quedaron resueltas por el orquestador de `/gsd-plan-phase` el 2026-08-03, tomando en cada caso la opción recomendada por la investigación. No hubo usuario humano en esa corrida. Cada pregunta lleva su disposición anotada abajo; ninguna sigue abierta ni requiere confirmación para ejecutar. Si Juan quiere revertir alguna, el punto de entrada es el `checkpoint:decision` de `31-01-PLAN.md` (Tarea 1) para la Q1, y una replanificación para el resto.
 
 1. **¿Fila por imagen (site-level) o fila por página afectada?** — bloqueante para el planner
+   - **RESUELTA → opción A (fan-out por página).** Dedupe del *fetch* (una sonda de red por URL única, cumple IMG-01 y el SC#1) + emisión de una fila por página afectada con su `pageId`. Se desvía de la letra de `31-CONTEXT.md` sólo en la emisión, no en el fetch; la desviación está registrada en el `<source_audit>` de `31-01-PLAN.md`.
    - Lo que sabemos: CONTEXT.md dice "dedupe por URL de imagen (no por página)" con `Map<string,string>`; el SC#1 del ROADMAP dice que la imagen "se verifica una sola vez" (habla del fetch). `scoreCategory` es una tasa de aprobación, así que una fila única entre ~1600 no mueve el score (Pitfall 1).
    - Lo que no está claro: si "dedupe" en CONTEXT.md se refería a las peticiones (que es lo que el requirement pide) o también a la emisión de filas.
    - Recomendación: **opción A** (dedupe del fetch + fan-out de filas por página con `pageId`). Cumple IMG-01 y el SC#1, arregla el score y la UI. **Requiere confirmación del usuario** porque contradice la letra de CONTEXT.md.
 
 2. **¿Entra la defensa SSRF en el alcance de esta fase, y se extiende a TECH-12/TECH-13?** — bloqueante
+   - **RESUELTA → sí a ambas.** Guard en helper compartido (`ssrfGuard.ts`), aplicado a los tres `NetworkCheck` dentro de esta fase (IMG-01 nuevo + TECH-12 + TECH-13). Motivo: `security_block_on: "high"` y la herencia ya declarada en `30-03-SUMMARY.md:267`. El riesgo residual (los saltos de redirección de TECH-12/13 quedan sin cubrir) está declarado en `31-03-PLAN.md`.
    - Lo que sabemos: Phase 30 la declaró explícitamente como herencia de Phase 31 (`30-03-SUMMARY.md:267`). `security_enforcement: true` con `block_on: "high"`, y SSRF hacia la red del worker (Redis/Postgres) califica como high.
    - Lo que no está claro: CONTEXT.md no la menciona; y TECH-12/TECH-13 tienen la misma exposición hoy sin defensa, así que "arreglar sólo el nuevo" deja el agujero abierto por otros dos caminos.
    - Recomendación: implementar el guard en un helper compartido dentro de esta fase y aplicarlo a los tres `NetworkCheck` a la vez. Si el usuario prefiere acotar, aplicarlo sólo a IMG-01 y abrir una deuda explícita para TECH-12/13 en REQUIREMENTS.md.
 
 3. **¿HEAD + GET (letra del requirement) o un solo GET con Range (intención del ROADMAP)?**
+   - **RESUELTA → un solo GET con `Range`.** Ante 405/501 se reintenta con un `GET` sin cabecera `Range` (el plan sustituyó el fallback a HEAD por este, porque un 405 sobre GET no se arregla con HEAD y un 501 es rechazo del `Range`). Desviación de la letra de IMG-01 registrada en el `<source_audit>` de `31-01-PLAN.md`.
    - Lo que sabemos: IMG-01 dice literalmente "(HEAD + GET parcial)"; el goal dice "sin sobrecargar el sitio auditado con requests repetidos". Un GET con Range devuelve todo lo que el HEAD daría.
    - Recomendación: un solo GET con Range; HEAD sólo como fallback ante 405/501. Documentar la desviación en el plan.
 
 4. **¿Qué severidad para una og:image en SVG?**
+   - **RESUELTA → `critical`** (tramo error), porque ninguna plataforma social la renderiza y el preview simplemente no se genera.
    - Lo que sabemos: ninguna plataforma la renderiza (A4); `image-size` a veces sí puede leer sus dimensiones, lo que la haría "pasar" el check de dimensiones.
    - Recomendación: rama propia con `critical` (el preview simplemente no se genera). Si se prefiere ser conservador, `warning`.
 
 5. **¿Nombre del archivo del check?** (discreción de Claude según CONTEXT)
+   - **RESUELTA → `packages/checks/src/checks/network/ogImageNetwork.ts`.**
    - Ya existe `packages/checks/src/checks/social/ogImage.ts` (SOCIAL-03). Recomendación: `packages/checks/src/checks/network/ogImageNetwork.ts` para evitar dos `ogImage.ts`.
 
-6. **Herencia no reclamada de Phase 30 (fuera del alcance de esta fase pero registrada):** `30-VERIFICATION.md:163` señala que `ONPAGE-05` sigue ocupando un slot en el catálogo de 10 checkIds de `packages/cms-adapters`, y que `SOCIAL-01..08` caen al texto genérico de recomendación. `IMG-01` también caerá al genérico (`resolveCmsRecommendation` devuelve `null` para checkIds fuera del catálogo, sin lanzar — `coverage.test.ts:113-114`). No es un bug nuevo, pero suma un checkId más al conjunto sin copy por CMS.
+6. **RESUELTA → deuda registrada, fuera de alcance de esta fase.** Herencia no reclamada de Phase 30: `30-VERIFICATION.md:163` señala que `ONPAGE-05` sigue ocupando un slot en el catálogo de 10 checkIds de `packages/cms-adapters`, y que `SOCIAL-01..08` caen al texto genérico de recomendación. `IMG-01` también caerá al genérico (`resolveCmsRecommendation` devuelve `null` para checkIds fuera del catálogo, sin lanzar — `coverage.test.ts:113-114`). No es un bug nuevo, pero suma un checkId más al conjunto sin copy por CMS.
 
 ---
 
