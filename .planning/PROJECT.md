@@ -83,12 +83,13 @@ Seis milestones entregados: v1.0 (pipeline de auditoría), v1.1 (UI/UX + marca),
 - ✓ Motor de recomendaciones por CMS: patrón adaptador (WordPress con builder, Shopify, Webflow, Wix/Squarespace) con fallback genérico garantizado, resuelto en lectura en `buildReportModel` (nunca persistido, gratis en exports) — v1.5 (CMSFIX-01..05, Phase 27)
 - ✓ Categoría de score "Meta Tags/Social" (sexta categoría, peso 0.10) con rebalanceo explícito de on-page (.15→.10) y datos estructurados (.10→.05), y retiro de `ONPAGE-05` (redundante con la categoría nueva) sin migrar historial — corte de versión documentado — v1.6 (SCORE-01/02, SOCIAL-09, Phase 29)
 - ✓ 8 checks nuevos de meta tags/social por página (Open Graph, Twitter Card, charset) vía motor puro `packages/meta-social` (desacoplado, única dep de runtime cheerio, reusable sin `@auditor/db`/`@auditor/checks`), con guardarraíl explícito de cero colisión de fingerprint contra el retirado `ONPAGE-05` — v1.6 (SOCIAL-01..08, Phase 30)
+- ✓ Validación de og:image (IMG-01..04): fetcher dedupeado por URL de imagen con defensa SSRF (destino no verificable se reporta como tal, nunca como "roto"), lectura acotada de bytes (64 KiB) para dimensiones/tamaño real sin descargar el archivo completo, emisión `emision-por-pagina` (fan-out con `pageId`, no una fila única de sitio) — v1.6 (IMG-01..04, Phase 31)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-v1.6 en definición — Meta Tags/Social (panel visual, performance por página ya implementado pendiente de verificación humana, fix snippets, validación de og:image).
+v1.6 en definición — Meta Tags/Social (panel visual, performance por página ya implementado pendiente de verificación humana, fix snippets).
 
 - [ ] PAGEPERF-01/02/03 — código completo (Phase 28), verificación humana del smoke-test de re-crawl real diferida (ver STATE.md → Deferred Verification)
 
@@ -160,6 +161,9 @@ v1.6 en definición — Meta Tags/Social (panel visual, performance por página 
 | SOCIAL-06 (duplicados OG) acotado a 7 propiedades de valor único (title/description/url/type/site_name/locale/determiner), excluyendo `og:image`/`og:locale:alternate`/`og:video*`/`og:audio*` (que el protocolo define como arrays legítimos) | El protocolo Open Graph permite explícitamente múltiples valores para esas propiedades (ej. WordPress multilingüe emite un `og:locale:alternate` por idioma); marcarlas como "duplicado" sería falso positivo sistemático. Más angosto que la letra literal de la decisión original de discuss, pero sirve mejor al objetivo real de la fase | ✓ Good — v1.6 Phase 30, aceptado en verificación humana (2026-08-03) |
 | `packages/meta-social` (motor puro de extracción OG/Twitter/charset) desacoplado de `@auditor/checks`/`@auditor/db`, única dep de runtime `cheerio` | Mismo patrón que `packages/fingerprint`/`packages/cms-adapters` — lo va a reusar Phase 32 (panel de preview + snippets) sin necesitar el resto del pipeline | ✓ Good — v1.6 Phase 30, `grep` de deps confirma única dependencia |
 | WR-05 (recomendaciones de CMS para `SOCIAL-01..08` sin mapear en `packages/cms-adapters`, regresión del retiro de `ONPAGE-05`) diferido a v1.7/backlog, no bloquea v1.6 | Ninguna fase restante de v1.6 (31/32) lo reclama en sus Success Criteria; el fallback genérico de `cms-adapters` sigue funcionando, sólo se pierde el copy específico de plataforma — deuda técnica aceptada explícitamente, no un defecto silencioso | — Pending (ver `.planning/BACKLOG.md`) — v1.6 Phase 30, decisión de Juan (2026-08-03) |
+| Emisión de issues de IMG-01 `emision-por-pagina` (fan-out, una fila por página afectada con `pageId`), no una fila única de sitio por imagen | El score de categoría es una tasa de aprobación por fila; una fila única de sitio diluiría el hallazgo a <0.01 puntos en la categoría social sobre un sitio de 200+ páginas, prácticamente sin efecto. El fan-out mueve el score proporcional al daño real y cae en la vista por página donde Phase 32 va a pintar el panel — mismo patrón `pageId` que los 8 checks de Phase 30 | ✓ Good — v1.6 Phase 31, decisión de Juan, mismo patrón de decisión irreversible ya usado en checkIds de Phase 28/30 |
+| IMG-02 exige DOS señales para marcar error de content-type (content-type no-imagen Y bytes no parseables), no una sola | Muchos CDN mal configurados sirven imágenes válidas con content-type genérico (`application/octet-stream`); marcar sólo por la cabecera convertiría una mala configuración ajena en un defecto inventado del sitio auditado — se prioriza el contenido real (bytes parseables) sobre la metadata del servidor | ✓ Good — v1.6 Phase 31, decisión de Juan (2026-08-03), más angosta que la letra literal del requirement IMG-02 pero documentada como trade-off deliberado |
+| Umbrales de calibración de IMG-03/04: banda de ratio 1.7-2.1 (acepta 16:9) y peso en base binaria (1 MiB/5 MiB, no 1-5 millones de bytes decimales) | El requirement no define "lejos de 1.91:1" ni la base de "1MB"/"5MB" — la banda elegida cubre las proporciones que recomiendan las plataformas más 16:9 (frecuente en CMS), y la base binaria es coherente con cómo herramientas de sistema miden tamaño de archivo | ✓ Good — v1.6 Phase 31, decisión de Juan (2026-08-03), ajustable con 2 números en `packages/meta-social/src/thresholds.ts` si hace falta recalibrar |
 
 ## Evolution
 
@@ -179,4 +183,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-03 — Phase 30 (Checks de meta tags/social) completa*
+*Last updated: 2026-08-03 — Phase 31 (Validación de og:image) completa*
