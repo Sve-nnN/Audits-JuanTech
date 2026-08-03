@@ -6,6 +6,7 @@ import { ogUrlCheck } from "./ogUrl";
 import { ogTypeCheck } from "./ogType";
 import { ogDuplicatesCheck } from "./ogDuplicates";
 import { twitterCardCheck } from "./twitterCard";
+import { charsetCheck } from "./charset";
 
 export const socialPageChecks: PageCheck[] = [
   ogTitleCheck,
@@ -15,6 +16,7 @@ export const socialPageChecks: PageCheck[] = [
   ogTypeCheck,
   ogDuplicatesCheck,
   twitterCardCheck,
+  charsetCheck,
 ];
 
 export {
@@ -25,4 +27,5 @@ export {
   ogTypeCheck,
   ogDuplicatesCheck,
   twitterCardCheck,
+  charsetCheck,
 };
