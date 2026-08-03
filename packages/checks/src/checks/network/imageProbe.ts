@@ -205,6 +205,10 @@ type FetchOutcome =
  * redirect, an error page, a response we are about to retry without the range
  * header) — bounded, and cheaper than a second request.
  *
+ * It has its **own** catch, though: the timer firing during the read is not
+ * the same event as the request failing. Once the headers are in, the response
+ * is evidence and is kept; only the dimensions degrade to undetermined.
+ *
  * The failure reason belongs to a short vocabulary of our own and is never
  * the message of the thrown error: a network error message is text the
  * destination can influence, and it ends up persisted in an `Issue` row
@@ -236,7 +240,20 @@ async function requestOnce(
       signal: controller.signal,
       dispatcher,
     } as RequestInit);
-    const head = await readUpTo(res, IMAGE_HEAD_BYTES);
+
+    // El fallo de la LECTURA no invalida la respuesta. Las cabeceras ya
+    // llegaron: status y tipo de contenido son evidencia válida, y perderlos
+    // porque un CDN lento gotea los bytes convierte un `200 image/png` en un
+    // `critical` de "imagen social inalcanzable" abanicado por página — en un
+    // sitio de 500 páginas con una sola og:image, quinientas filas críticas
+    // falsas. Lo único que se pierde acá son las dimensiones, que caen en la
+    // rama informativa de "dimensiones indeterminadas".
+    let head: Uint8Array = new Uint8Array(0);
+    try {
+      head = await readUpTo(res, IMAGE_HEAD_BYTES);
+    } catch {
+      head = new Uint8Array(0);
+    }
     return { kind: "response", res, head };
   } catch (error) {
     const aborted =

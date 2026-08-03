@@ -26,6 +26,7 @@ import { REASON_NOT_PUBLIC } from "./ssrfGuard";
 type FakeBody =
   | { kind: "chunks"; chunks: Uint8Array[] }
   | { kind: "endless"; chunkBytes: number }
+  | { kind: "aborted" }
   | { kind: "none" };
 
 /**
@@ -45,6 +46,13 @@ function fakeResponse(init: {
 
   const reader = {
     read: () => {
+      if (body.kind === "aborted") {
+        // El servidor que corta el cuerpo despues de mandar las cabeceras, y el
+        // timer que dispara durante la lectura: los dos llegan acá.
+        const error = new Error("The operation was aborted");
+        error.name = "AbortError";
+        return Promise.reject(error);
+      }
       if (body.kind === "endless") {
         return Promise.resolve({ done: false, value: new Uint8Array(body.chunkBytes) });
       }
@@ -257,6 +265,32 @@ describe("readDimensions — dimensiones desde el fragmento parcial", () => {
  * casos, un refactor que sacara la revalidación del bucle dejaría la suite en
  * verde.
  */
+describe("probeImage — un corte del cuerpo no descarta la respuesta", () => {
+  it("un cuerpo que se corta tras las cabeceras conserva status y tipo de contenido, y sólo pierde las dimensiones", async () => {
+    // El modo de falla que esto evita: un CDN lento producía
+    // `{ ok: false, reason: "tiempo agotado" }` y de ahí un `critical` de
+    // "imagen social inalcanzable" abanicado por cada página que declara la
+    // imagen. La respuesta ya era evidencia válida.
+    lookupMock.mockResolvedValue(PUBLIC_ADDRESS);
+    const { res } = fakeResponse({
+      status: 200,
+      headers: { "content-type": "image/png", "content-length": "845123" },
+      body: { kind: "aborted" },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(res));
+
+    const result = await probeImage("https://cdn.example.com/og.png");
+
+    expect(result).toMatchObject({
+      ok: true,
+      status: 200,
+      contentType: "image/png",
+      totalBytes: 845123,
+      dimensions: null,
+    });
+  });
+});
+
 describe("probeImage — redirecciones", () => {
   it("ssrf: un Location hacia la dirección de metadatos se rechaza en el salto, sin abrir la segunda conexión", async () => {
     lookupMock
