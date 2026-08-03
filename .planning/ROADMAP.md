@@ -205,11 +205,21 @@ Plans:
   4. El auditor marca error si la imagen pesa más de 5MB y warning si pesa entre 1MB y 5MB.
 
 **Plans**: 5 plans
+**Wave 1**
 
 - [ ] 31-01-PLAN.md — Tracer de punta a punta (dedupe, cap, fan-out por página, una rama de fallo) + defensa SSRF de destino
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 31-02-PLAN.md — Transporte completo: corte de lectura a 64 KiB, tamaño total 206/200 y dimensiones desde el buffer parcial
 - [ ] 31-03-PLAN.md — Herencia SSRF a TECH-12/TECH-13 y runner de concurrencia compartido
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 31-04-PLAN.md — Umbrales en `@auditor/meta-social` y las nueve ramas de clasificación (IMG-02/03/04)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 31-05-PLAN.md — Guardarraíles de integración: registry con red activa y colisión de fingerprints de la categoría social
 
 ### Phase 32: Panel de preview social + snippets de fix
