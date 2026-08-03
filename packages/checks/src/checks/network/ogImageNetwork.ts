@@ -1,15 +1,17 @@
 import * as cheerio from "cheerio";
 import { normalizeUrl } from "@auditor/crawler";
 import { extractMetaSocial, firstValue, MAX_MEASURED_VALUE_CHARS } from "@auditor/meta-social";
-import type { IssueDraft, NetworkCheck } from "../../types";
+import type { IssueDraft, IssueSeverityValue, NetworkCheck } from "../../types";
 import { pageFingerprint, siteFingerprint } from "../../util";
 import { MAX_URLS_PER_NETWORK_CHECK } from "./linkChecker";
-import { probeImages } from "./imageProbe";
-import { isGuardRejection } from "./ssrfGuard";
+import { probeImages, UNVERIFIABLE_PROBE_REASONS, type ImageProbeResult } from "./imageProbe";
 
 const CHECK_ID = "IMG-01";
 
 const UNREACHABLE_SUBTYPE = "og-image-unreachable";
+const UNVERIFIABLE_SUBTYPE = "og-image-unverifiable";
+const SVG_SUBTYPE = "og-image-svg";
+const NOT_IMAGE_SUBTYPE = "og-image-not-image";
 const CAPPED_SCOPE = "og-images-capped";
 
 const UNREACHABLE_CRITERION =
@@ -17,6 +19,9 @@ const UNREACHABLE_CRITERION =
 
 const UNREACHABLE_RECOMMENDATION =
   "Corrige la URL de og:image o restaura la imagen en el servidor; una imagen que no responde deja la vista previa sin imagen al compartir la página.";
+
+/** Separator between the diagnostic prefix (our own text) and the site-controlled URL. */
+const SEPARATOR = " · ";
 
 /**
  * Caps any fragment of site-controlled text before it reaches a persisted
@@ -26,6 +31,119 @@ const UNREACHABLE_RECOMMENDATION =
  * characters would collapse into a single row.
  */
 const cap = (value: string) => value.slice(0, MAX_MEASURED_VALUE_CHARS);
+
+/**
+ * One row-to-be, decided from the probe result alone and before knowing which
+ * pages declare the image.
+ *
+ * The field names are the ones `IssueDraft` already uses, never translations,
+ * so the emission loop is a plain copy. `subtype` is the scope fragment that
+ * goes inside the fingerprint: it is what keeps two rows about the same page
+ * (one about dimensions, one about weight) from colliding into one.
+ */
+interface ImageFinding {
+  subtype: string;
+  severity: IssueSeverityValue;
+  title: string;
+  measuredValue: string;
+  criterion: string;
+  recommendation: string;
+}
+
+/**
+ * Classifies one probe result into zero, one or two findings.
+ *
+ * Exported so the nine branches can be tested without building a page context
+ * for each case: the decision and the emission are deliberately separate.
+ *
+ * **No status carve-out.** Every 4xx and 5xx — including 401, 402, 403, 405,
+ * 406, 429 and everything at or above 520 — is an unreachable image with
+ * `critical` severity, exactly like a 404. `brokenExternalLinks.ts` degrades
+ * those same statuses to informational for external links (TECH-12), and that
+ * function is deliberately not imported, copied or rewritten here:
+ * `31-CONTEXT.md` locked the opposite decision for og:image ("Error: ... o
+ * imagen no alcanzable (4xx/5xx o content-type no es imagen)") and acceptance
+ * criterion 2 of the ROADMAP repeats it. A wall that rejects the auditor also
+ * rejects the crawlers of Facebook, X and LinkedIn.
+ */
+export function classifyImageProbe(result: ImageProbeResult): ImageFinding[] {
+  const url = cap(result.url);
+
+  if (!result.ok) {
+    // Nuestra propia defensa rechazó el destino antes de abrir la conexión: no
+    // hubo respuesta HTTP de ninguna clase, así que no hay 4xx ni 5xx que
+    // clasificar y declarar la imagen rota sería inventar evidencia que el
+    // sondeo nunca obtuvo. Va antes que la rama de inalcanzable a propósito.
+    if (UNVERIFIABLE_PROBE_REASONS.includes(result.reason)) {
+      return [
+        {
+          subtype: UNVERIFIABLE_SUBTYPE,
+          severity: "warning",
+          title: "Imagen social no verificable",
+          measuredValue: `${result.reason}${SEPARATOR}${url}`,
+          criterion:
+            "El destino de la imagen no se pudo resolver a una dirección pública, así que la verificación automática no se ejecutó",
+          recommendation:
+            "Revisa manualmente que la imagen cargue en una ventana privada del navegador; una imagen alojada en una red interna no es accesible para los rastreadores de Facebook, X ni LinkedIn.",
+        },
+      ];
+    }
+
+    return [
+      {
+        subtype: UNREACHABLE_SUBTYPE,
+        severity: "critical",
+        title: "Imagen social inalcanzable",
+        measuredValue: `${result.status ? `HTTP ${result.status}` : result.reason}${SEPARATOR}${url}`,
+        criterion: UNREACHABLE_CRITERION,
+        recommendation: UNREACHABLE_RECOMMENDATION,
+      },
+    ];
+  }
+
+  const contentType = result.contentType;
+
+  // Se miran las dos señales disponibles porque un servidor puede servir el SVG
+  // con tipo genérico y la lectura de dimensiones sí reconocerlo.
+  if (contentType?.startsWith("image/svg") || result.dimensions?.type === "svg") {
+    return [
+      {
+        subtype: SVG_SUBTYPE,
+        severity: "critical",
+        title: "Imagen social en un formato que las plataformas no renderizan",
+        measuredValue: `SVG${SEPARATOR}${url}`,
+        criterion: "Las plataformas sociales no generan vista previa con imágenes vectoriales",
+        recommendation:
+          "Exporta la imagen social a PNG o JPEG en 1200 por 630 píxeles y apunta og:image a ese archivo.",
+      },
+    ];
+  }
+
+  // Regla de dos señales: las DOS condiciones a la vez, nunca una sola. Muchos
+  // servidores mal configurados sirven imágenes válidas con un tipo genérico o
+  // vacío, y marcarlas por la cabecera convertiría una mala configuración ajena
+  // en un defecto inventado del usuario. Si los bytes parsean, los bytes mandan.
+  // El caso simétrico (cabecera de imagen con bytes ilegibles) sale por la rama
+  // de dimensiones indeterminadas, con severidad informativa.
+  if (!contentType?.startsWith("image/") && result.dimensions === null) {
+    return [
+      {
+        subtype: NOT_IMAGE_SUBTYPE,
+        severity: "critical",
+        title: "La URL de og:image no devuelve una imagen",
+        measuredValue: `${contentType ? cap(contentType) : "sin content-type"}${SEPARATOR}${url}`,
+        criterion:
+          "La URL declarada en og:image debe devolver un archivo de imagen para que las plataformas puedan mostrar la vista previa",
+        recommendation:
+          "Revisa que la URL de og:image apunte al archivo de imagen y no a una página HTML o a una redirección de error.",
+      },
+    ];
+  }
+
+  // 31-04 tarea 2 agrega aquí los bloques de dimensión y de peso, que a
+  // diferencia de las ramas de arriba no cortan entre sí.
+  return [];
+}
 
 interface ImageEntry {
   /** URL actually requested: the unnormalized absolute form (see below). */
@@ -122,32 +240,26 @@ export const ogImageNetworkCheck: NetworkCheck = {
       const result = results[i];
       if (!entry || !result) continue;
 
-      if (result.ok) {
-        // 31-04 agrega aquí las ramas de tipo de contenido, dimensiones y peso.
-        continue;
-      }
-
-      // Un destino que rechazó nuestra propia defensa nunca llegó a hablar con
-      // el servidor: es ausencia de prueba, no prueba de defecto, y reportarlo
-      // como imagen rota sería un falso positivo. La rama de advertencia por
-      // no verificable la agrega 31-04, junto al resto de los casos bloqueados.
-      if (isGuardRejection(result.reason)) continue;
-
-      const measuredValue = `${result.status ? `HTTP ${result.status}` : result.reason} · ${cap(entry.fetchUrl)}`;
-
-      for (const affected of entry.pages) {
-        issues.push({
-          checkId: CHECK_ID,
-          category: "social",
-          title: "Imagen social inalcanzable",
-          severity: "critical",
-          measuredValue,
-          source: affected.url,
-          criterion: UNREACHABLE_CRITERION,
-          recommendation: UNREACHABLE_RECOMMENDATION,
-          fingerprint: pageFingerprint(`${CHECK_ID}:${UNREACHABLE_SUBTYPE}`, affected.url),
-          pageId: affected.id,
-        });
+      // La decisión se toma una vez por imagen; el fan-out la repite por cada
+      // página que la declara, con su propio pageId y su propio fingerprint. El
+      // ámbito (`source`) y el fingerprint llevan la URL de la página COMPLETA:
+      // el recorte es sólo para el valor medido, y aplicarlo a la clave de
+      // identidad colapsaría en una sola fila dos destinos de prefijo común.
+      for (const finding of classifyImageProbe(result)) {
+        for (const affected of entry.pages) {
+          issues.push({
+            checkId: CHECK_ID,
+            category: "social",
+            title: finding.title,
+            severity: finding.severity,
+            measuredValue: finding.measuredValue,
+            source: affected.url,
+            criterion: finding.criterion,
+            recommendation: finding.recommendation,
+            fingerprint: pageFingerprint(`${CHECK_ID}:${finding.subtype}`, affected.url),
+            pageId: affected.id,
+          });
+        }
       }
     }
 

@@ -1,6 +1,6 @@
 import { imageSize } from "image-size";
 import { mapWithConcurrency, DEFAULT_NETWORK_CONCURRENCY } from "./concurrency";
-import { assertPublicDestination } from "./ssrfGuard";
+import { assertPublicDestination, REASON_NOT_PUBLIC, REASON_UNRESOLVABLE } from "./ssrfGuard";
 
 /**
  * HTTP transport for the social-image probe (IMG-01..04).
@@ -48,6 +48,27 @@ export type ImageProbeResult =
       dimensions: { width: number; height: number; type?: string } | null;
     }
   | { ok: false; url: string; status: number | null; reason: string };
+
+/**
+ * The failure reasons produced by **our own** destination guard, i.e. the two
+ * cases where no HTTP response was ever obtained because we refused to open
+ * the connection.
+ *
+ * It is exported as the contract that lets the check tell "we could not verify
+ * this" apart from "it answers badly", without comparing against strings typed
+ * by hand in two files. Every other reason of the closed vocabulary — a status
+ * of the client or server error families, a timeout, no answer at all, too
+ * many redirect hops — means the destination did speak (or refused to), and is
+ * classified as unreachable.
+ *
+ * The type annotation is explicit and not a const assertion on purpose: the
+ * caller tests membership of a plain `string` read from a probe result, and a
+ * tuple of literals would fail the typecheck on that comparison.
+ */
+export const UNVERIFIABLE_PROBE_REASONS: readonly string[] = [
+  REASON_NOT_PUBLIC,
+  REASON_UNRESOLVABLE,
+];
 
 /**
  * Reads at most `maxBytes` of the response body, chunk by chunk, and **always
