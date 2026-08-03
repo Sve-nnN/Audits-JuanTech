@@ -67,6 +67,17 @@ describe("hasCharsetInFirstKB", () => {
     expect(CHARSET_WINDOW_BYTES).toBe(1024);
   });
 
+  it("rechaza una mención de 'charset=' dentro del content de un meta no-http-equiv (WR-01)", () => {
+    const html =
+      '<!DOCTYPE html><html><head><meta name="description" content="Como declarar charset=utf-8"></head></html>';
+    expect(hasCharsetInFirstKB(html)).toBe(false);
+  });
+
+  it("rechaza una declaración de charset comentada (WR-01)", () => {
+    const html = '<!DOCTYPE html><html><head><!-- <meta charset="utf-8"> --></head></html>';
+    expect(hasCharsetInFirstKB(html)).toBe(false);
+  });
+
   it("resuelve un documento minificado de varios megabytes sin declaración en tiempo acotado", () => {
     // Etiqueta meta abierta y nunca cerrada, en una sola línea: es la forma
     // adversaria de T-30-03. El costo no depende del tamaño de entrada porque
