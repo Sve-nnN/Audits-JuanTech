@@ -65,3 +65,14 @@ Home más orientado a SEO (server-rendered, metadata rica) y que muestre auditor
 Revisar el repo completo (checks, catálogo de reglas, cualquier heurística de SEO técnico/on-page/contenido que implemente) y evaluar qué vale la pena portar o adaptar al catálogo de `packages/checks` existente. Restricción explícita de Juan: **todo lo que se agregue debe ser determinístico, sin dependencia de AI/LLM** — a pesar de que el repo de referencia se llama "claude-seo" (posiblemente usa IA en su propio pipeline), lo que se busca es la LÓGICA de detección/reglas, no una integración de IA. Si alguna mejora identificada requiere una API externa o un servicio de datos (ej. algo tipo PSI/CrUX, WHOIS, algún check que necesite una fuente de terceros), evaluarlo igual y documentar el trade-off (rate limits, costo, dependencia externa) — no descartarlo de entrada sólo por necesitar una API, pero sí dejar afuera cualquier cosa que dependa de un modelo de lenguaje para decidir un resultado del check.
 
 **Notas:** Antes de escribir roadmap, esto necesita una fase de research dedicada (leer el repo referenciado, mapear qué checks/reglas tiene contra el catálogo actual de `packages/checks/src/registry.ts`, identificar gaps reales vs. duplicados de lo que ya existe). Candidato a research previo vía `/gsd-new-milestone` (research automático) o un `/gsd-spike` acotado sólo de lectura del repo externo antes de comprometerse a fases concretas.
+
+## Tech debt diferida — v1.6 Phase 30
+
+### WR-05 — Regresión de recomendaciones por CMS para los checks SOCIAL-01..08
+**Origen:** `30-VERIFICATION.md` (Phase 30, 2026-08-03). Decisión de Juan: diferir, no bloquea v1.6.
+
+Phase 29 retiró `ONPAGE-05` del catálogo activo de checks, pero `packages/cms-adapters/src/types.ts` sigue listando `ONPAGE-05` en `SUPPORTED_CHECK_IDS` y no tiene ninguna entrada para los 8 checks nuevos `SOCIAL-01`..`SOCIAL-08` (Phase 30). Consecuencia: toda incidencia de Open Graph sobre WordPress/Shopify/Webflow/Wix/Squarespace pierde la recomendación específica de plataforma que tenía antes de v1.6 y cae al texto genérico; un slot del catálogo de "10 checks de mayor volumen" queda ocupado por un checkId que ya no puede dispararse. `coverage.test.ts` sigue en verde porque itera sobre la tupla vieja, sin detectar el gap.
+
+**Fix propuesto:** en `packages/cms-adapters`, reemplazar la entrada `ONPAGE-05` por los 8 checkIds `SOCIAL-01..08` en `SUPPORTED_CHECK_IDS` de cada adaptador relevante (WordPress/builder, Shopify, Webflow, Wix/Squarespace), con el copy de fix correspondiente por plataforma. Mismo patrón que el resto de `cms-adapters` (Phase 27).
+
+**Notas:** Buen candidato para agruparlo con Phase 32 (panel de preview + snippets de fix) si esa fase todavía no arrancó, ya que ambos tocan la experiencia de "cómo arreglar" un problema de meta/social — o como fase propia de v1.7 si Phase 32 ya cerró sin incluirlo.

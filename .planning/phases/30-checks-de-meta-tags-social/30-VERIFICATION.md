@@ -1,7 +1,16 @@
 ---
 phase: 30-checks-de-meta-tags-social
 verified: 2026-08-03T10:50:00Z
-status: human_needed
+status: passed
+human_validated: 2026-08-03
+human_validation_notes: >
+  Juan resolvió las 3 decisiones humanas: (1) alcance angosto de SOCIAL-06
+  (7 propiedades de valor único) ACEPTADO — sirve mejor al objetivo de fase
+  que la letra literal de CONTEXT.md; (2) WR-05 (regresión de recomendaciones
+  por CMS tras el retiro de ONPAGE-05) DIFERIDO a v1.7/backlog, documentado
+  como deuda técnica conocida, no bloquea v1.6; (3) WR-01 (falsos negativos
+  de charset) FIX APLICADO de inmediato (commit 36dd827) — detección
+  atributo-consciente en vez de substring, con 2 tests de regresión nuevos.
 score: 5/5 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
