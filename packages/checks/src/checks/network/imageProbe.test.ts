@@ -8,7 +8,13 @@ vi.mock("node:dns/promises", () => ({
   default: { lookup: lookupMock },
 }));
 
-import { IMAGE_HEAD_BYTES, deriveTotalBytes, probeImage, readUpTo } from "./imageProbe";
+import {
+  IMAGE_HEAD_BYTES,
+  deriveTotalBytes,
+  probeImage,
+  readDimensions,
+  readUpTo,
+} from "./imageProbe";
 
 /** Cuerpos que la fábrica sabe simular. `endless` es el servidor hostil. */
 type FakeBody =
@@ -53,6 +59,36 @@ function fakeResponse(init: {
   } as unknown as Response;
 
   return { res, cancel };
+}
+
+/**
+ * Cabecera PNG mínima de 24 bytes, construida en memoria: firma de ocho bytes,
+ * longitud del bloque IHDR, la etiqueta, y ancho y alto como enteros de 32 bits
+ * con el byte más significativo primero, en los desplazamientos 16 y 20.
+ */
+function pngHeader(width: number, height: number): Uint8Array {
+  const bytes = new Uint8Array(24);
+  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(8, 13, false); // longitud del bloque IHDR
+  bytes.set([0x49, 0x48, 0x44, 0x52], 12); // "IHDR"
+  view.setUint32(16, width, false);
+  view.setUint32(20, height, false);
+  return bytes;
+}
+
+/**
+ * Cabecera GIF mínima de 10 bytes: firma de seis caracteres, y ancho y alto
+ * como enteros de 16 bits con el byte menos significativo primero, en los
+ * desplazamientos 6 y 8.
+ */
+function gifHeader(width: number, height: number): Uint8Array {
+  const bytes = new Uint8Array(10);
+  bytes.set([0x47, 0x49, 0x46, 0x38, 0x39, 0x61], 0); // "GIF89a"
+  const view = new DataView(bytes.buffer);
+  view.setUint16(6, width, true);
+  view.setUint16(8, height, true);
+  return bytes;
 }
 
 const PUBLIC_ADDRESS = [{ address: "93.184.216.34", family: 4 }];
@@ -177,6 +213,38 @@ describe("deriveTotalBytes — el tamaño del archivo, no el del fragmento", () 
   });
 });
 
+describe("readDimensions — dimensiones desde el fragmento parcial", () => {
+  it("dimensiones desde buffer: 24 bytes de cabecera PNG bastan para leer 1200 por 630", () => {
+    const result = readDimensions(pngHeader(1200, 630));
+
+    expect(result).toMatchObject({ width: 1200, height: 630, type: "png" });
+  });
+
+  it("dimensiones desde buffer: 10 bytes de cabecera GIF bastan para leer 200 por 200", () => {
+    const result = readDimensions(gifHeader(200, 200));
+
+    expect(result).toMatchObject({ width: 200, height: 200, type: "gif" });
+  });
+
+  it("dimensiones desde buffer: una cabecera PNG truncada a 12 bytes devuelve nulo y no lanza", () => {
+    const truncated = pngHeader(1200, 630).subarray(0, 12);
+
+    expect(() => readDimensions(truncated)).not.toThrow();
+    expect(readDimensions(truncated)).toBeNull();
+  });
+
+  it("dimensiones desde buffer: un buffer de basura que no es ningún formato devuelve nulo y no lanza", () => {
+    const garbage = new Uint8Array(64).fill(0x7a);
+
+    expect(() => readDimensions(garbage)).not.toThrow();
+    expect(readDimensions(garbage)).toBeNull();
+  });
+
+  it("dimensiones desde buffer: un fragmento vacío devuelve nulo sin llamar a la librería", () => {
+    expect(readDimensions(new Uint8Array(0))).toBeNull();
+  });
+});
+
 describe("probeImage — respaldo ante un rango no satisfacible", () => {
   it("416: un primer 416 se reintenta una única vez sin rango y produce éxito con exactamente dos llamadas de red", async () => {
     const first = fakeResponse({ status: 416 });
@@ -200,5 +268,30 @@ describe("probeImage — respaldo ante un rango no satisfacible", () => {
       expect(result.contentType).toBe("image/png");
       expect(result.totalBytes).toBe(4096);
     }
+  });
+
+  it("dimensiones desde buffer: una sola respuesta 206 trae a la vez status, tipo de contenido, tamaño total y dimensiones", async () => {
+    const { res } = fakeResponse({
+      status: 206,
+      headers: {
+        "content-type": "image/png",
+        "content-range": `bytes 0-23/1234567`,
+        "content-length": "24",
+      },
+      body: { kind: "chunks", chunks: [pngHeader(1200, 630)] },
+    });
+    const fetchMock = vi.fn().mockResolvedValue(res);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await probeImage("https://cdn.example.com/og.png");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      ok: true,
+      status: 206,
+      contentType: "image/png",
+      totalBytes: 1234567,
+      dimensions: { width: 1200, height: 630 },
+    });
   });
 });

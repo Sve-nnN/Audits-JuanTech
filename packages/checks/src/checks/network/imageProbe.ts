@@ -1,3 +1,4 @@
+import { imageSize } from "image-size";
 import { mapWithConcurrency, DEFAULT_NETWORK_CONCURRENCY } from "./concurrency";
 import { assertPublicDestination } from "./ssrfGuard";
 
@@ -130,6 +131,36 @@ export function deriveTotalBytes(res: Response): number | null {
   return toByteCount(res.headers.get("content-length"));
 }
 
+/**
+ * Reads the dimensions out of the fragment that is already in memory, without
+ * asking the audited site for a single extra byte.
+ *
+ * **Never retried with a larger range when the read fails.** Doing so would
+ * double the load on the audited site to chase a secondary signal, and the
+ * correct outcome of that situation is to declare the dimensions
+ * undetermined (threat T-31-06).
+ *
+ * The library is synchronous and **throws instead of returning null**, with at
+ * least three known families of exception: unsupported file type, invalid PNG
+ * raised by its own detection, and a JPEG whose dimension marker fell outside
+ * the fragment. None of them escapes, and none of their messages is read: that
+ * text is influenced by the content the destination serves and carries nothing
+ * actionable (control V7 / threat T-31-08).
+ */
+export function readDimensions(
+  head: Uint8Array,
+): { width: number; height: number; type?: string } | null {
+  if (head.byteLength === 0) return null;
+
+  try {
+    const size = imageSize(head);
+    if (!Number.isFinite(size.width) || !Number.isFinite(size.height)) return null;
+    return { width: size.width, height: size.height, type: size.type };
+  } catch {
+    return null;
+  }
+}
+
 type FetchOutcome =
   | { kind: "response"; res: Response; head: Uint8Array }
   | { kind: "error"; reason: string };
@@ -250,9 +281,9 @@ export async function probeImage(url: string): Promise<ImageProbeResult> {
       status: res.status,
       contentType: rawContentType ? rawContentType.toLowerCase().trim() : null,
       totalBytes: deriveTotalBytes(res),
-      // Se llena en la Tarea 2 leyendo las dimensiones de `head`, el fragmento
-      // que esta misma petición ya trajo.
-      dimensions: null,
+      // Las cuatro señales del contrato salen de esta única petición: `head` es
+      // el fragmento que ella misma trajo, nunca una segunda descarga.
+      dimensions: readDimensions(head),
     };
   }
 
