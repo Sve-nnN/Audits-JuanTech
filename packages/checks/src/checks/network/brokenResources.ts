@@ -2,7 +2,11 @@ import * as cheerio from "cheerio";
 import { normalizeUrl } from "@auditor/crawler";
 import type { IssueDraft, NetworkCheck } from "../../types";
 import { siteFingerprint } from "../../util";
-import { checkLinks, MAX_URLS_PER_NETWORK_CHECK } from "./linkChecker";
+import {
+  checkLinks,
+  MAX_URLS_PER_NETWORK_CHECK,
+  UNVERIFIABLE_DESTINATION_REASON,
+} from "./linkChecker";
 
 const CHECK_ID = "TECH-13";
 
@@ -58,6 +62,30 @@ export const brokenResourcesCheck: NetworkCheck = {
     for (const result of results) {
       if (result.ok) continue;
       const sourcePage = resources.get(result.url) ?? "";
+
+      // Mismo criterio que en TECH-12: un destino que la defensa rechazó no se
+      // pudo verificar, y eso no es lo mismo que estar roto. La condición va
+      // antes de construir la fila de recurso roto porque el rechazo llega con
+      // status nulo y caería directo en ella.
+      if (result.reason === UNVERIFIABLE_DESTINATION_REASON) {
+        const unverifiableScope = `resource-unverifiable-destination:${result.url}`;
+        issues.push({
+          checkId: CHECK_ID,
+          category: "tech",
+          title: "Recurso no verificable por destino",
+          severity: "ok",
+          measuredValue: result.reason,
+          source: `${result.url} (referenciado desde ${sourcePage})`,
+          criterion:
+            "Algunos recursos no se pueden verificar automáticamente porque su dirección no es pública y el auditor no abre conexiones hacia redes internas",
+          recommendation:
+            "No requiere acción si el recurso apunta a un servidor interno intencional. Revisa la ruta manualmente si esperabas que fuera pública.",
+          fingerprint: siteFingerprint(CHECK_ID, unverifiableScope),
+          scope: unverifiableScope,
+        });
+        continue;
+      }
+
       const scope = `resource:${result.url}`;
       issues.push({
         checkId: CHECK_ID,

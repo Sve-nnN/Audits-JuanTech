@@ -9,7 +9,7 @@ vi.mock("./linkChecker", async (importOriginal) => {
   return { ...actual, checkLinks: vi.fn() };
 });
 
-import { checkLinks } from "./linkChecker";
+import { checkLinks, UNVERIFIABLE_DESTINATION_REASON } from "./linkChecker";
 import { brokenExternalLinksCheck } from "./brokenExternalLinks";
 
 const mockedCheckLinks = vi.mocked(checkLinks);
@@ -62,6 +62,34 @@ describe("brokenExternalLinksCheck classification", () => {
       expect(issue.severity).toBe("warning");
       expect(issue.title).toBe("Enlace externo roto");
     }
+  });
+
+  it("reports a destination rejected by the guard as informational, never as broken", async () => {
+    const urls = ["http://169.254.169.254/latest/meta-data/"];
+    mockedCheckLinks.mockResolvedValueOnce([
+      { url: urls[0]!, ok: false, status: null, reason: UNVERIFIABLE_DESTINATION_REASON },
+    ]);
+
+    const issues = await brokenExternalLinksCheck.run(ctxWithExternalLinks(urls));
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0]!.severity).toBe("ok");
+    expect(issues[0]!.title).toBe("Enlace externo no verificable por destino");
+    expect(issues.filter((i) => i.title === "Enlace externo roto")).toHaveLength(0);
+  });
+
+  it("keeps the guard-rejected row and a broken row on separate fingerprints", async () => {
+    const urls = ["http://10.0.0.5/internal", "https://example.com/gone"];
+    mockedCheckLinks.mockResolvedValueOnce([
+      { url: urls[0]!, ok: false, status: null, reason: UNVERIFIABLE_DESTINATION_REASON },
+      { url: urls[1]!, ok: false, status: 404, reason: "HTTP 404" },
+    ]);
+
+    const issues = await brokenExternalLinksCheck.run(ctxWithExternalLinks(urls));
+
+    expect(issues).toHaveLength(2);
+    expect(new Set(issues.map((i) => i.fingerprint)).size).toBe(2);
+    expect(issues.map((i) => i.severity)).toEqual(["ok", "warning"]);
   });
 
   it("does not emit anything for links that resolve ok", async () => {

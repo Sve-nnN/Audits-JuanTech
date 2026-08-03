@@ -2,7 +2,11 @@ import * as cheerio from "cheerio";
 import { normalizeUrl, sameRegistrableDomain } from "@auditor/crawler";
 import type { IssueDraft, NetworkCheck } from "../../types";
 import { siteFingerprint } from "../../util";
-import { checkLinks, MAX_URLS_PER_NETWORK_CHECK } from "./linkChecker";
+import {
+  checkLinks,
+  MAX_URLS_PER_NETWORK_CHECK,
+  UNVERIFIABLE_DESTINATION_REASON,
+} from "./linkChecker";
 
 const CHECK_ID = "TECH-12";
 
@@ -72,6 +76,33 @@ export const brokenExternalLinksCheck: NetworkCheck = {
     for (const result of results) {
       if (result.ok) continue;
       const sourcePage = externalLinks.get(result.url) ?? origin;
+
+      // Un destino que nuestra propia defensa rechazó es ausencia de prueba, no
+      // prueba de defecto: presentarlo como roto le pediría al usuario que
+      // arregle un enlace que en un navegador probablemente funciona.
+      //
+      // Va ANTES de la evaluación de status bloqueado a propósito: esa función
+      // devuelve falso cuando el status es nulo, y el rechazo de la defensa
+      // llega justamente con status nulo. Puesta después, este caso caería en la
+      // rama de enlace roto, que es exactamente lo que hay que impedir.
+      if (result.reason === UNVERIFIABLE_DESTINATION_REASON) {
+        const scope = `external-link-unverifiable-destination:${result.url}`;
+        issues.push({
+          checkId: CHECK_ID,
+          category: "tech",
+          title: "Enlace externo no verificable por destino",
+          severity: "ok",
+          measuredValue: result.reason,
+          source: `${result.url} (enlazado desde ${sourcePage})`,
+          criterion:
+            "Algunos destinos no se pueden verificar automáticamente porque su dirección no es pública y el auditor no abre conexiones hacia redes internas",
+          recommendation:
+            "No requiere acción si el enlace apunta a un recurso interno intencional. Revisa el enlace manualmente si esperabas que fuera público.",
+          fingerprint: siteFingerprint(CHECK_ID, scope),
+          scope,
+        });
+        continue;
+      }
 
       // Anti-bot / auth / paywall responses are not broken links — report them
       // as an informational "no verificable" note so they don't pollute the
