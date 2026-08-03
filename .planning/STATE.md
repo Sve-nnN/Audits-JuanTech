@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 30
 current_phase_name: checks-de-meta-tags-social
 status: executing
-stopped_at: Completed 30-02-PLAN.md
-last_updated: "2026-08-03T02:00:55.896Z"
+stopped_at: Completed 30-03-PLAN.md
+last_updated: "2026-08-03T02:12:36.614Z"
 last_activity: 2026-08-02
 last_activity_desc: Phase 30 execution started
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 8
+  completed_plans: 9
   percent: 20
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 ## Current Position
 
 Phase: 30 (checks-de-meta-tags-social) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-08-02 — Phase 30 execution started
 
-Progress: [██████░░░░] 62%
+Progress: [███████░░░] 69%
 
 ## Deferred Verification
 
@@ -89,6 +89,7 @@ Progress: [██████░░░░] 62%
 | Phase 29 P04 | 2min | 2 tasks | 1 files |
 | Phase 30 P01 | 10min | 4 tasks | 19 files |
 | Phase 30 P02 | 6min | 2 tasks | 7 files |
+| Phase 30 P03 | 12min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 30: Rango social de og:description 55-200, deliberadamente distinto del 70-160 de la meta description de buscadores; los dos bordes exactos probados como ok
 - [Phase ?]: Phase 30: MAX_MEASURED_VALUE_CHARS (80) declarado una sola vez en @auditor/meta-social como tope compartido de la categoria social; 30-03 y 30-04 lo importan en vez de declarar el suyo
 - [Phase ?]: Phase 30: SOCIAL-05 verifica presencia de og:type y nunca compara el valor contra una coleccion cerrada (Deferred Idea de 30-CONTEXT.md)
+- [Phase ?]: SOCIAL-03: las cinco ramas de fallo de og:image (ausente, sin protocolo, esquema no utilizable, relativa, insegura) salen critical; la rama de esquema no utilizable extiende C-4 sin contradecirla
+- [Phase ?]: SOCIAL-04 relee la canonical del objeto de consulta y normaliza los dos lados con normalizeUrl, para que el reporte no contenga dos veredictos opuestos sobre la misma pagina
+- [Phase ?]: La deteccion de og:image absoluta compara el prefijo completo del esquema (http:// o https://) en minusculas, no startsWith(http), para no dar por absoluta una ruta relativa que empiece con esas letras
+- [Phase ?]: El orden del barrel socialPageChecks (ascendente por checkId, sin duplicados) pasa de prosa a aserto automatico en ogUrl.test.ts
 
 ### Pending Todos
 
@@ -159,8 +164,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-03T02:00:43.010Z
-Stopped at: Completed 30-02-PLAN.md
+Last session: 2026-08-03T02:12:22.668Z
+Stopped at: Completed 30-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
