@@ -4,6 +4,7 @@ import { ogDescriptionCheck } from "./ogDescription";
 import { ogImageCheck } from "./ogImage";
 import { ogUrlCheck } from "./ogUrl";
 import { ogTypeCheck } from "./ogType";
+import { ogDuplicatesCheck } from "./ogDuplicates";
 
 export const socialPageChecks: PageCheck[] = [
   ogTitleCheck,
@@ -11,6 +12,7 @@ export const socialPageChecks: PageCheck[] = [
   ogImageCheck,
   ogUrlCheck,
   ogTypeCheck,
+  ogDuplicatesCheck,
 ];
 
-export { ogTitleCheck, ogDescriptionCheck, ogImageCheck, ogUrlCheck, ogTypeCheck };
+export { ogTitleCheck, ogDescriptionCheck, ogImageCheck, ogUrlCheck, ogTypeCheck, ogDuplicatesCheck };
