@@ -4,7 +4,7 @@ milestone: v1.6
 milestone_name: Meta Tags / Social
 current_phase: 31
 current_phase_name: validaci-n-de-og-image
-status: executing
+status: verified
 stopped_at: Completed 31-05-PLAN.md
 last_updated: "2026-08-03T21:14:00.000Z"
 last_activity: 2026-08-03
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 ## Current Position
 
-Phase: 31 (validaci-n-de-og-image) — VERIFYING
+Phase: 31 (validaci-n-de-og-image) — COMPLETE
 Plan: 5 of 5
 Status: Los cinco planes ejecutados con SUMMARY; `pnpm test`, `pnpm typecheck` y `pnpm assert:web-boundary` en verde
 Last activity: 2026-08-03 — Phase 31 cerrada a nivel de ejecución
