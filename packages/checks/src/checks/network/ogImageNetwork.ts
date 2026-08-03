@@ -1,6 +1,19 @@
 import * as cheerio from "cheerio";
 import { normalizeUrl } from "@auditor/crawler";
-import { extractMetaSocial, firstValue, MAX_MEASURED_VALUE_CHARS } from "@auditor/meta-social";
+import {
+  extractMetaSocial,
+  firstValue,
+  MAX_MEASURED_VALUE_CHARS,
+  OG_IMAGE_MIN_WIDTH,
+  OG_IMAGE_MIN_HEIGHT,
+  OG_IMAGE_SMALL_WIDTH,
+  OG_IMAGE_SMALL_HEIGHT,
+  OG_IMAGE_TARGET_RATIO,
+  OG_IMAGE_RATIO_MIN,
+  OG_IMAGE_RATIO_MAX,
+  OG_IMAGE_HEAVY_BYTES,
+  OG_IMAGE_MAX_BYTES,
+} from "@auditor/meta-social";
 import type { IssueDraft, IssueSeverityValue, NetworkCheck } from "../../types";
 import { pageFingerprint, siteFingerprint } from "../../util";
 import { MAX_URLS_PER_NETWORK_CHECK } from "./linkChecker";
@@ -12,6 +25,20 @@ const UNREACHABLE_SUBTYPE = "og-image-unreachable";
 const UNVERIFIABLE_SUBTYPE = "og-image-unverifiable";
 const SVG_SUBTYPE = "og-image-svg";
 const NOT_IMAGE_SUBTYPE = "og-image-not-image";
+const UNDETERMINED_SUBTYPE = "og-image-undetermined";
+const TOO_SMALL_SUBTYPE = "og-image-too-small";
+/**
+ * Both dimension warnings — undersized and off-band ratio — persist the same
+ * `og-image-suboptimal` fingerprint fragment, which is what Phase 32 groups by. It is
+ * deliberately one fragment and not two: both are the same signal ("the image
+ * loads but is not the ideal one"), and no image can hit both, because the
+ * ratio is only evaluated when the size branch did not fire. A separate
+ * `og-image-ratio` fragment would promise a row that never coexists with the
+ * size one.
+ */
+const SUBOPTIMAL_SUBTYPE = "og-image-suboptimal";
+const TOO_LARGE_SUBTYPE = "og-image-too-large";
+const HEAVY_SUBTYPE = "og-image-heavy";
 const CAPPED_SCOPE = "og-images-capped";
 
 const UNREACHABLE_CRITERION =
@@ -31,6 +58,14 @@ const SEPARATOR = " · ";
  * characters would collapse into a single row.
  */
 const cap = (value: string) => value.slice(0, MAX_MEASURED_VALUE_CHARS);
+
+/**
+ * Renders a byte count as mebibytes with one decimal, **for presentation only**.
+ *
+ * This is a unit conversion for the text of a measured value, never a threshold:
+ * no comparison in this file reads its output. See the weight block below.
+ */
+const toMib = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
 
 /**
  * One row-to-be, decided from the probe result alone and before knowing which
@@ -140,9 +175,105 @@ export function classifyImageProbe(result: ImageProbeResult): ImageFinding[] {
     ];
   }
 
-  // 31-04 tarea 2 agrega aquí los bloques de dimensión y de peso, que a
-  // diferencia de las ramas de arriba no cortan entre sí.
-  return [];
+  // A diferencia de las cuatro ramas de arriba, los dos bloques que siguen NO
+  // cortan entre sí: una imagen puede ser chica y además pesada, y las dos
+  // filas son información distinta. El máximo por página son dos filas, con
+  // subtipos distintos y por lo tanto fingerprints distintos.
+  const findings: ImageFinding[] = [];
+  const dimensions = result.dimensions;
+
+  if (dimensions === null) {
+    // Que el fragmento pedido no alcanzara para leer el marcador es una
+    // limitación de nuestro método de medición, no una falla del sitio
+    // auditado: por eso es informativo y nunca un defecto. Aquí llega el caso
+    // simétrico de la regla de dos señales (cabecera de imagen, bytes ilegibles).
+    findings.push({
+      subtype: UNDETERMINED_SUBTYPE,
+      severity: "ok",
+      title: "Dimensiones de la imagen social no determinadas",
+      measuredValue: `dimensiones indeterminadas${SEPARATOR}${url}`,
+      criterion:
+        "El fragmento de imagen que se descarga para medirla no siempre contiene el marcador de dimensiones",
+      recommendation:
+        "Sin acción necesaria. La imagen responde correctamente; solo no se pudo medir su tamaño en píxeles sin descargarla entera.",
+    });
+  } else {
+    const { width, height } = dimensions;
+    const size = `${width}×${height}`;
+
+    if (width < OG_IMAGE_MIN_WIDTH || height < OG_IMAGE_MIN_HEIGHT) {
+      findings.push({
+        subtype: TOO_SMALL_SUBTYPE,
+        severity: "critical",
+        title: "Imagen social por debajo del tamaño mínimo",
+        measuredValue: `${size}${SEPARATOR}${url}`,
+        criterion: `Por debajo de ${OG_IMAGE_MIN_WIDTH} por ${OG_IMAGE_MIN_HEIGHT} píxeles las plataformas ignoran la imagen y la vista previa queda sin imagen`,
+        recommendation:
+          "Reemplaza la imagen social por una de al menos 1200 por 630 píxeles, que es el tamaño recomendado por Facebook, X y LinkedIn.",
+      });
+    } else if (width < OG_IMAGE_SMALL_WIDTH || height < OG_IMAGE_SMALL_HEIGHT) {
+      findings.push({
+        subtype: SUBOPTIMAL_SUBTYPE,
+        severity: "warning",
+        title: "Imagen social más pequeña de lo recomendado",
+        measuredValue: `${size}${SEPARATOR}${url}`,
+        criterion: `Por debajo de ${OG_IMAGE_SMALL_WIDTH} por ${OG_IMAGE_SMALL_HEIGHT} píxeles la vista previa se muestra como miniatura pequeña en lugar de imagen grande`,
+        recommendation:
+          "Sube una imagen de 1200 por 630 píxeles para que la vista previa use el formato grande.",
+      });
+    } else {
+      // La banda se compara contra sus dos extremos explícitos y nunca contra
+      // el objetivo más o menos una tolerancia: con estrictamente menor y
+      // estrictamente mayor, los dos extremos exactos pasan.
+      const ratio = width / height;
+      if (ratio < OG_IMAGE_RATIO_MIN || ratio > OG_IMAGE_RATIO_MAX) {
+        findings.push({
+          subtype: SUBOPTIMAL_SUBTYPE,
+          severity: "warning",
+          title: "Proporción de la imagen social lejos de la recomendada",
+          measuredValue: `${size}${SEPARATOR}${ratio.toFixed(2)}${SEPARATOR}${url}`,
+          criterion: `La proporción recomendada por las plataformas es ${OG_IMAGE_TARGET_RATIO} a 1; una imagen muy distinta se recorta en la vista previa`,
+          recommendation:
+            "Recorta o rehace la imagen social en proporción 1.91 a 1, por ejemplo 1200 por 630 píxeles.",
+        });
+      }
+    }
+  }
+
+  // Contrato de precisión de IMG-04: las dos comparaciones se hacen sobre el
+  // ENTERO de bytes con estrictamente mayor que. El redondeo a un decimal vive
+  // sólo en el texto del valor medido y jamás alimenta un umbral — comparar
+  // sobre el valor redondeado desplazaría el umbral real hasta medio mebibyte.
+  const totalBytes = result.totalBytes;
+  if (totalBytes !== null) {
+    const weight = `${toMib(totalBytes)} MB${SEPARATOR}${url}`;
+
+    if (totalBytes > OG_IMAGE_MAX_BYTES) {
+      findings.push({
+        subtype: TOO_LARGE_SUBTYPE,
+        severity: "critical",
+        title: "Imagen social demasiado pesada",
+        measuredValue: weight,
+        criterion:
+          "Por encima de 5 MB las plataformas más estrictas rechazan la imagen y no generan vista previa",
+        recommendation:
+          "Comprime la imagen social o reexpórtala en JPEG de calidad alta; una imagen de 1200 por 630 píxeles no debería superar unos pocos cientos de kilobytes.",
+      });
+    } else if (totalBytes > OG_IMAGE_HEAVY_BYTES) {
+      findings.push({
+        subtype: HEAVY_SUBTYPE,
+        severity: "warning",
+        title: "Imagen social más pesada de lo recomendado",
+        measuredValue: weight,
+        criterion:
+          "Una imagen social por encima de 1 MB tarda en cargar y algunas plataformas la descartan al generar la vista previa",
+        recommendation:
+          "Comprime la imagen social; con 1200 por 630 píxeles suele alcanzar con menos de 300 KB.",
+      });
+    }
+  }
+
+  return findings;
 }
 
 interface ImageEntry {

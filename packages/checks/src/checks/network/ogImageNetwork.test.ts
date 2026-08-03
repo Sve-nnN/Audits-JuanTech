@@ -1,4 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  MAX_MEASURED_VALUE_CHARS,
+  OG_IMAGE_MIN_WIDTH,
+  OG_IMAGE_MIN_HEIGHT,
+  OG_IMAGE_SMALL_WIDTH,
+  OG_IMAGE_SMALL_HEIGHT,
+  OG_IMAGE_RATIO_MIN,
+  OG_IMAGE_RATIO_MAX,
+  OG_IMAGE_HEAVY_BYTES,
+  OG_IMAGE_MAX_BYTES,
+} from "@auditor/meta-social";
 import { makePage } from "../../testUtils";
 import type { SiteCheckCtx } from "../../types";
 import { MAX_URLS_PER_NETWORK_CHECK } from "./linkChecker";
@@ -53,6 +64,30 @@ function failProbe(status: number | null, reason: string): ImageProbeResult {
 }
 
 const titles = (results: ReturnType<typeof classifyImageProbe>) => results.map((r) => r.title);
+
+const UNDETERMINED_TITLE = "Dimensiones de la imagen social no determinadas";
+const TOO_SMALL_TITLE = "Imagen social por debajo del tamaño mínimo";
+const SMALL_TITLE = "Imagen social más pequeña de lo recomendado";
+const RATIO_TITLE = "Proporción de la imagen social lejos de la recomendada";
+const TOO_LARGE_TITLE = "Imagen social demasiado pesada";
+const HEAVY_TITLE = "Imagen social más pesada de lo recomendado";
+
+const DIMENSION_SUBTYPES = [
+  "og-image-undetermined",
+  "og-image-too-small",
+  "og-image-suboptimal",
+];
+const WEIGHT_SUBTYPES = ["og-image-too-large", "og-image-heavy"];
+
+type Findings = ReturnType<typeof classifyImageProbe>;
+const dimensionRows = (found: Findings) =>
+  found.filter((f) => DIMENSION_SUBTYPES.includes(f.subtype));
+const weightRows = (found: Findings) => found.filter((f) => WEIGHT_SUBTYPES.includes(f.subtype));
+
+/** Classifies an image of `width` x `height` with a weight that produces no weight row. */
+function classifySize(width: number, height: number): Findings {
+  return classifyImageProbe(okProbe({ dimensions: { width, height, type: "png" } }));
+}
 
 /** Builds a context from `[pageUrl, ogImageValue | null]` pairs. */
 function ctxWithOgImages(pairs: [string, string | null][]): SiteCheckCtx {
@@ -311,6 +346,220 @@ describe("clasificación de una imagen sondeada (IMG-02)", () => {
     );
     expect(findings).toHaveLength(1);
     expect(findings[0]?.title).toBe(SVG_TITLE);
+  });
+});
+
+describe("dimensión, proporción y peso de la imagen sondeada (IMG-03 e IMG-04)", () => {
+  it("dimensiones: 150x150 da error, 400x300 da advertencia y 1200x630 no da ninguna fila", () => {
+    const tiny = classifySize(150, 150);
+    expect(dimensionRows(tiny)).toHaveLength(1);
+    expect(tiny[0]?.severity).toBe("critical");
+    expect(tiny[0]?.title).toBe(TOO_SMALL_TITLE);
+    expect(tiny[0]?.measuredValue).toContain("150×150");
+
+    const small = classifySize(400, 300);
+    expect(dimensionRows(small)).toHaveLength(1);
+    expect(small[0]?.severity).toBe("warning");
+    expect(small[0]?.title).toBe(SMALL_TITLE);
+
+    expect(dimensionRows(classifySize(1200, 630))).toHaveLength(0);
+  });
+
+  it("dimensiones: los dos bordes exactos del piso — 200x200 no es error y 199x200 sí lo es", () => {
+    // Los bordes se leen de las constantes, y aparte se fija el número que el
+    // requisito contrató: así una recalibración mueve el test a propósito y no
+    // por accidente.
+    expect([OG_IMAGE_MIN_WIDTH, OG_IMAGE_MIN_HEIGHT]).toEqual([200, 200]);
+
+    expect(titles(classifySize(OG_IMAGE_MIN_WIDTH, OG_IMAGE_MIN_HEIGHT))).not.toContain(
+      TOO_SMALL_TITLE,
+    );
+    expect(titles(classifySize(OG_IMAGE_MIN_WIDTH, OG_IMAGE_MIN_HEIGHT - 1))).toContain(
+      TOO_SMALL_TITLE,
+    );
+    expect(titles(classifySize(OG_IMAGE_MIN_WIDTH - 1, OG_IMAGE_MIN_HEIGHT))).toContain(
+      TOO_SMALL_TITLE,
+    );
+  });
+
+  it("dimensiones: los tres bordes del umbral chico — 600x315 no avisa, 599x315 y 600x314 sí", () => {
+    expect([OG_IMAGE_SMALL_WIDTH, OG_IMAGE_SMALL_HEIGHT]).toEqual([600, 315]);
+
+    expect(titles(classifySize(OG_IMAGE_SMALL_WIDTH, OG_IMAGE_SMALL_HEIGHT))).not.toContain(
+      SMALL_TITLE,
+    );
+    expect(titles(classifySize(OG_IMAGE_SMALL_WIDTH - 1, OG_IMAGE_SMALL_HEIGHT))).toContain(
+      SMALL_TITLE,
+    );
+    expect(titles(classifySize(OG_IMAGE_SMALL_WIDTH, OG_IMAGE_SMALL_HEIGHT - 1))).toContain(
+      SMALL_TITLE,
+    );
+  });
+
+  it("dimensiones: unas dimensiones nulas dan exactamente una fila informativa y ninguna de defecto", () => {
+    // Que el fragmento no alcanzara para leer el marcador es una limitación de
+    // nuestra medición, nunca un defecto del sitio auditado.
+    const found = classifyImageProbe(okProbe({ dimensions: null }));
+    expect(found).toHaveLength(1);
+    expect(found[0]?.severity).toBe("ok");
+    expect(found[0]?.title).toBe(UNDETERMINED_TITLE);
+    expect(found.filter((f) => f.severity !== "ok")).toHaveLength(0);
+  });
+
+  it("dimensiones: una imagen chica y pesada emite exactamente dos filas por página, con fingerprints distintos", async () => {
+    const image = "https://cdn.aprendoclub.com/pesada.png";
+    mockedProbeImages.mockImplementation(async (urls) =>
+      urls.map((u) =>
+        okProbe({
+          url: u,
+          dimensions: { width: 150, height: 150, type: "png" },
+          totalBytes: OG_IMAGE_MAX_BYTES + 1,
+        }),
+      ),
+    );
+
+    const issues = await ogImageNetworkCheck.run(
+      ctxWithOgImages([["https://aprendoclub.com/a", image]]),
+    );
+
+    expect(issues).toHaveLength(2);
+    expect(new Set(issues.map((i) => i.fingerprint)).size).toBe(2);
+    expect(issues.map((i) => i.title).sort()).toEqual([TOO_LARGE_TITLE, TOO_SMALL_TITLE].sort());
+    for (const issue of issues) {
+      expect(issue.pageId).toBeTruthy();
+    }
+  });
+
+  it("ratio: 1200x1200 avisa, 1200x630 no avisa y una 16:9 grande tampoco", () => {
+    const square = classifySize(1200, 1200);
+    expect(dimensionRows(square)).toHaveLength(1);
+    expect(square[0]?.severity).toBe("warning");
+    expect(square[0]?.title).toBe(RATIO_TITLE);
+    expect(square[0]?.measuredValue).toContain("1.00");
+
+    expect(titles(classifySize(1200, 630))).not.toContain(RATIO_TITLE);
+    expect(titles(classifySize(1600, 900))).not.toContain(RATIO_TITLE);
+  });
+
+  it("ratio: los cuatro bordes de la banda — los dos extremos exactos pasan y un paso afuera avisa", () => {
+    // Los cocientes exactos son representables porque la división IEEE está
+    // correctamente redondeada: es lo que hace verificable el borde, y la razón
+    // de declarar la banda con dos extremos en vez de una tolerancia.
+    expect(1700 / 1000).toBe(OG_IMAGE_RATIO_MIN);
+    expect(2100 / 1000).toBe(OG_IMAGE_RATIO_MAX);
+
+    expect(titles(classifySize(1700, 1000))).not.toContain(RATIO_TITLE);
+    expect(titles(classifySize(2100, 1000))).not.toContain(RATIO_TITLE);
+
+    expect(titles(classifySize(1699, 1000))).toContain(RATIO_TITLE);
+    expect(titles(classifySize(2101, 1000))).toContain(RATIO_TITLE);
+    expect(titles(classifySize(1690, 1000))).toContain(RATIO_TITLE);
+    expect(titles(classifySize(2110, 1000))).toContain(RATIO_TITLE);
+  });
+
+  it("peso: seis mebibytes da error, dos da advertencia, cuatrocientos kilobytes y un tamaño nulo no dan fila", () => {
+    const heavy6 = classifyImageProbe(okProbe({ totalBytes: 6 * 1024 * 1024 }));
+    expect(weightRows(heavy6)).toHaveLength(1);
+    expect(heavy6[0]?.severity).toBe("critical");
+    expect(heavy6[0]?.title).toBe(TOO_LARGE_TITLE);
+    expect(heavy6[0]?.measuredValue).toContain("6.0 MB");
+
+    const heavy2 = classifyImageProbe(okProbe({ totalBytes: 2 * 1024 * 1024 }));
+    expect(weightRows(heavy2)).toHaveLength(1);
+    expect(heavy2[0]?.severity).toBe("warning");
+    expect(heavy2[0]?.title).toBe(HEAVY_TITLE);
+
+    expect(weightRows(classifyImageProbe(okProbe({ totalBytes: 400 * 1024 })))).toHaveLength(0);
+    expect(weightRows(classifyImageProbe(okProbe({ totalBytes: null })))).toHaveLength(0);
+  });
+
+  it("peso: los cuatro bordes exactos, leídos de las constantes y nunca escritos a mano", () => {
+    expect(weightRows(classifyImageProbe(okProbe({ totalBytes: OG_IMAGE_HEAVY_BYTES })))).toHaveLength(0);
+
+    const justOverHeavy = classifyImageProbe(okProbe({ totalBytes: OG_IMAGE_HEAVY_BYTES + 1 }));
+    expect(weightRows(justOverHeavy)).toHaveLength(1);
+    expect(justOverHeavy[0]?.severity).toBe("warning");
+    expect(justOverHeavy[0]?.title).toBe(HEAVY_TITLE);
+
+    const atMax = classifyImageProbe(okProbe({ totalBytes: OG_IMAGE_MAX_BYTES }));
+    expect(weightRows(atMax)).toHaveLength(1);
+    expect(atMax[0]?.severity).toBe("warning");
+    expect(atMax[0]?.title).toBe(HEAVY_TITLE);
+
+    const justOverMax = classifyImageProbe(okProbe({ totalBytes: OG_IMAGE_MAX_BYTES + 1 }));
+    expect(weightRows(justOverMax)).toHaveLength(1);
+    expect(justOverMax[0]?.severity).toBe("critical");
+    expect(justOverMax[0]?.title).toBe(TOO_LARGE_TITLE);
+  });
+
+  it("peso: el redondeo del valor medido no mueve el veredicto", () => {
+    // Los dos tamaños se muestran con la MISMA cifra redondeada y reciben
+    // veredictos distintos: la comparación va sobre el entero de bytes.
+    const below = OG_IMAGE_HEAVY_BYTES - 1000;
+    const above = OG_IMAGE_HEAVY_BYTES + 1;
+    const render = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
+    expect(render(below)).toBe(render(above));
+
+    expect(weightRows(classifyImageProbe(okProbe({ totalBytes: below })))).toHaveLength(0);
+
+    const overRows = weightRows(classifyImageProbe(okProbe({ totalBytes: above })));
+    expect(overRows).toHaveLength(1);
+    expect(overRows[0]?.measuredValue).toContain(`${render(above)} MB`);
+  });
+
+  it("saneo: una URL de imagen larga se recorta en el valor medido y jamás en la clave de identidad", async () => {
+    const longImageUrl = `https://cdn.aprendoclub.com/${"a".repeat(468)}.png`;
+    expect(longImageUrl).toHaveLength(500);
+
+    // La clave de identidad de una fila por página es la URL de la página, que
+    // se afirma más larga que el tope para que el aserto no sea trivial.
+    const longPageUrl = `https://aprendoclub.com/${"c".repeat(120)}`;
+    expect(longPageUrl.length).toBeGreaterThan(MAX_MEASURED_VALUE_CHARS);
+
+    mockedProbeImages.mockImplementation(async (urls) =>
+      urls.map((u) => okProbe({ url: u, dimensions: { width: 150, height: 150, type: "png" } })),
+    );
+
+    const issues = await ogImageNetworkCheck.run(ctxWithOgImages([[longPageUrl, longImageUrl]]));
+    expect(issues).toHaveLength(1);
+    const issue = issues[0];
+
+    // Mitad uno: el fragmento controlado por el sitio llega recortado.
+    expect(issue?.measuredValue).toContain(longImageUrl.slice(0, MAX_MEASURED_VALUE_CHARS));
+    expect(issue?.measuredValue).not.toContain(longImageUrl);
+
+    // Mitad dos: el ámbito y el fingerprint la llevan completa y sin recortar.
+    expect(issue?.source).toBe(longPageUrl);
+    expect(issue?.fingerprint).toContain(longPageUrl);
+  });
+
+  it("saneo: dos destinos cuyos primeros 80 caracteres coinciden producen dos fingerprints distintos", async () => {
+    const imagePrefix = `https://cdn.aprendoclub.com/${"z".repeat(60)}`;
+    const imageA = `${imagePrefix}-alpha.png`;
+    const imageB = `${imagePrefix}-beta.png`;
+
+    const pagePrefix = `https://aprendoclub.com/${"y".repeat(70)}`;
+    const pageA = `${pagePrefix}-uno`;
+    const pageB = `${pagePrefix}-dos`;
+
+    expect(imageA.slice(0, MAX_MEASURED_VALUE_CHARS)).toBe(
+      imageB.slice(0, MAX_MEASURED_VALUE_CHARS),
+    );
+    expect(pageA.slice(0, MAX_MEASURED_VALUE_CHARS)).toBe(pageB.slice(0, MAX_MEASURED_VALUE_CHARS));
+
+    mockedProbeImages.mockImplementation(async (urls) =>
+      urls.map((u) => okProbe({ url: u, dimensions: { width: 150, height: 150, type: "png" } })),
+    );
+
+    const issues = await ogImageNetworkCheck.run(
+      ctxWithOgImages([
+        [pageA, imageA],
+        [pageB, imageB],
+      ]),
+    );
+
+    expect(issues).toHaveLength(2);
+    expect(new Set(issues.map((i) => i.fingerprint)).size).toBe(2);
   });
 });
 
