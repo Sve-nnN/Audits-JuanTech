@@ -613,26 +613,28 @@ Tres puntos donde la asunción de CONTEXT.md no coincide con el código o con in
 | A4 | Que el falso positivo de charset-por-header (Pitfall 3) es poco frecuente en el universo objetivo (WordPress/Shopify/Webflow, que sí emiten `<meta charset>`) | Pitfall 3 | Si es frecuente, SOCIAL-08 se vuelve ruido. Mitigación: la opción 1 (warning + criterio explícito) acota el daño sin ampliar el alcance |
 | A5 | Que el sesgo de re-encoding UTF-8 (Pitfall 7) es conservador (sólo falsos positivos, nunca falsos negativos) | Pitfall 7 | Bajo: un documento con más bytes reales que los medidos requeriría un encoding más ancho que UTF-8 para el mismo texto, lo cual es marginal (UTF-16 servido como HTML es prácticamente inexistente) |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+Las cuatro quedaron cerradas durante la planificación de la fase. Cada una registra abajo dónde aterrizó la resolución y quién la tomó.
 
 1. **¿Los 8 checks emiten fila `ok` explícita?**
-   - Lo que sabemos: el precedente del repo es mixto — `title`/`metaDescription`/`canonical`/`htmlSize` emiten `ok`; `headings`/`canonicalDeep` no. La decisión afecta directamente el score de la categoría y el conteo de filas.
-   - Lo que no está claro: CONTEXT.md no lo decide.
-   - Recomendación: emitir `ok` en los 8 (coherente con el health-ratio y con la mayoría del catálogo), y validar la banda de score contra fixtures reales antes de cerrar la fase (Pitfall 5). Si algún check resulta pasar >95% en todos los perfiles, convertirlo a "sólo filas de problema".
+   - Lo que sabíamos: el precedente del repo es mixto — `title`/`metaDescription`/`canonical`/`htmlSize` emiten `ok`; `headings`/`canonicalDeep` no. La decisión afecta directamente el score de la categoría y el conteo de filas.
+   - Lo que no estaba claro: CONTEXT.md no lo decidía.
+   - **RESUELTA en 30-01, convención C-4.** Los 8 checks emiten fila `ok` explícita, coherente con el health-ratio y con la mayoría del catálogo. C-4 es la convención que 30-02 a 30-05 citan por nombre en cada rama. La validación de la banda de score contra fixtures reales (Pitfall 5, asunción A3) sigue viva como cierre de fase en 30-06, no como pregunta abierta: si un check resulta pasar en más del 95% de los perfiles, se convierte a "sólo filas de problema" en ese momento.
 
 2. **¿`Page.socialMeta` se persiste en esta fase o en Phase 32?**
-   - Lo que sabemos: STATE.md menciona `Page.socialMeta` como columna de v1.6, y la investigación de arquitectura propone devolverla desde `runAllChecks` junto a `pageSchemaGraphs`/`pageSchemaEntities` para que Phase 32 no re-parsee 500 páginas. La columna **no existe** hoy en `schema.prisma`.
-   - Lo que no está claro: CONTEXT.md de Phase 30 no la menciona, y el ROADMAP de Phase 30 tampoco.
-   - Recomendación: **no** persistirla en esta fase (mantener el alcance mínimo y evitar un `pnpm db:push` innecesario), pero diseñar `MetaSocialData` desde ahora como un objeto serializable a JSON plano, para que Phase 32 sólo tenga que agregar la columna y el `page.update` sin refactorizar el tipo. Confirmar con Juan.
+   - Lo que sabíamos: STATE.md menciona `Page.socialMeta` como columna de v1.6, y la investigación de arquitectura propone devolverla desde `runAllChecks` junto a `pageSchemaGraphs`/`pageSchemaEntities` para que Phase 32 no re-parsee 500 páginas. La columna **no existe** hoy en `schema.prisma`.
+   - Lo que no estaba claro: CONTEXT.md de Phase 30 no la menciona, y el ROADMAP de Phase 30 tampoco.
+   - **RESUELTA: no se persiste en esta fase.** Ningún plan de la fase 30 toca `schema.prisma` ni corre `pnpm db:push`, y varios lo verifican con un chequeo negativo de diff. `MetaSocialData` se diseña en 30-01 como objeto serializable a JSON plano, de modo que Phase 32 sólo agregue la columna y el `page.update` sin refactorizar el tipo. **Aviso de honestidad del registro: esta resolución la tomó el planner, no la confirmó Juan.** La recomendación original decía "confirmar con Juan" y esa confirmación no ocurrió. Si Juan prefiere persistir la columna en v1.6, entra como fase o plan aparte y no invalida nada de lo construido en la fase 30, porque el tipo ya queda serializable por diseño.
 
 3. **Severidad de cada uno de los 8 checks.**
-   - Lo que sabemos: la investigación de milestone recomienda `critical` sólo para hechos verificables y estables (tag ausente, `content` vacío, `og:image` relativa, `og:image` 404). El resto, `warning`.
-   - Lo que no está claro: CONTEXT.md no asigna severidades.
-   - Recomendación: `critical` para ausencia de `og:title`/`og:image` y para `og:image` relativa/insegura; `warning` para todo lo demás (longitudes, `og:type`, duplicados, twitter:card, charset). Es discreción de Claude según CONTEXT.md, pero conviene registrarla como decisión en el plan.
+   - Lo que sabíamos: la investigación de milestone recomienda `critical` sólo para hechos verificables y estables (tag ausente, `content` vacío, `og:image` relativa, `og:image` 404). El resto, `warning`.
+   - Lo que no estaba claro: CONTEXT.md no asignaba severidades.
+   - **RESUELTA en 30-01, convención C-4**, la misma que resuelve Q1. Quedó `critical` para la ausencia de `og:title` (30-01) y para las cinco ramas de fallo de `og:image`, incluidas la relativa y la insegura (30-03 Tarea 1, con criterio de aceptación que cuenta 5 ramas críticas y 1 correcta). `warning` para todo lo demás: longitudes de `og:description` (30-02), `og:type` (30-02), `og:url` (30-03 Tarea 2), duplicados y `twitter:card` (30-04) y charset (30-05). Era discreción de Claude según CONTEXT.md y quedó registrada como convención citable, no como prosa suelta.
 
 4. **¿SOCIAL-06 cubre también duplicados de `twitter:*`?**
-   - Lo que sabemos: el requirement dice literalmente "tags OG duplicados (mismo property, valores distintos)".
-   - Recomendación: limitar a `og:*`, tal como dice el requirement. `twitter:*` duplicado queda fuera de alcance de v1.6.
+   - Lo que sabíamos: el requirement dice literalmente "tags OG duplicados (mismo property, valores distintos)".
+   - **RESUELTA en 30-04: alcance limitado a `og:*`**, tal como dice el requirement. `twitter:*` duplicado queda fuera de alcance de v1.6. El plan lo fija con una prohibición explícita y con un caso de test de límite de alcance. La corrección D-2 del mismo plan es ortogonal a esto: sí exige detectar la misma clave `og:*` emitida por los dos atributos (`property` y `name`) con contenidos contradictorios, que es un caso de `og:*`, no de `twitter:*`.
 
 ## Environment Availability
 
