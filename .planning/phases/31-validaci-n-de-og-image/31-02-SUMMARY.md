@@ -167,7 +167,7 @@ status: complete
 ## Files Created/Modified
 
 - `packages/checks/src/checks/network/imageProbe.ts` — `readUpTo` (lectura por trozos con tope y cancelación en la rama final), `toByteCount` (validación de entero finito no negativo), `deriveTotalBytes` (derivación por status), `readDimensions` (lectura con `image-size` protegida por un bloque que atrapa), rama 416 sumada al respaldo sin rango, y los dos campos del contrato ya llenos en la rama de éxito.
-- `packages/checks/src/checks/network/imageProbe.test.ts` — nuevo, 20 casos: 3 de tope de lectura (`corta`), 9 de derivación de tamaño (`tamaño total`, incluidas las cuatro formas hostiles vía `it.each`), 6 de dimensiones (`dimensiones desde buffer`, incluido el de punta a punta sobre un 206) y 1 de respaldo por 416.
+- `packages/checks/src/checks/network/imageProbe.test.ts` — nuevo, 20 casos: 3 de tope de lectura (`corta`), 10 de derivación de tamaño (`tamaño total`, incluidas las cuatro formas hostiles vía `it.each`), 6 de dimensiones (`dimensiones desde buffer`, incluido el de punta a punta sobre un 206) y 1 de respaldo por 416.
 
 ## Conteo de casos y comandos etiquetados
 
@@ -175,14 +175,14 @@ status: complete
 |---------|-----------|
 | `vitest run src/checks/network/imageProbe.test.ts` | 20 pasan, 0 fallan |
 | `... -t "corta"` | 3 pasan, 17 omitidos |
-| `... -t "tamaño total"` | 10 pasan, 10 omitidos |
+| `... -t "tamaño total"` | 11 pasan, 9 omitidos |
 | `... -t "dimensiones desde buffer"` | 6 pasan, 14 omitidos |
 | `pnpm --filter @auditor/checks test` | 42 archivos, 289 casos, todos en verde |
 | `pnpm test` (monorepo) | 14 tareas, todas en verde |
 | `pnpm typecheck` | código 0 |
 | `pnpm assert:web-boundary` | PASS |
 
-(`-t "tamaño total"` pasa 10 y no 9 porque el caso de integración de punta a punta también lleva esa etiqueta en su cuerpo de aserciones; el filtro por nombre incluye además el caso del 416, que verifica el total tomado de la longitud de contenido.)
+(`-t "tamaño total"` pasa 11 y no 10: a los 10 casos del bloque de derivación se suma el de integración de punta a punta, cuyo nombre también lleva la etiqueta porque afirma sobre el total además de sobre las dimensiones. Los tres filtros suman 20 con solapamiento de ese único caso.)
 
 ## Decisions Made
 
