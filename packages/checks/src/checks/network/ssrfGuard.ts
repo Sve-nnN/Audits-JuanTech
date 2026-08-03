@@ -27,16 +27,6 @@ export const REASON_UNRESOLVABLE = "destino no resoluble";
 
 export type DestinationVerdict = { ok: true } | { ok: false; reason: string };
 
-/**
- * True when a probe failure came from our own guard rather than from the
- * destination. Callers use it to keep those cases out of any "broken" row:
- * a destination we refused to contact is absence of proof, not proof of
- * defect.
- */
-export function isGuardRejection(reason: string): boolean {
-  return reason === REASON_NOT_PUBLIC || reason === REASON_UNRESOLVABLE;
-}
-
 function isPrivateV4Octets(octets: number[]): boolean {
   const [a, b] = octets as [number, number, number, number];
   if (a === 0) return true; // 0.0.0.0/8 — "this network"
