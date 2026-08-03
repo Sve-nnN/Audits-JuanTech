@@ -2,6 +2,8 @@ export type { MetaSocialData } from "./types";
 
 export { extractMetaSocial, firstValue } from "./extract";
 
+export { hasCharsetInFirstKB, CHARSET_WINDOW_BYTES } from "./charset";
+
 export {
   OG_TITLE_MIN,
   OG_TITLE_MAX,
