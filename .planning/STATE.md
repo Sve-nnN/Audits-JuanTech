@@ -4,17 +4,17 @@ milestone: v1.6
 milestone_name: Meta Tags / Social
 current_phase: 30
 current_phase_name: checks-de-meta-tags-social
-status: executing
-stopped_at: Completed 30-05-PLAN.md
-last_updated: "2026-08-03T02:35:53.887Z"
+status: verifying
+stopped_at: Completed 30-06-PLAN.md
+last_updated: "2026-08-03T03:14:45.670Z"
 last_activity: 2026-08-02
 last_activity_desc: Phase 30 execution started
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 13
-  completed_plans: 11
-  percent: 20
+  completed_plans: 12
+  percent: 40
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 Phase: 30 (checks-de-meta-tags-social) — EXECUTING
 Plan: 6 of 6
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-02 — Phase 30 execution started
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 92%
 
 ## Deferred Verification
 
@@ -92,6 +92,7 @@ Progress: [█████████░] 85%
 | Phase 30 P03 | 12min | 3 tasks | 6 files |
 | Phase 30 P04 | 9min | 3 tasks | 7 files |
 | Phase 30 P05 | 6min | 2 tasks | 6 files |
+| Phase 30 P06 | 32min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -138,6 +139,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 30: TWITTER_CARD_VALUES vive en packages/meta-social/src/thresholds.ts con anotacion readonly string[]; Phase 32 debe pintar el preview contra esa misma constante
 - [Phase ?]: Phase 30: SOCIAL-08 mide la ventana de 1024 sobre bytes UTF-8 (Buffer.from + subarray), nunca sobre unidades de cadena; probado con caso multibyte y mutación revertida
 - [Phase ?]: Phase 30: SOCIAL-08 acotado a severidad warning con la limitación de charset por header HTTP declarada en el criterion (D-3), sin ampliar el alcance a packages/crawler
+- [Phase ?]: 30-06: la remediacion de calibracion (quitar la fila ok a SOCIAL-06 y SOCIAL-08) NO se aplica de oficio; se devuelve a planeacion con el numero medido a la vista
+- [Phase ?]: 30-06: el perfil yoast se mide con la URL que declara su propio fixture, sin modificar un artefacto de 30-01 que sujeta extract.test.ts
 
 ### Pending Todos
 
@@ -172,8 +175,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-03T02:35:53.878Z
-Stopped at: Completed 30-05-PLAN.md
+Last session: 2026-08-03T03:14:45.657Z
+Stopped at: Completed 30-06-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
