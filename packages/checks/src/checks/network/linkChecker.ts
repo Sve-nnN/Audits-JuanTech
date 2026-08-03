@@ -1,5 +1,16 @@
 import { mapWithConcurrency, DEFAULT_NETWORK_CONCURRENCY } from "./concurrency";
-import { assertPublicDestination } from "./ssrfGuard";
+import {
+  assertPublicDestination,
+  pinnedDispatcher,
+  REASON_NOT_PUBLIC,
+  REASON_UNRESOLVABLE,
+} from "./ssrfGuard";
+import {
+  isRedirectStatus,
+  resolveRedirect,
+  MAX_REDIRECT_HOPS,
+  REASON_TOO_MANY_REDIRECTS,
+} from "./redirects";
 
 const REQUEST_TIMEOUT_MS = 5_000;
 
@@ -28,42 +39,96 @@ export type LinkCheckResult =
   | { url: string; ok: true; status: number }
   | { url: string; ok: false; status: number | null; reason: string };
 
-/** HEAD request with GET fallback (some servers reject/misreport HEAD). */
+type RequestOutcome =
+  | { kind: "response"; status: number }
+  | { kind: "error"; reason: string }
+  | { kind: "redirect"; res: Response };
+
+/**
+ * One probe of one URL: `HEAD` first, `GET` as the fallback that some servers
+ * force, and **never** automatic redirect following.
+ *
+ * The connection goes through the address the guard already classified, so the
+ * name cannot be rebound between the verdict and the socket.
+ */
+async function requestOnce(url: string, addresses: string[]): Promise<RequestOutcome> {
+  for (const method of ["HEAD", "GET"] as const) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const dispatcher = pinnedDispatcher(addresses);
+    try {
+      // La aserción existe porque `@types/node` embebe su propia copia de los
+      // tipos de undici y las dos declaraciones de `Dispatcher` no son
+      // asignables entre sí, aunque en ejecución sean el mismo objeto.
+      const res = await fetch(url, {
+        method,
+        signal: controller.signal,
+        redirect: "manual",
+        dispatcher,
+      } as RequestInit);
+      if (isRedirectStatus(res.status)) return { kind: "redirect", res };
+      if (res.status >= 400 && method === "HEAD") continue; // retry with GET before giving up
+      return { kind: "response", status: res.status };
+    } catch (error) {
+      if (method === "HEAD") continue;
+      const message = error instanceof Error ? error.message : "unknown error";
+      return { kind: "error", reason: message };
+    } finally {
+      clearTimeout(timeout);
+      void dispatcher.destroy().catch(() => {});
+    }
+  }
+  return { kind: "error", reason: "unreachable" };
+}
+
+/**
+ * Checks one link end to end, revalidating every redirect hop.
+ *
+ * **`url` in the result is always the URL we were asked about**, never the one
+ * a hop led to: the caller maps `results[i]` back to `urls[i]` and keys issue
+ * rows on it. The destination we refused travels in the reason instead.
+ */
 async function checkOne(url: string): Promise<LinkCheckResult> {
-  // Deuda conocida, no olvido (amenaza T-31-02): esta validación cubre el
-  // destino inicial y no cada salto, porque el fetch de abajo sigue con el modo
-  // de redirección automático que TECH-12 y TECH-13 usan hoy en producción.
-  // Cerrar también los saltos exige el bucle manual de redirecciones que
-  // `imageProbe.ts` ya tiene, y eso es reescribir el transporte de dos checks
-  // en producción: queda para la fase que toque la capa de red.
-  //
-  // Va fuera del bucle de métodos a propósito: la URL es la misma en los dos
-  // intentos y resolverla dos veces duplica la consulta al sistema de nombres
-  // sin aportar nada.
   const verdict = await assertPublicDestination(url);
   if (!verdict.ok) {
     return { url, ok: false, status: null, reason: UNVERIFIABLE_DESTINATION_REASON };
   }
 
-  for (const method of ["HEAD", "GET"] as const) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, { method, signal: controller.signal, redirect: "follow" });
-      clearTimeout(timeout);
-      if (res.status >= 400) {
-        if (method === "HEAD") continue; // retry with GET before giving up
-        return { url, ok: false, status: res.status, reason: `HTTP ${res.status}` };
-      }
-      return { url, ok: true, status: res.status };
-    } catch (error) {
-      clearTimeout(timeout);
-      if (method === "HEAD") continue;
-      const message = error instanceof Error ? error.message : "unknown error";
-      return { url, ok: false, status: null, reason: message };
+  let currentUrl = url;
+  let addresses = verdict.addresses;
+
+  for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop += 1) {
+    const outcome = await requestOnce(currentUrl, addresses);
+    if (outcome.kind === "error") {
+      return { url, ok: false, status: null, reason: outcome.reason };
     }
+    if (outcome.kind === "response") {
+      if (outcome.status >= 400) {
+        return { url, ok: false, status: outcome.status, reason: `HTTP ${outcome.status}` };
+      }
+      return { url, ok: true, status: outcome.status };
+    }
+
+    // Cada salto vuelve a pasar por la defensa. Seguirlos automáticamente es el
+    // bypass más barato que tiene esta capa: un 302 hacia la dirección de
+    // metadatos no necesita ningún truco de nombres (amenaza T-31-02).
+    const decision = await resolveRedirect(outcome.res, currentUrl);
+    if (decision.kind === "reject") {
+      const rejectedByGuard =
+        decision.reason === REASON_NOT_PUBLIC || decision.reason === REASON_UNRESOLVABLE;
+      return {
+        url,
+        ok: false,
+        status: decision.status,
+        reason: rejectedByGuard ? UNVERIFIABLE_DESTINATION_REASON : decision.reason,
+      };
+    }
+
+    currentUrl = decision.url;
+    addresses = decision.addresses;
   }
-  return { url, ok: false, status: null, reason: "unreachable" };
+
+  return { url, ok: false, status: null, reason: REASON_TOO_MANY_REDIRECTS };
 }
 
 /**

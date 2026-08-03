@@ -12,6 +12,7 @@ vi.mock("./ssrfGuard", async (importOriginal) => {
 import { assertPublicDestination } from "./ssrfGuard";
 import { DEFAULT_NETWORK_CONCURRENCY } from "./concurrency";
 import { checkLinks, UNVERIFIABLE_DESTINATION_REASON } from "./linkChecker";
+import { MAX_REDIRECT_HOPS, REASON_TOO_MANY_REDIRECTS } from "./redirects";
 
 const mockedAssert = vi.mocked(assertPublicDestination);
 
@@ -21,7 +22,15 @@ function sleep(ms: number): Promise<void> {
 
 /** Respuesta mínima con la única propiedad que `checkOne` lee. */
 function response(status: number): Response {
-  return { status } as unknown as Response;
+  return { status, headers: new Headers() } as unknown as Response;
+}
+
+/** Respuesta de redirección con la cabecera que el bucle de saltos consume. */
+function redirect(status: number, location?: string): Response {
+  return {
+    status,
+    headers: new Headers(location === undefined ? {} : { location }),
+  } as unknown as Response;
 }
 
 describe("checkLinks", () => {
@@ -128,6 +137,89 @@ describe("checkLinks", () => {
     });
     // HEAD primero y GET después: el respaldo por método sigue vivo.
     expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("ssrf: una redirección hacia un destino que la defensa rechaza no abre la segunda conexión", async () => {
+    // El bypass más barato de esta capa y el que CR-02 dejaba abierto: el
+    // enlace apunta a un anfitrión público que contesta 302 hacia la dirección
+    // de metadatos. Con seguimiento automático la conexión interna se abría
+    // dentro del transporte, sin pasar nunca por la defensa.
+    mockedAssert
+      .mockResolvedValueOnce({ ok: true, addresses: ["93.184.216.34"] })
+      .mockResolvedValueOnce({ ok: false, reason: "destino no público" });
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce(redirect(302, "http://169.254.169.254/latest/meta-data/"));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const results = await checkLinks(["https://evil.example/x"]);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(results[0]).toEqual({
+      url: "https://evil.example/x",
+      ok: false,
+      status: null,
+      reason: UNVERIFIABLE_DESTINATION_REASON,
+    });
+  });
+
+  it("redirección: un salto hacia un destino público se sigue y el resultado conserva la URL de entrada", async () => {
+    // La contraparte del caso anterior: sin esto, rechazar todo cumpliría la
+    // aserción de arriba sin verificar un solo enlace.
+    mockedAssert.mockResolvedValue({ ok: true, addresses: ["93.184.216.34"] });
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce(redirect(301, "https://example.com/destino"))
+      .mockResolvedValueOnce(response(200));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const results = await checkLinks(["https://example.com/vieja"]);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy.mock.calls[1]![0]).toBe("https://example.com/destino");
+    expect(results[0]).toEqual({ url: "https://example.com/vieja", ok: true, status: 200 });
+  });
+
+  it("redirección: ninguna petición se emite con seguimiento automático", async () => {
+    mockedAssert.mockResolvedValue({ ok: true, addresses: ["93.184.216.34"] });
+    const fetchSpy = vi.fn().mockResolvedValue(response(200));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    await checkLinks(["https://example.com/ok"]);
+
+    const init = fetchSpy.mock.calls[0]![1] as { redirect: string };
+    expect(init.redirect).toBe("manual");
+  });
+
+  it("redirección: una cadena más larga que el presupuesto de saltos se corta", async () => {
+    mockedAssert.mockResolvedValue({ ok: true, addresses: ["93.184.216.34"] });
+    const fetchSpy = vi.fn().mockResolvedValue(redirect(302, "https://example.com/otra"));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const results = await checkLinks(["https://example.com/bucle"]);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(MAX_REDIRECT_HOPS + 1);
+    expect(results[0]).toEqual({
+      url: "https://example.com/bucle",
+      ok: false,
+      status: null,
+      reason: REASON_TOO_MANY_REDIRECTS,
+    });
+  });
+
+  it("redirección: un 3xx sin cabecera de destino se reporta con su status", async () => {
+    mockedAssert.mockResolvedValue({ ok: true, addresses: ["93.184.216.34"] });
+    const fetchSpy = vi.fn().mockResolvedValue(redirect(302));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const results = await checkLinks(["https://example.com/sin-destino"]);
+
+    expect(results[0]).toEqual({
+      url: "https://example.com/sin-destino",
+      ok: false,
+      status: 302,
+      reason: "HTTP 302",
+    });
   });
 
   it("estado actual: una respuesta correcta devuelve éxito en el primer método", async () => {

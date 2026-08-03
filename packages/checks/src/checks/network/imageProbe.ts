@@ -1,6 +1,12 @@
 import { imageSize } from "image-size";
 import { mapWithConcurrency, DEFAULT_NETWORK_CONCURRENCY } from "./concurrency";
 import {
+  isRedirectStatus,
+  resolveRedirect,
+  MAX_REDIRECT_HOPS,
+  REASON_TOO_MANY_REDIRECTS,
+} from "./redirects";
+import {
   assertPublicDestination,
   pinnedDispatcher,
   REASON_NOT_PUBLIC,
@@ -33,10 +39,6 @@ export const IMAGE_HEAD_BYTES = 64 * 1024;
 /** Hard lifetime of a single probe request, same budget the rest of the network layer uses. */
 export const IMAGE_PROBE_TIMEOUT_MS = 5_000;
 
-/** Redirects followed manually before giving up. Each hop is revalidated, never followed blindly. */
-export const MAX_REDIRECT_HOPS = 3;
-
-const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 /**
  * Full result contract of the phase. It does not grow later: 31-02 fills
@@ -285,32 +287,18 @@ export async function probeImage(url: string): Promise<ImageProbeResult> {
       head = retry.head;
     }
 
-    if (REDIRECT_STATUSES.has(res.status)) {
-      const location = res.headers.get("location");
-      if (!location) {
-        return { ok: false, url: currentUrl, status: res.status, reason: `HTTP ${res.status}` };
-      }
-      let next: string;
-      try {
-        next = new URL(location, currentUrl).toString();
-      } catch {
-        return {
-          ok: false,
-          url: currentUrl,
-          status: res.status,
-          reason: "redirección no válida",
-        };
-      }
+    if (isRedirectStatus(res.status)) {
       // Segunda validación, en CADA salto: validar sólo la URL inicial es el
       // bypass clásico de esta defensa — un destino público que redirige al
-      // bucle local.
-      const hopVerdict = await assertPublicDestination(next);
-      if (!hopVerdict.ok) {
-        return { ok: false, url: next, status: null, reason: hopVerdict.reason };
+      // bucle local. La decisión vive en `redirects.ts` porque los checks de
+      // enlaces y de recursos siguen exactamente el mismo camino.
+      const decision = await resolveRedirect(res, currentUrl);
+      if (decision.kind === "reject") {
+        return { ok: false, url: decision.url, status: decision.status, reason: decision.reason };
       }
 
-      addresses = hopVerdict.addresses;
-      currentUrl = next;
+      addresses = decision.addresses;
+      currentUrl = decision.url;
       continue;
     }
 
@@ -331,7 +319,7 @@ export async function probeImage(url: string): Promise<ImageProbeResult> {
     };
   }
 
-  return { ok: false, url: currentUrl, status: null, reason: "demasiadas redirecciones" };
+  return { ok: false, url: currentUrl, status: null, reason: REASON_TOO_MANY_REDIRECTS };
 }
 
 /**
