@@ -14,8 +14,8 @@ Requirements para el milestone Meta Tags / Social. Cada uno mapea a fases del ro
 - [x] **SOCIAL-03**: og:image presente + URL absoluta HTTPS
 - [x] **SOCIAL-04**: og:url presente + coherente con canonical
 - [x] **SOCIAL-05**: og:type presente
-- [ ] **SOCIAL-06**: tags OG duplicados (mismo property, valores distintos)
-- [ ] **SOCIAL-07**: twitter:card presente + valor válido (regla anti-falso-positivo: resto de twitter:* solo se evalúa si falta también el OG equivalente)
+- [x] **SOCIAL-06**: tags OG duplicados (mismo property, valores distintos)
+- [x] **SOCIAL-07**: twitter:card presente + valor válido (regla anti-falso-positivo: resto de twitter:* solo se evalúa si falta también el OG equivalente)
 - [ ] **SOCIAL-08**: charset declarado dentro del primer 1KB
 - [x] **SOCIAL-09**: retiro de ONPAGE-05 (absorbido en esta categoría), con guardarraíl de cero issues duplicados por fingerprint
 
@@ -97,8 +97,8 @@ Cuál fase cubre cuáles requirements.
 | SOCIAL-03 | Phase 30 | Complete |
 | SOCIAL-04 | Phase 30 | Complete |
 | SOCIAL-05 | Phase 30 | Complete |
-| SOCIAL-06 | Phase 30 | Pending |
-| SOCIAL-07 | Phase 30 | Pending |
+| SOCIAL-06 | Phase 30 | Complete |
+| SOCIAL-07 | Phase 30 | Complete |
 | SOCIAL-08 | Phase 30 | Pending |
 | IMG-01 | Phase 31 | Pending |
 | IMG-02 | Phase 31 | Pending |

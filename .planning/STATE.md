@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 30
 current_phase_name: checks-de-meta-tags-social
 status: executing
-stopped_at: Completed 30-03-PLAN.md
-last_updated: "2026-08-03T02:12:36.614Z"
+stopped_at: Completed 30-04-PLAN.md
+last_updated: "2026-08-03T02:24:59.987Z"
 last_activity: 2026-08-02
 last_activity_desc: Phase 30 execution started
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 9
+  completed_plans: 10
   percent: 20
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 ## Current Position
 
 Phase: 30 (checks-de-meta-tags-social) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-08-02 — Phase 30 execution started
 
-Progress: [███████░░░] 69%
+Progress: [████████░░] 77%
 
 ## Deferred Verification
 
@@ -90,6 +90,7 @@ Progress: [███████░░░] 69%
 | Phase 30 P01 | 10min | 4 tasks | 19 files |
 | Phase 30 P02 | 6min | 2 tasks | 7 files |
 | Phase 30 P03 | 12min | 3 tasks | 6 files |
+| Phase 30 P04 | 9min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: SOCIAL-04 relee la canonical del objeto de consulta y normaliza los dos lados con normalizeUrl, para que el reporte no contenga dos veredictos opuestos sobre la misma pagina
 - [Phase ?]: La deteccion de og:image absoluta compara el prefijo completo del esquema (http:// o https://) en minusculas, no startsWith(http), para no dar por absoluta una ruta relativa que empiece con esas letras
 - [Phase ?]: El orden del barrel socialPageChecks (ascendente por checkId, sin duplicados) pasa de prosa a aserto automatico en ogUrl.test.ts
+- [Phase ?]: Phase 30: SOCIAL-06 devuelve array vacio en paginas sin ninguna etiqueta de Open Graph: sin nada que duplicar, una fila ok seria un aprobado trivial en el perfil que peor puntua
+- [Phase ?]: Phase 30: El subtipo de fingerprint de SOCIAL-06 es la clave normalizada cruda (og:title), inyectiva por construccion; el measuredValue son dos numeros derivados y nunca el contenido de las etiquetas
+- [Phase ?]: Phase 30: Los cinco subtipos de SOCIAL-07 se declaran literales en FALLBACK_FIELDS y no como missing-${field}: son valores persistidos que deben poder encontrarse por busqueda de texto
+- [Phase ?]: Phase 30: TWITTER_CARD_VALUES vive en packages/meta-social/src/thresholds.ts con anotacion readonly string[]; Phase 32 debe pintar el preview contra esa misma constante
 
 ### Pending Todos
 
@@ -164,8 +169,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-03T02:12:22.668Z
-Stopped at: Completed 30-03-PLAN.md
+Last session: 2026-08-03T02:24:42.615Z
+Stopped at: Completed 30-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
