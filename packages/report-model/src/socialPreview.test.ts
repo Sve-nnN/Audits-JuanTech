@@ -102,6 +102,51 @@ describe("extractSocialPreview", () => {
     expect(result.twitterCardDeclared).toBeNull();
   });
 
+  it("solo ensancha la tarjeta de X con un summary_large_image explícito", () => {
+    const variantFor = (card: string | null) =>
+      extractSocialPreview(
+        doc(card == null ? `` : `<meta name="twitter:card" content="${card}">`),
+        PAGE_URL
+      ).twitterCardVariant;
+
+    expect(variantFor("summary_large_image")).toBe("summary_large_image");
+    expect(variantFor("  SUMMARY_LARGE_IMAGE  ")).toBe("summary_large_image");
+    // Ausente, inválido o summary explícito → siempre la variante chica.
+    expect(variantFor(null)).toBe("summary");
+    expect(variantFor("summary")).toBe("summary");
+    expect(variantFor("photo")).toBe("summary");
+    expect(variantFor("player")).toBe("summary");
+  });
+
+  it("aplica el respaldo OG→Twitter en título, descripción e imagen", () => {
+    const result = extractSocialPreview(
+      doc(
+        `<meta property="og:title" content="OG título">
+         <meta property="og:description" content="OG descripción">
+         <meta property="og:image" content="https://cdn.test/og.png">`
+      ),
+      PAGE_URL
+    );
+    expect(result.twitterTitle).toBe("OG título");
+    expect(result.twitterDescription).toBe("OG descripción");
+    expect(result.twitterImage).toBe("https://cdn.test/og.png");
+  });
+
+  it("prefiere las etiquetas twitter:* propias cuando existen", () => {
+    const result = extractSocialPreview(
+      doc(
+        `<meta property="og:title" content="OG título">
+         <meta name="twitter:title" content="X título">
+         <meta name="twitter:description" content="X descripción">
+         <meta name="twitter:image" content="https://cdn.test/x.png">`
+      ),
+      PAGE_URL
+    );
+    expect(result.twitterTitle).toBe("X título");
+    expect(result.twitterDescription).toBe("X descripción");
+    expect(result.twitterImage).toBe("https://cdn.test/x.png");
+  });
+
   it("trunca a 500 caracteres un título y una descripción desmedidos", () => {
     const long = "a".repeat(900);
     const result = extractSocialPreview(

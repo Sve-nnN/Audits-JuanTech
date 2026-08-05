@@ -31,7 +31,20 @@ vi.mock("node:dns/promises", () => ({
 }));
 
 import { probeImages, UNVERIFIABLE_PROBE_REASONS, type ImageProbeResult } from "./imageProbe";
-import { classifyImageProbe, ogImageNetworkCheck } from "./ogImageNetwork";
+import {
+  classifyImageProbe,
+  ogImageNetworkCheck,
+  subtypeFromImgFingerprint,
+  OG_IMAGE_UNREACHABLE_SUBTYPE,
+  OG_IMAGE_UNVERIFIABLE_SUBTYPE,
+  OG_IMAGE_SVG_SUBTYPE,
+  OG_IMAGE_NOT_IMAGE_SUBTYPE,
+  OG_IMAGE_UNDETERMINED_SUBTYPE,
+  OG_IMAGE_TOO_SMALL_SUBTYPE,
+  OG_IMAGE_SUBOPTIMAL_SUBTYPE,
+  OG_IMAGE_TOO_LARGE_SUBTYPE,
+  OG_IMAGE_HEAVY_SUBTYPE,
+} from "./ogImageNetwork";
 
 const mockedProbeImages = vi.mocked(probeImages);
 
@@ -610,5 +623,55 @@ describe("IMG-01 de punta a punta por runAllChecks", () => {
     expect(imgIssues[0]?.category).toBe("social");
     expect(imgIssues[0]?.severity).toBe("critical");
     expect(imgIssues[0]?.pageId).toBe(page.id);
+  });
+});
+
+/*
+ * Acoplamiento entre el fingerprint que ESTE check persiste y el vocabulario
+ * público con el que Phase 32 lo lee. Los casos de parseo puros viven en
+ * `@auditor/meta-social` (`imageSubtypes.test.ts`), donde están los valores
+ * canónicos; acá se prueba lo que sólo se puede probar desde el check: que un
+ * fingerprint realmente emitido por él es recuperable con ese vocabulario.
+ */
+describe("vocabulario público de subtipos de IMG-01 (Gap 2)", () => {
+  it("los 9 subtipos son alcanzables desde el check y valen lo persistido", () => {
+    expect([
+      OG_IMAGE_UNREACHABLE_SUBTYPE,
+      OG_IMAGE_UNVERIFIABLE_SUBTYPE,
+      OG_IMAGE_SVG_SUBTYPE,
+      OG_IMAGE_NOT_IMAGE_SUBTYPE,
+      OG_IMAGE_UNDETERMINED_SUBTYPE,
+      OG_IMAGE_TOO_SMALL_SUBTYPE,
+      OG_IMAGE_SUBOPTIMAL_SUBTYPE,
+      OG_IMAGE_TOO_LARGE_SUBTYPE,
+      OG_IMAGE_HEAVY_SUBTYPE,
+    ]).toEqual([
+      "og-image-unreachable",
+      "og-image-unverifiable",
+      "og-image-svg",
+      "og-image-not-image",
+      "og-image-undetermined",
+      "og-image-too-small",
+      "og-image-suboptimal",
+      "og-image-too-large",
+      "og-image-heavy",
+    ]);
+  });
+
+  it("un fingerprint emitido por la clasificación real es recuperable", () => {
+    const findings = classifyImageProbe({
+      url: "https://cdn.example.com/social.png",
+      ok: false,
+      status: 404,
+      reason: null,
+      contentType: null,
+      bytes: null,
+      dimensions: null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    expect(findings.length).toBeGreaterThan(0);
+    const fingerprint = `IMG-01:${findings[0]!.subtype}:https://example.com/pagina`;
+    expect(subtypeFromImgFingerprint(fingerprint)).toBe(findings[0]!.subtype);
+    expect(subtypeFromImgFingerprint("SOCIAL-01:https://example.com/pagina")).toBeNull();
   });
 });

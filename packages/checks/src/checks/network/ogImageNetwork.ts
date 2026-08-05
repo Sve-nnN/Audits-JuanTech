@@ -13,32 +13,45 @@ import {
   OG_IMAGE_RATIO_MAX,
   OG_IMAGE_HEAVY_BYTES,
   OG_IMAGE_MAX_BYTES,
+  OG_IMAGE_CHECK_ID,
+  OG_IMAGE_UNREACHABLE_SUBTYPE,
+  OG_IMAGE_UNVERIFIABLE_SUBTYPE,
+  OG_IMAGE_SVG_SUBTYPE,
+  OG_IMAGE_NOT_IMAGE_SUBTYPE,
+  OG_IMAGE_UNDETERMINED_SUBTYPE,
+  OG_IMAGE_TOO_SMALL_SUBTYPE,
+  OG_IMAGE_SUBOPTIMAL_SUBTYPE,
+  OG_IMAGE_TOO_LARGE_SUBTYPE,
+  OG_IMAGE_HEAVY_SUBTYPE,
 } from "@auditor/meta-social";
 import type { IssueDraft, IssueSeverityValue, NetworkCheck } from "../../types";
 import { pageFingerprint, siteFingerprint } from "../../util";
 import { MAX_URLS_PER_NETWORK_CHECK } from "./linkChecker";
 import { probeImages, UNVERIFIABLE_PROBE_REASONS, type ImageProbeResult } from "./imageProbe";
 
-const CHECK_ID = "IMG-01";
-
-const UNREACHABLE_SUBTYPE = "og-image-unreachable";
-const UNVERIFIABLE_SUBTYPE = "og-image-unverifiable";
-const SVG_SUBTYPE = "og-image-svg";
-const NOT_IMAGE_SUBTYPE = "og-image-not-image";
-const UNDETERMINED_SUBTYPE = "og-image-undetermined";
-const TOO_SMALL_SUBTYPE = "og-image-too-small";
-/**
- * Both dimension warnings — undersized and off-band ratio — persist the same
- * `og-image-suboptimal` fingerprint fragment, which is what Phase 32 groups by. It is
- * deliberately one fragment and not two: both are the same signal ("the image
- * loads but is not the ideal one"), and no image can hit both, because the
- * ratio is only evaluated when the size branch did not fire. A separate
- * `og-image-ratio` fragment would promise a row that never coexists with the
- * size one.
+/*
+ * Los subtipos y el checkId son alias locales del vocabulario canónico del
+ * motor puro (`@auditor/meta-social/imageSubtypes`), no valores redeclarados:
+ * son cadenas persistidas en el fingerprint de cada fila y Phase 32 decide
+ * contra ellas, así que un segundo sitio donde escribirlas sería el sitio por
+ * el que las dos versiones se desincronizan.
+ *
+ * Los dos avisos de dimensión (tamaño y proporción) comparten el mismo fragmento
+ * `og-image-suboptimal` a propósito: son la misma señal ("la imagen carga pero
+ * no es la ideal") y ninguna imagen puede disparar los dos, porque la proporción
+ * sólo se evalúa cuando la rama de tamaño no saltó.
  */
-const SUBOPTIMAL_SUBTYPE = "og-image-suboptimal";
-const TOO_LARGE_SUBTYPE = "og-image-too-large";
-const HEAVY_SUBTYPE = "og-image-heavy";
+const CHECK_ID = OG_IMAGE_CHECK_ID;
+
+const UNREACHABLE_SUBTYPE = OG_IMAGE_UNREACHABLE_SUBTYPE;
+const UNVERIFIABLE_SUBTYPE = OG_IMAGE_UNVERIFIABLE_SUBTYPE;
+const SVG_SUBTYPE = OG_IMAGE_SVG_SUBTYPE;
+const NOT_IMAGE_SUBTYPE = OG_IMAGE_NOT_IMAGE_SUBTYPE;
+const UNDETERMINED_SUBTYPE = OG_IMAGE_UNDETERMINED_SUBTYPE;
+const TOO_SMALL_SUBTYPE = OG_IMAGE_TOO_SMALL_SUBTYPE;
+const SUBOPTIMAL_SUBTYPE = OG_IMAGE_SUBOPTIMAL_SUBTYPE;
+const TOO_LARGE_SUBTYPE = OG_IMAGE_TOO_LARGE_SUBTYPE;
+const HEAVY_SUBTYPE = OG_IMAGE_HEAVY_SUBTYPE;
 const CAPPED_SCOPE = "og-images-capped";
 
 const UNREACHABLE_CRITERION =
@@ -397,3 +410,24 @@ export const ogImageNetworkCheck: NetworkCheck = {
     return issues;
   },
 };
+
+/*
+ * Vocabulario público de subtipos de IMG-01, re-exportado desde el motor puro
+ * para que un consumidor del check (el proxy de imágenes del reporte) no tenga
+ * que conocer dos paquetes distintos. Los valores canónicos viven en
+ * `@auditor/meta-social`, no acá: `@auditor/report-model` también los lee y ese
+ * paquete lo resuelve el bundle de Next, que no puede arrastrar el grafo de
+ * Crawlee del que depende este archivo.
+ */
+export {
+  OG_IMAGE_UNREACHABLE_SUBTYPE,
+  OG_IMAGE_UNVERIFIABLE_SUBTYPE,
+  OG_IMAGE_SVG_SUBTYPE,
+  OG_IMAGE_NOT_IMAGE_SUBTYPE,
+  OG_IMAGE_UNDETERMINED_SUBTYPE,
+  OG_IMAGE_TOO_SMALL_SUBTYPE,
+  OG_IMAGE_SUBOPTIMAL_SUBTYPE,
+  OG_IMAGE_TOO_LARGE_SUBTYPE,
+  OG_IMAGE_HEAVY_SUBTYPE,
+  subtypeFromImgFingerprint,
+} from "@auditor/meta-social";

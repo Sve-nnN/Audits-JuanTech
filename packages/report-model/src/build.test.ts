@@ -11,7 +11,13 @@ vi.mock("@auditor/db", () => ({
 }));
 
 import { prisma } from "@auditor/db";
-import { buildReportModel, toReportStack, MAX_PRIORITY_ROWS, CATEGORY_ORDER } from "./build";
+import {
+  buildReportModel,
+  toReportStack,
+  resolveImageStatus,
+  MAX_PRIORITY_ROWS,
+  CATEGORY_ORDER,
+} from "./build";
 import { CATEGORY_WEIGHTS } from "@auditor/scoring";
 import type { Category } from "@auditor/scoring";
 import type { AxisResult, DetectedStack } from "@auditor/fingerprint";
@@ -304,6 +310,42 @@ describe("buildReportModel", () => {
 
     expect(model!.socialPreviews).toBeUndefined();
     expect(pageFindMany).not.toHaveBeenCalled();
+  });
+
+  it("marca imageStatus unavailable cuando IMG-01 probó la imagen inutilizable", async () => {
+    const socialIssue = makeIssue({
+      category: "social",
+      severity: "critical",
+      checkId: "SOCIAL-03",
+      pageId: "p-social",
+    });
+    const imgIssue = makeIssue({
+      category: "social",
+      severity: "critical",
+      checkId: "IMG-01",
+      pageId: "p-social",
+      fingerprint: "IMG-01:og-image-unreachable:https://example.com/post",
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit() as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue, imgIssue] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue, imgIssue] as any);
+    pageFindMany.mockResolvedValueOnce([
+      {
+        id: "p-social",
+        url: "https://example.com/post",
+        finalUrl: null,
+        html: `<html><head><meta property="og:image" content="https://cdn.test/rota.png"></head><body></body></html>`,
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any);
+
+    const model = await buildReportModel("audit-1");
+    expect(model!.socialPreviews!["p-social"]!.imageStatus).toBe("unavailable");
   });
 
   it("returns null for a non-existent audit", async () => {
@@ -823,6 +865,63 @@ describe("buildReportModel", () => {
 
     const model = await buildReportModel("audit-1");
     expect(model!.priorityIssues[0]!.recommendation).toBe(GENERIC_ONPAGE04);
+  });
+});
+
+/**
+ * Tabla de decisión completa del Gap 2 (32-RESEARCH.md): qué subtipos de IMG-01
+ * impiden pintar la imagen en el preview y cuáles no.
+ */
+describe("resolveImageStatus", () => {
+  const fp = (subtype: string) => ({
+    fingerprint: `IMG-01:${subtype}:https://example.com/post`,
+  });
+  const IMAGE = "https://cdn.test/a.png";
+
+  it("devuelve none cuando la página no declara og:image", () => {
+    expect(resolveImageStatus(null, [])).toBe("none");
+    // Sin imagen declarada, ninguna fila IMG-01 cambia el veredicto.
+    expect(resolveImageStatus(null, [fp("og-image-unreachable")])).toBe("none");
+  });
+
+  it("devuelve ok cuando no hay ninguna fila IMG-01 para la página", () => {
+    expect(resolveImageStatus(IMAGE, [])).toBe("ok");
+  });
+
+  it("devuelve unavailable para los seis subtipos que impiden la carga", () => {
+    for (const subtype of [
+      "og-image-unreachable",
+      "og-image-unverifiable",
+      "og-image-svg",
+      "og-image-not-image",
+      "og-image-too-small",
+      "og-image-too-large",
+    ]) {
+      expect(resolveImageStatus(IMAGE, [fp(subtype)])).toBe("unavailable");
+    }
+  });
+
+  it("devuelve ok para los avisos que no impiden la carga", () => {
+    for (const subtype of [
+      "og-image-suboptimal",
+      "og-image-heavy",
+      "og-image-undetermined",
+    ]) {
+      expect(resolveImageStatus(IMAGE, [fp(subtype)])).toBe("ok");
+    }
+  });
+
+  it("falla cerrado a ok ante un fingerprint con forma inesperada", () => {
+    expect(resolveImageStatus(IMAGE, [{ fingerprint: "SOCIAL-01:https://example.com/post" }])).toBe(
+      "ok"
+    );
+    expect(resolveImageStatus(IMAGE, [{ fingerprint: "IMG-01" }])).toBe("ok");
+  });
+
+  it("basta una sola fila inutilizable entre varias para marcar unavailable", () => {
+    expect(
+      resolveImageStatus(IMAGE, [fp("og-image-heavy"), fp("og-image-not-image")])
+    ).toBe("unavailable");
   });
 });
 

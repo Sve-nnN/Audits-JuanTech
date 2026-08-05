@@ -18,6 +18,16 @@ import type {
 import { extractSocialPreview } from "./socialPreview";
 import type { AxisResult, DetectedStack } from "@auditor/fingerprint";
 import { resolveCmsRecommendation } from "@auditor/cms-adapters";
+import {
+  subtypeFromImgFingerprint,
+  OG_IMAGE_CHECK_ID,
+  OG_IMAGE_UNREACHABLE_SUBTYPE,
+  OG_IMAGE_UNVERIFIABLE_SUBTYPE,
+  OG_IMAGE_SVG_SUBTYPE,
+  OG_IMAGE_NOT_IMAGE_SUBTYPE,
+  OG_IMAGE_TOO_SMALL_SUBTYPE,
+  OG_IMAGE_TOO_LARGE_SUBTYPE,
+} from "@auditor/meta-social";
 import { classifyTemplate, TEMPLATE_ORDER } from "./template";
 import type { PageTemplate } from "./template";
 
@@ -103,6 +113,42 @@ interface SocialPageRow {
   url: string;
   finalUrl: string | null;
   html: string | null;
+}
+
+/**
+ * Los subtipos de IMG-01 que prueban que la imagen declarada NO se puede pintar:
+ * o no responde, o no se pudo verificar, o el formato/tamaño la vuelve
+ * inutilizable para una vista previa. El resto de subtipos (subóptima, pesada,
+ * indeterminada) describen una imagen que igual carga, así que el panel la
+ * muestra.
+ */
+const UNUSABLE_IMAGE_SUBTYPES: readonly string[] = [
+  OG_IMAGE_UNREACHABLE_SUBTYPE,
+  OG_IMAGE_UNVERIFIABLE_SUBTYPE,
+  OG_IMAGE_SVG_SUBTYPE,
+  OG_IMAGE_NOT_IMAGE_SUBTYPE,
+  OG_IMAGE_TOO_SMALL_SUBTYPE,
+  OG_IMAGE_TOO_LARGE_SUBTYPE,
+];
+
+/**
+ * Verdict the preview panel needs about the declared `og:image`: whether it can
+ * be rendered at all. Sin imagen declarada es `"none"`; con una imagen que
+ * IMG-01 (Phase 31) probó inutilizable es `"unavailable"`; en cualquier otro
+ * caso — incluidos los avisos que no impiden la carga y la ausencia total de
+ * filas IMG-01 — es `"ok"`. Un fingerprint con forma inesperada devuelve `null`
+ * al parsearse y cae en la rama `"ok"`: degradado, nunca inseguro (T-32-04).
+ */
+export function resolveImageStatus(
+  ogImage: string | null,
+  imgIssues: { fingerprint: string }[]
+): "ok" | "unavailable" | "none" {
+  if (ogImage == null) return "none";
+  for (const issue of imgIssues) {
+    const subtype = subtypeFromImgFingerprint(issue.fingerprint);
+    if (subtype != null && UNUSABLE_IMAGE_SUBTYPES.includes(subtype)) return "unavailable";
+  }
+  return "ok";
 }
 
 /**
@@ -289,14 +335,21 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
       where: { id: { in: [...socialProblemPageIds] } },
       select: { id: true, url: true, finalUrl: true, html: true },
     });
+    const imgIssuesByPage = new Map<string, IssueRow[]>();
+    for (const issue of issuesForDetail as unknown as IssueRow[]) {
+      if (issue.checkId !== OG_IMAGE_CHECK_ID || !issue.pageId) continue;
+      const bucket = imgIssuesByPage.get(issue.pageId);
+      if (bucket) bucket.push(issue);
+      else imgIssuesByPage.set(issue.pageId, [issue]);
+    }
+
     const entries: Record<string, SocialPreviewData> = {};
     for (const page of socialPagesRaw as unknown as SocialPageRow[]) {
       const extracted = extractSocialPreview(page.html ?? "", page.finalUrl ?? page.url);
       entries[page.id] = {
         ...extracted,
         pageId: page.id,
-        // Placeholder resolution — Task 2 replaces it with the IMG-01 verdict.
-        imageStatus: extracted.ogImage ? "ok" : "none",
+        imageStatus: resolveImageStatus(extracted.ogImage, imgIssuesByPage.get(page.id) ?? []),
       };
     }
     socialPreviews = entries;

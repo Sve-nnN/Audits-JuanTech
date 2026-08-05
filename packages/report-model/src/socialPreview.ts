@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { extractMetaSocial, firstValue } from "@auditor/meta-social";
+import { extractMetaSocial, firstValue, TWITTER_CARD_VALUES } from "@auditor/meta-social";
 import type { SocialPreviewData } from "./model";
 
 /**
@@ -14,6 +14,21 @@ const PREVIEW_TEXT_MAX_CHARS = 500;
 function cap(value: string | null): string | null {
   if (value == null) return null;
   return value.length > PREVIEW_TEXT_MAX_CHARS ? value.slice(0, PREVIEW_TEXT_MAX_CHARS) : value;
+}
+
+/**
+ * The layout X actually renders. Only an explicit, admitted
+ * `summary_large_image` widens the card: an absent, invalid, or explicitly
+ * `summary` value all paint the small variant, which is what the real clients
+ * assume by default. Nunca se fuerza `summary_large_image`.
+ */
+function resolveTwitterCardVariant(
+  card: string | undefined
+): "summary" | "summary_large_image" {
+  if (!card) return "summary";
+  const normalized = card.trim().toLowerCase();
+  if (!TWITTER_CARD_VALUES.includes(normalized)) return "summary";
+  return normalized === "summary_large_image" ? "summary_large_image" : "summary";
 }
 
 /** Hostname of the crawled page URL. Never throws: a bad URL degrades to `""`. */
@@ -52,6 +67,7 @@ export function extractSocialPreview(
   const title = cap(ogTitle ?? nativeTitle);
   const description = cap(ogDescription ?? nativeDescription);
   const ogImage = firstValue(data, "og:image") ?? null;
+  const twitterCard = firstValue(data, "twitter:card");
 
   return {
     pageUrl,
@@ -63,11 +79,14 @@ export function extractSocialPreview(
     ogImage,
     ogUrlDeclared: firstValue(data, "og:url") !== undefined,
     ogTypeDeclared: firstValue(data, "og:type") !== undefined,
-    twitterCardDeclared: firstValue(data, "twitter:card") ?? null,
-    twitterCardVariant: "summary",
-    twitterTitle: null,
-    twitterDescription: null,
-    twitterImage: null,
+    twitterCardDeclared: twitterCard ?? null,
+    twitterCardVariant: resolveTwitterCardVariant(twitterCard),
+    // Misma regla de respaldo OG→Twitter que ya codifica SOCIAL-07
+    // (`twitterCard.ts`): X recurre a Open Graph cuando falta su etiqueta, y
+    // reescribirla distinto acá haría que el panel y el issue se contradigan.
+    twitterTitle: cap(firstValue(data, "twitter:title") ?? null) ?? title,
+    twitterDescription: cap(firstValue(data, "twitter:description") ?? null) ?? description,
+    twitterImage: firstValue(data, "twitter:image") ?? ogImage,
     fixSnippet: null,
   };
 }
