@@ -1,0 +1,94 @@
+/*
+ * FixSnippet.module.css — bloque de snippet copiable (FIX-01/02). Solo tokens
+ * semánticos de tokens.css (DS-01), cero hex crudo.
+ */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-base);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-heading);
+  color: var(--text);
+}
+
+.help {
+  margin: 0;
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+}
+
+/* Bloque scrolleable en los dos ejes: un valor largo nunca ensancha el panel
+   ni empuja el botón de copiar fuera de la vista. */
+.code {
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: var(--font-size-xs);
+  line-height: var(--lh-snug);
+  color: var(--text);
+  white-space: pre;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 240px;
+  min-width: 0;
+}
+
+/* Fuera del contenedor scrolleable: el botón siempre queda alcanzable. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* Mínimo de touch target WCAG 2.5.8, no un valor de la escala de espaciado. */
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--lh-snug);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--surface);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+}
