@@ -234,7 +234,7 @@ Plans:
   3. Cada issue de meta/social muestra un snippet HTML de fix prellenado con los valores reales de esa página (title/URL existentes), no un template genérico con placeholders.
   4. El snippet es accesible por teclado y copiable con un botón dentro del panel Meta Tags/Social.
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 
 Plans:
 **Wave 1**
@@ -244,7 +244,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 32-02-PLAN.md — Proxy de imágenes con allowlist de origen + SSRF guard reusado (PREVIEW-04) + PreviewImage
-- [ ] 32-03-PLAN.md — Snippet de fix con valores reales (FIX-01/02) + FixSnippet.tsx
+- [x] 32-03-PLAN.md — Snippet de fix con valores reales (FIX-01/02) + FixSnippet.tsx
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -295,7 +295,7 @@ Próximo trabajo previsto tras v1.6:
 | 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 4/4 | In Progress|  |
 | 30. Checks de meta tags/social | v1.6 | 6/6 | In Progress|  |
 | 31. Validación de og:image | v1.6 | 4/5 | In Progress|  |
-| 32. Panel de preview social + snippets de fix | v1.6 | 2/4 | In Progress|  |
+| 32. Panel de preview social + snippets de fix | v1.6 | 3/4 | In Progress|  |
 
 ---
 *Roadmap created: 2026-07-05*

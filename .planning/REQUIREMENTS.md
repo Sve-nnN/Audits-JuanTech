@@ -46,8 +46,8 @@ Requirements para el milestone Meta Tags / Social. Cada uno mapea a fases del ro
 
 ### FIX — snippets de fix
 
-- [ ] **FIX-01**: snippet HTML de fix prellenado con valores reales de la página (title/URL existentes, no template genérico)
-- [ ] **FIX-02**: snippet accesible/copiable en el panel Meta Tags/Social
+- [x] **FIX-01**: snippet HTML de fix prellenado con valores reales de la página (title/URL existentes, no template genérico)
+- [x] **FIX-02**: snippet accesible/copiable en el panel Meta Tags/Social
 
 ## Future Requirements
 
@@ -108,8 +108,8 @@ Cuál fase cubre cuáles requirements.
 | PREVIEW-02 | Phase 32 | Pending |
 | PREVIEW-03 | Phase 32 | Pending |
 | PREVIEW-04 | Phase 32 | Complete |
-| FIX-01 | Phase 32 | Pending |
-| FIX-02 | Phase 32 | Pending |
+| FIX-01 | Phase 32 | Complete |
+| FIX-02 | Phase 32 | Complete |
 
 **Coverage:**
 
