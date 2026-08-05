@@ -41,6 +41,18 @@ function panels(): HTMLElement[] {
   return screen.getAllByRole("tabpanel", { hidden: true });
 }
 
+function tab(i: number): HTMLElement {
+  const el = tabs()[i];
+  if (!el) throw new Error(`no hay tab en la posición ${i}`);
+  return el;
+}
+
+function panel(i: number): HTMLElement {
+  const el = panels()[i];
+  if (!el) throw new Error(`no hay tabpanel en la posición ${i}`);
+  return el;
+}
+
 describe("SocialPreviewPanel", () => {
   it("monta con Google activo y los otros dos paneles presentes pero hidden", () => {
     const { container } = render(<SocialPreviewPanel data={makePreview()} auditId="a1" />);
@@ -70,7 +82,7 @@ describe("SocialPreviewPanel", () => {
     expect(focusable()).toHaveLength(1);
     expect(focusable()[0]).toHaveTextContent("Google");
 
-    fireEvent.keyDown(tabs()[0], { key: "ArrowRight" });
+    fireEvent.keyDown(tab(0), { key: "ArrowRight" });
     expect(focusable()).toHaveLength(1);
     expect(focusable()[0]).toHaveTextContent("Facebook / LinkedIn");
   });
@@ -78,65 +90,64 @@ describe("SocialPreviewPanel", () => {
   it("ArrowRight avanza con wrap desde X hasta Google", () => {
     render(<SocialPreviewPanel data={makePreview()} auditId="a1" />);
 
-    fireEvent.keyDown(tabs()[0], { key: "ArrowRight" });
-    expect(tabs()[1]).toHaveAttribute("aria-selected", "true");
-    expect(tabs()[1]).toHaveFocus();
-    expect(panels()[1]).not.toHaveAttribute("hidden");
+    fireEvent.keyDown(tab(0), { key: "ArrowRight" });
+    expect(tab(1)).toHaveAttribute("aria-selected", "true");
+    expect(tab(1)).toHaveFocus();
+    expect(panel(1)).not.toHaveAttribute("hidden");
 
-    fireEvent.keyDown(tabs()[1], { key: "ArrowRight" });
-    expect(tabs()[2]).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(tab(1), { key: "ArrowRight" });
+    expect(tab(2)).toHaveAttribute("aria-selected", "true");
 
-    fireEvent.keyDown(tabs()[2], { key: "ArrowRight" });
-    expect(tabs()[0]).toHaveAttribute("aria-selected", "true");
-    expect(tabs()[0]).toHaveFocus();
+    fireEvent.keyDown(tab(2), { key: "ArrowRight" });
+    expect(tab(0)).toHaveAttribute("aria-selected", "true");
+    expect(tab(0)).toHaveFocus();
   });
 
   it("ArrowLeft desde el primer tab envuelve hasta el último", () => {
     render(<SocialPreviewPanel data={makePreview()} auditId="a1" />);
 
-    fireEvent.keyDown(tabs()[0], { key: "ArrowLeft" });
-    expect(tabs()[2]).toHaveAttribute("aria-selected", "true");
-    expect(tabs()[2]).toHaveFocus();
-    expect(panels()[2]).not.toHaveAttribute("hidden");
-    expect(panels()[0]).toHaveAttribute("hidden");
+    fireEvent.keyDown(tab(0), { key: "ArrowLeft" });
+    expect(tab(2)).toHaveAttribute("aria-selected", "true");
+    expect(tab(2)).toHaveFocus();
+    expect(panel(2)).not.toHaveAttribute("hidden");
+    expect(panel(0)).toHaveAttribute("hidden");
   });
 
   it("Home lleva al primer tab y End al último", () => {
     render(<SocialPreviewPanel data={makePreview()} auditId="a1" />);
 
-    fireEvent.keyDown(tabs()[0], { key: "End" });
-    expect(tabs()[2]).toHaveAttribute("aria-selected", "true");
-    expect(tabs()[2]).toHaveFocus();
+    fireEvent.keyDown(tab(0), { key: "End" });
+    expect(tab(2)).toHaveAttribute("aria-selected", "true");
+    expect(tab(2)).toHaveFocus();
 
-    fireEvent.keyDown(tabs()[2], { key: "Home" });
-    expect(tabs()[0]).toHaveAttribute("aria-selected", "true");
-    expect(tabs()[0]).toHaveFocus();
+    fireEvent.keyDown(tab(2), { key: "Home" });
+    expect(tab(0)).toHaveAttribute("aria-selected", "true");
+    expect(tab(0)).toHaveFocus();
   });
 
   it("Enter y Espacio activan el panel del tab enfocado", () => {
     render(<SocialPreviewPanel data={makePreview()} auditId="a1" />);
 
-    fireEvent.click(tabs()[1]);
-    expect(panels()[1]).not.toHaveAttribute("hidden");
+    fireEvent.click(tab(1));
+    expect(panel(1)).not.toHaveAttribute("hidden");
 
-    fireEvent.keyDown(tabs()[1], { key: "Enter" });
-    expect(tabs()[1]).toHaveAttribute("aria-selected", "true");
-    expect(panels()[1]).not.toHaveAttribute("hidden");
+    fireEvent.keyDown(tab(1), { key: "Enter" });
+    expect(tab(1)).toHaveAttribute("aria-selected", "true");
+    expect(panel(1)).not.toHaveAttribute("hidden");
 
-    fireEvent.keyDown(tabs()[1], { key: " " });
-    expect(tabs()[1]).toHaveAttribute("aria-selected", "true");
-    expect(panels()[1]).not.toHaveAttribute("hidden");
+    fireEvent.keyDown(tab(1), { key: " " });
+    expect(tab(1)).toHaveAttribute("aria-selected", "true");
+    expect(panel(1)).not.toHaveAttribute("hidden");
   });
 
   it("cruza aria-controls/aria-labelledby entre cada tab y su panel", () => {
     render(<SocialPreviewPanel data={makePreview()} auditId="a1" />);
 
-    tabs().forEach((tab, i) => {
-      const panel = panels()[i];
-      expect(tab).toHaveAttribute("aria-controls", panel.id);
-      expect(panel).toHaveAttribute("aria-labelledby", tab.id);
-      expect(panel).toHaveAttribute("tabindex", "0");
-    });
+    for (let i = 0; i < 3; i += 1) {
+      expect(tab(i)).toHaveAttribute("aria-controls", panel(i).id);
+      expect(panel(i)).toHaveAttribute("aria-labelledby", tab(i).id);
+      expect(panel(i)).toHaveAttribute("tabindex", "0");
+    }
   });
 
   it("monta FixSnippet cuando hay snippet que ofrecer", () => {

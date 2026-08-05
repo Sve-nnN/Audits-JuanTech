@@ -30,3 +30,55 @@
   line-height: var(--lh-body);
   color: var(--text-secondary);
 }
+
+.tablist {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  /* Mínimo de touch target WCAG 2.5.8, no un valor de la escala de espaciado. */
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  background: none;
+  border: none;
+  /* La barra del tab activo ocupa este mismo espacio en los inactivos, así que
+     cambiar de tab no desplaza la fila un pixel. */
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-xs);
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Único uso de accent como relleno en esta fase: el indicador del tab activo. */
+.tabActive {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.tabpanel {
+  padding-top: var(--space-3);
+  min-width: 0;
+}
+
+.tabpanel:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.fix {
+  margin-top: var(--space-4);
+}

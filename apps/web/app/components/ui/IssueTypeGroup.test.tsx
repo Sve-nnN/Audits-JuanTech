@@ -129,7 +129,9 @@ describe("IssueTypeGroup", () => {
       <IssueTypeGroup issues={issues} socialPreviews={[preview]} auditId="audit-1" />
     );
     expect(screen.getByText("Vista previa al compartir")).toBeInTheDocument();
-    expect(screen.getByText("Título social")).toBeInTheDocument();
+    // El título aparece en el panel de Google y en el de Facebook/LinkedIn: los
+    // tres tabs se renderizan siempre, los inactivos con `hidden`.
+    expect(screen.getAllByText("Título social")).toHaveLength(2);
     // El panel precede al primer grupo de issues en el orden del DOM.
     const panel = screen.getByText("Vista previa al compartir").closest("section")!;
     const firstGroup = container.querySelector("details")!;
