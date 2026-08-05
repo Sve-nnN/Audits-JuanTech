@@ -234,12 +234,12 @@ Plans:
   3. Cada issue de meta/social muestra un snippet HTML de fix prellenado con los valores reales de esa página (title/URL existentes), no un template genérico con placeholders.
   4. El snippet es accesible por teclado y copiable con un botón dentro del panel Meta Tags/Social.
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 32-01-PLAN.md — Tracer: Gap 1 (ReportIssue.pageId) + extractSocialPreview + preview de Google montado de punta a punta en el reporte
+- [x] 32-01-PLAN.md — Tracer: Gap 1 (ReportIssue.pageId) + extractSocialPreview + preview de Google montado de punta a punta en el reporte
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -295,7 +295,7 @@ Próximo trabajo previsto tras v1.6:
 | 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 4/4 | In Progress|  |
 | 30. Checks de meta tags/social | v1.6 | 6/6 | In Progress|  |
 | 31. Validación de og:image | v1.6 | 4/5 | In Progress|  |
-| 32. Panel de preview social + snippets de fix | v1.6 | 0/4 | Not started | - |
+| 32. Panel de preview social + snippets de fix | v1.6 | 1/4 | In Progress|  |
 
 ---
 *Roadmap created: 2026-07-05*

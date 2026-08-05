@@ -39,7 +39,7 @@ Requirements para el milestone Meta Tags / Social. Cada uno mapea a fases del ro
 
 ### PREVIEW — panel visual de preview social
 
-- [ ] **PREVIEW-01**: preview Google (estilo SERP)
+- [x] **PREVIEW-01**: preview Google (estilo SERP)
 - [ ] **PREVIEW-02**: preview Facebook/LinkedIn (layout 1.91:1 compartido)
 - [ ] **PREVIEW-03**: preview X/Twitter (summary vs summary_large_image)
 - [ ] **PREVIEW-04**: estrategia de carga de imagen de terceros — proxy server-side con allowlist del origen auditado, sin hotlink directo
@@ -104,7 +104,7 @@ Cuál fase cubre cuáles requirements.
 | IMG-02 | Phase 31 | Complete |
 | IMG-03 | Phase 31 | Complete |
 | IMG-04 | Phase 31 | Complete |
-| PREVIEW-01 | Phase 32 | Pending |
+| PREVIEW-01 | Phase 32 | Complete |
 | PREVIEW-02 | Phase 32 | Pending |
 | PREVIEW-03 | Phase 32 | Pending |
 | PREVIEW-04 | Phase 32 | Pending |

@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Meta Tags / Social
-current_phase: 31
-current_phase_name: validaci-n-de-og-image
-status: verified
-stopped_at: Phase 32 UI-SPEC approved
-last_updated: "2026-08-04T03:07:49.423Z"
-last_activity: 2026-08-03
-last_activity_desc: Phase 31 cerrada a nivel de ejecución
+current_phase: 32
+current_phase_name: panel-de-preview-social-snippets-de-fix
+status: executing
+stopped_at: Completed 32-01-PLAN.md
+last_updated: "2026-08-05T13:42:41.940Z"
+last_activity: 2026-08-05
+last_activity_desc: Phase 32 execution started
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 18
-  completed_plans: 17
+  total_plans: 22
+  completed_plans: 18
   percent: 60
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 31 — validaci-n-de-og-image
+**Current focus:** Phase 32 — panel-de-preview-social-snippets-de-fix
 
 ## Current Position
 
-Phase: 31 (validaci-n-de-og-image) — COMPLETE
-Plan: 5 of 5
-Status: Los cinco planes ejecutados con SUMMARY; `pnpm test`, `pnpm typecheck` y `pnpm assert:web-boundary` en verde
-Last activity: 2026-08-03 — Phase 31 cerrada a nivel de ejecución
+Phase: 32 (panel-de-preview-social-snippets-de-fix) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-08-05 — Phase 32 execution started
 
-Progress: [██████████] 100%
+Progress: [████████░░] 82%
 
 ## Deferred Verification
 
@@ -98,6 +98,7 @@ Progress: [██████████] 100%
 | Phase 31 P02 | 9min | 2 tasks | 2 files |
 | Phase 31 P03 | 12 min | 2 tasks | 5 files |
 | Phase 31 P04 | 18min | 2 tasks | 6 files |
+| Phase 32 P01 | 13min | 2 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -160,6 +161,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 31: la banda de proporcion de og:image se declara con dos extremos explicitos (1.7 y 2.1) y nunca como objetivo mas o menos tolerancia, para que el veredicto del borde sea representable en coma flotante
 - [Phase ?]: Phase 31: los umbrales de peso de og:image se interpretan en base binaria (1 MiB y 5 MiB) y el veredicto se calcula sobre el entero de bytes; el redondeo a un decimal es solo de presentacion
 - [Phase ?]: Phase 31: og-image-suboptimal es un unico subtipo para los dos avisos de dimension (tamaño y proporcion), porque no pueden coexistir y dos subtipos prometerian una fila que nunca aparece
+- [Phase ?]: Phase 32: el vocabulario de subtipos de IMG-01 vive en @auditor/meta-social y no en packages/checks — report-model lo consume y el bundle de Next no puede arrastrar el grafo de Crawlee (rompe con Module not found: tls)
+- [Phase ?]: Phase 32: ReportModel.socialPreviews es opcional (patrón degradation-safe de perf?/architecture?/stack?) y su consulta de HTML va fuera del Promise.all existente, para no alterar el orden que mockean los tests de arquitectura
+- [Phase ?]: Phase 32: twitterCardVariant nunca se fuerza a summary_large_image — sólo un valor explícito y admitido ensancha la tarjeta de X
+- [Phase ?]: Phase 32: transpilePackages NO necesita @auditor/meta-social — medido con pnpm --filter web build, cierra el Pitfall 4 que estaba ASSUMED
 
 ### Pending Todos
 
@@ -194,9 +199,9 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-04T03:07:49.393Z
-Stopped at: Phase 32 UI-SPEC approved
-Resume file: /Users/juan/Documents/Codigo/Personal/juantech/auditor/.planning/phases/32-panel-de-preview-social-snippets-de-fix/32-UI-SPEC.md
+Last session: 2026-08-05T13:42:29.159Z
+Stopped at: Completed 32-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
