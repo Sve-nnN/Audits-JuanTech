@@ -15,6 +15,7 @@
     "@auditor/db": "workspace:*",
     "@auditor/email": "workspace:*",
     "@auditor/export": "workspace:*",
+    "@auditor/meta-social": "workspace:*",
     "@auditor/queue": "workspace:*",
     "@auditor/quota": "workspace:*",
     "@auditor/report-model": "workspace:*",

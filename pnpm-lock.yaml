@@ -32,6 +32,9 @@ importers:
       '@auditor/export':
         specifier: workspace:*
         version: link:../../packages/export
+      '@auditor/meta-social':
+        specifier: workspace:*
+        version: link:../../packages/meta-social
       '@auditor/queue':
         specifier: workspace:*
         version: link:../../packages/queue
