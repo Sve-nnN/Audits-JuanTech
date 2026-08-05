@@ -109,7 +109,7 @@ Aditivo sobre v1.0-v1.5 — no toca el pipeline de crawl/checks/scoring existent
 - [x] **Phase 29: Scoring — categoría Social + retiro de ONPAGE-05** - Sexta categoría de score con pesos rebalanceados, ONPAGE-05 retirado sin duplicados (completed 2026-08-01)
 - [x] **Phase 30: Checks de meta tags/social** - OG/Twitter Card/charset/duplicados por página (completed 2026-08-03)
 - [x] **Phase 31: Validación de og:image** - Fetcher dedupeado, alcanzabilidad, dimensiones y peso (completed 2026-08-03)
-- [ ] **Phase 32: Panel de preview social + snippets de fix** - Preview Google/Facebook/LinkedIn/X + snippet HTML copiable
+- [ ] **Phase 32: Panel de preview social + snippets de fix** - Preview Google/Facebook/LinkedIn/X + snippet HTML copiable (4 plans, 3 waves)
 
 ## Phase Details
 
@@ -234,7 +234,22 @@ Plans:
   3. Cada issue de meta/social muestra un snippet HTML de fix prellenado con los valores reales de esa página (title/URL existentes), no un template genérico con placeholders.
   4. El snippet es accesible por teclado y copiable con un botón dentro del panel Meta Tags/Social.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 32-01-PLAN.md — Tracer: Gap 1 (ReportIssue.pageId) + extractSocialPreview + preview de Google montado de punta a punta en el reporte
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 32-02-PLAN.md — Proxy de imágenes con allowlist de origen + SSRF guard reusado (PREVIEW-04) + PreviewImage
+- [ ] 32-03-PLAN.md — Snippet de fix con valores reales (FIX-01/02) + FixSnippet.tsx
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 32-04-PLAN.md — Preview Facebook/LinkedIn + X + tabs WAI-ARIA + montaje final del panel
+
 **UI hint**: yes
 
 ### 📋 Next (Planned)
@@ -280,7 +295,7 @@ Próximo trabajo previsto tras v1.6:
 | 29. Scoring — categoría Social + retiro de ONPAGE-05 | v1.6 | 4/4 | In Progress|  |
 | 30. Checks de meta tags/social | v1.6 | 6/6 | In Progress|  |
 | 31. Validación de og:image | v1.6 | 4/5 | In Progress|  |
-| 32. Panel de preview social + snippets de fix | v1.6 | 0/TBD | Not started | - |
+| 32. Panel de preview social + snippets de fix | v1.6 | 0/4 | Not started | - |
 
 ---
 *Roadmap created: 2026-07-05*

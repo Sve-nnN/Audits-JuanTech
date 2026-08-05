@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 31
 current_phase_name: validaci-n-de-og-image
 status: verified
-stopped_at: Completed 31-05-PLAN.md
-last_updated: "2026-08-03T21:14:00.000Z"
+stopped_at: Phase 32 UI-SPEC approved
+last_updated: "2026-08-04T03:07:49.423Z"
 last_activity: 2026-08-03
-last_activity_desc: Phase 31 — los cinco planes ejecutados, gate de cierre en verde
+last_activity_desc: Phase 31 cerrada a nivel de ejecución
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 18
-  completed_plans: 18
+  completed_plans: 17
   percent: 60
 ---
 
@@ -194,9 +194,9 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-03T21:10:40.863Z
-Stopped at: Completed 31-04-PLAN.md
-Resume file: None
+Last session: 2026-08-04T03:07:49.393Z
+Stopped at: Phase 32 UI-SPEC approved
+Resume file: /Users/juan/Documents/Codigo/Personal/juantech/auditor/.planning/phases/32-panel-de-preview-social-snippets-de-fix/32-UI-SPEC.md
 
 ## Operator Next Steps
 
