@@ -5,15 +5,15 @@ milestone_name: Meta Tags / Social
 current_phase: 32
 current_phase_name: panel-de-preview-social-snippets-de-fix
 status: executing
-stopped_at: Completed 32-01-PLAN.md
-last_updated: "2026-08-05T13:42:41.940Z"
+stopped_at: Completed 32-02-PLAN.md
+last_updated: "2026-08-05T15:00:00.184Z"
 last_activity: 2026-08-05
 last_activity_desc: Phase 32 execution started
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 22
-  completed_plans: 18
+  completed_plans: 19
   percent: 60
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 ## Current Position
 
 Phase: 32 (panel-de-preview-social-snippets-de-fix) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-08-05 — Phase 32 execution started
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 86%
 
 ## Deferred Verification
 
@@ -99,6 +99,7 @@ Progress: [████████░░] 82%
 | Phase 31 P03 | 12 min | 2 tasks | 5 files |
 | Phase 31 P04 | 18min | 2 tasks | 6 files |
 | Phase 32 P01 | 13min | 2 tasks | 20 files |
+| Phase 32 P02 | 12min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -165,6 +166,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 32: ReportModel.socialPreviews es opcional (patrón degradation-safe de perf?/architecture?/stack?) y su consulta de HTML va fuera del Promise.all existente, para no alterar el orden que mockean los tests de arquitectura
 - [Phase ?]: Phase 32: twitterCardVariant nunca se fuerza a summary_large_image — sólo un valor explícito y admitido ensancha la tarjeta de X
 - [Phase ?]: Phase 32: transpilePackages NO necesita @auditor/meta-social — medido con pnpm --filter web build, cierra el Pitfall 4 que estaba ASSUMED
+- [Phase ?]: Phase 32: apps/web importa la defensa de red por el subpath @auditor/checks/network (hojas ssrfGuard/redirects/imageProbe), nunca por el barrel — el barrel arrastra Crawlee y rompe next build con Module not found: tls
+- [Phase ?]: Phase 32: el proxy de imágenes colapsa Content-Type fuera del allowlist y status de error del origen en el mismo 404 genérico; el allowlist compara el tipo base y descarta los parámetros del header
 
 ### Pending Todos
 
@@ -199,8 +202,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-05T13:42:29.159Z
-Stopped at: Completed 32-01-PLAN.md
+Last session: 2026-08-05T15:00:00.172Z
+Stopped at: Completed 32-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
