@@ -1,0 +1,70 @@
+/*
+ * PreviewImage.module.css — imagen del preview social (PREVIEW-04).
+ * Solo tokens semánticos (DS-01), cero hex crudo. La proporción llega por
+ * `style` inline porque es una prop dinámica (1.91/1 o 1/1); es proporción,
+ * no espaciado, así que no cuenta como excepción de la escala.
+ */
+
+/*
+ * El marco reserva el layout ANTES de que llegue el primer byte: con la
+ * proporción fija y `loading="lazy"`, la imagen aterriza sin desplazar nada
+ * (cero CLS). Sin spinner: el hueco ya comunica que falta la imagen.
+ */
+.frame {
+  width: 100%;
+  overflow: hidden;
+  background: var(--surface-hover);
+  border-bottom: 1px solid var(--border);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Mismo bloque visual para los dos motivos de placeholder (no verificable por
+   IMG-01, o fallo del proxy en ejecución): sólo cambia la copy. */
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-4);
+  text-align: center;
+  background: var(--surface-hover);
+  border: 1px dashed var(--critical);
+  border-radius: var(--radius-sm);
+}
+
+.icon {
+  color: var(--critical);
+}
+
+.placeholderTitle {
+  font-family: var(--font-khand), "Arial Narrow", system-ui, sans-serif;
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-heading);
+  color: var(--text);
+}
+
+.placeholderBody {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-xs);
+  line-height: var(--lh-body);
+  color: var(--text-secondary);
+  max-width: 40ch;
+}
+
+/* Campo ausente: mismo literal en cursiva que "Sin título"/"Sin descripción". */
+.missing {
+  font-family: var(--font-geist-sans);
+  font-size: var(--font-size-sm);
+  line-height: var(--lh-body);
+  font-style: italic;
+  color: var(--text-muted);
+}
