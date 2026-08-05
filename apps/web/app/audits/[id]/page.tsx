@@ -3,7 +3,14 @@ import { ArrowLeft, ArrowRight, Network } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@auditor/db";
 import type { Category, ScoreStatus } from "@auditor/scoring";
-import { buildReportModel, TEMPLATE_ORDER, type PageTemplate } from "@auditor/report-model";
+import {
+  buildReportModel,
+  TEMPLATE_ORDER,
+  type PageTemplate,
+  type ReportIssue,
+  type ReportModel,
+  type SocialPreviewData,
+} from "@auditor/report-model";
 import { ScoreGauge } from "../../components/ui/ScoreGauge";
 import { CategoryCard } from "../../components/ui/CategoryCard";
 import {
@@ -44,6 +51,23 @@ const STATUS_BADGE_VARIANT: Record<ScoreStatus, "ok" | "warning" | "critical"> =
   needs_improvement: "warning",
   critical: "critical",
 };
+
+/**
+ * Previews de compartición de las páginas presentes en `issues`, en orden de
+ * primera aparición y sin repetir página. Una página sin entrada derivada
+ * (HTML ausente o issue de alcance de sitio) simplemente no aporta preview.
+ */
+function socialPreviewsFor(issues: ReportIssue[], model: ReportModel): SocialPreviewData[] {
+  const previews: SocialPreviewData[] = [];
+  const seen = new Set<string>();
+  for (const issue of issues) {
+    if (!issue.pageId || seen.has(issue.pageId)) continue;
+    seen.add(issue.pageId);
+    const preview = model.socialPreviews?.[issue.pageId];
+    if (preview) previews.push(preview);
+  }
+  return previews;
+}
 
 function formatDate(value: Date | null): string {
   if (!value) return "—";
@@ -358,7 +382,16 @@ export default async function AuditReportPage({ params }: PageProps) {
                       count={`${problems.length} problema(s) · ${passing.length} correcto(s)`}
                     >
                       <AccordionSubgroup kind="problems" count={problems.length}>
-                        <IssueTypeGroup issues={problems} siteHost={model.audit.domain} />
+                        <IssueTypeGroup
+                          issues={problems}
+                          siteHost={model.audit.domain}
+                          {...(category === "social"
+                            ? {
+                                auditId,
+                                socialPreviews: socialPreviewsFor(problems, model),
+                              }
+                            : {})}
+                        />
                       </AccordionSubgroup>
                       <AccordionSubgroup kind="correct" count={passing.length}>
                         <IssueTypeGroup issues={passing} siteHost={model.audit.domain} />

@@ -13,7 +13,9 @@ import type {
   ReportArchitecture,
   ReportStack,
   ReportStackAxis,
+  SocialPreviewData,
 } from "./model";
+import { extractSocialPreview } from "./socialPreview";
 import type { AxisResult, DetectedStack } from "@auditor/fingerprint";
 import { resolveCmsRecommendation } from "@auditor/cms-adapters";
 import { classifyTemplate, TEMPLATE_ORDER } from "./template";
@@ -92,6 +94,15 @@ interface IssueRow {
   recommendation: string | null;
   fingerprint: string;
   diffStatus: string | null;
+  pageId: string | null;
+}
+
+/** Minimal Page row the social preview derivation loads (never the full row). */
+interface SocialPageRow {
+  id: string;
+  url: string;
+  finalUrl: string | null;
+  html: string | null;
 }
 
 /**
@@ -139,6 +150,7 @@ function toReportIssue(issue: IssueRow, stack: DetectedStack | null): ReportIssu
     fingerprint: issue.fingerprint,
     diffStatus: (issue.diffStatus as ReportDiffStatus | null) ?? null,
     url: issueUrl({ source: issue.source, scope: issue.scope }),
+    pageId: issue.pageId ?? null,
   };
 }
 
@@ -256,6 +268,38 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     if (reportIssue.url != null) {
       issuesByTemplate[classifyTemplate(reportIssue.url)].push(reportIssue);
     }
+  }
+
+  // Social share previews (PREVIEW-01): only the pages that actually carry a
+  // critical/warning social issue are loaded and parsed — a page with nothing to
+  // fix never reaches the preview panel, and never costs an HTML read.
+  const socialProblemPageIds = new Set<string>();
+  for (const issue of issuesForDetail as unknown as IssueRow[]) {
+    if (issue.category !== "social") continue;
+    if (issue.severity !== "critical" && issue.severity !== "warning") continue;
+    if (issue.pageId) socialProblemPageIds.add(issue.pageId);
+  }
+
+  let socialPreviews: Record<string, SocialPreviewData> | undefined;
+  if (socialProblemPageIds.size > 0) {
+    // Deliberately NOT inside the Promise.all above: that call order is what the
+    // architecture tests mock with `pageFindMany.mockResolvedValueOnce`.
+    // `select` is narrowed to the four columns the derivation reads (T-32-03).
+    const socialPagesRaw = await prisma.page.findMany({
+      where: { id: { in: [...socialProblemPageIds] } },
+      select: { id: true, url: true, finalUrl: true, html: true },
+    });
+    const entries: Record<string, SocialPreviewData> = {};
+    for (const page of socialPagesRaw as unknown as SocialPageRow[]) {
+      const extracted = extractSocialPreview(page.html ?? "", page.finalUrl ?? page.url);
+      entries[page.id] = {
+        ...extracted,
+        pageId: page.id,
+        // Placeholder resolution — Task 2 replaces it with the IMG-01 verdict.
+        imageStatus: extracted.ogImage ? "ok" : "none",
+      };
+    }
+    socialPreviews = entries;
   }
 
   const resolvedIssues: ReportResolvedIssue[] = (
@@ -384,5 +428,6 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     perf,
     architecture,
     stack,
+    socialPreviews,
   };
 }

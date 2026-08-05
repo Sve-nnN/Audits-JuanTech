@@ -26,6 +26,7 @@ export function makeIssue(overrides: Partial<ReportIssue> = {}): ReportIssue {
     fingerprint: `fp-${idSeq}`,
     diffStatus: "new",
     url: "https://example.com/pagina",
+    pageId: null,
     ...overrides,
   };
 }

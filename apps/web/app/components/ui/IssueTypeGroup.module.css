@@ -11,6 +11,14 @@
   flex-direction: column;
 }
 
+/* Bloque de previews de compartición (PREVIEW-01), antes de la lista de grupos. */
+.previews {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
 .group {
   background: var(--surface);
   border: 1px solid var(--border);

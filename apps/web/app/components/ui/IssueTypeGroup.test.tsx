@@ -2,7 +2,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { render, screen, cleanup, within } from "@testing-library/react";
-import type { ReportIssue } from "@auditor/report-model";
+import type { ReportIssue, SocialPreviewData } from "@auditor/report-model";
 import { IssueTypeGroup } from "./IssueTypeGroup";
 
 afterEach(() => {
@@ -24,6 +24,7 @@ function makeIssue(over: Partial<ReportIssue> & { id: string }): ReportIssue {
     fingerprint: over.fingerprint ?? "fp",
     diffStatus: over.diffStatus ?? null,
     url: over.url ?? null,
+    pageId: over.pageId ?? null,
   };
 }
 
@@ -102,5 +103,43 @@ describe("IssueTypeGroup", () => {
   it("no renderiza nada cuando la lista de issues está vacía", () => {
     const { container } = render(<IssueTypeGroup issues={[]} />);
     expect(container.querySelectorAll("details")).toHaveLength(0);
+  });
+
+  it("monta el panel de preview social antes de la lista de grupos", () => {
+    const preview: SocialPreviewData = {
+      pageId: "p-1",
+      pageUrl: "https://example.com/post",
+      domain: "example.com",
+      title: "Título social",
+      ogTitleDeclared: true,
+      description: null,
+      ogDescriptionDeclared: false,
+      ogImage: null,
+      imageStatus: "none",
+      ogUrlDeclared: false,
+      ogTypeDeclared: false,
+      twitterCardDeclared: null,
+      twitterCardVariant: "summary",
+      twitterTitle: null,
+      twitterDescription: null,
+      twitterImage: null,
+      fixSnippet: null,
+    };
+    const { container } = render(
+      <IssueTypeGroup issues={issues} socialPreviews={[preview]} auditId="audit-1" />
+    );
+    expect(screen.getByText("Vista previa al compartir")).toBeInTheDocument();
+    expect(screen.getByText("Título social")).toBeInTheDocument();
+    // El panel precede al primer grupo de issues en el orden del DOM.
+    const panel = screen.getByText("Vista previa al compartir").closest("section")!;
+    const firstGroup = container.querySelector("details")!;
+    expect(panel.compareDocumentPosition(firstGroup) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+  });
+
+  it("no monta ningún panel cuando no se pasan previews (resto de categorías)", () => {
+    render(<IssueTypeGroup issues={issues} />);
+    expect(screen.queryByText("Vista previa al compartir")).not.toBeInTheDocument();
   });
 });

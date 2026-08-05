@@ -16,7 +16,9 @@
     "@auditor/cms-adapters": "workspace:*",
     "@auditor/db": "workspace:*",
     "@auditor/fingerprint": "workspace:*",
-    "@auditor/scoring": "workspace:*"
+    "@auditor/meta-social": "workspace:*",
+    "@auditor/scoring": "workspace:*",
+    "cheerio": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

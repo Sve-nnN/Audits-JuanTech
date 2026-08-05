@@ -31,6 +31,8 @@ export interface ReportIssue {
   diffStatus: ReportDiffStatus | null;
   /** URL the issue is about, derived from `source`/`scope`. */
   url: string | null;
+  /** `Page.id` the issue belongs to; `null` for site-level checks. */
+  pageId: string | null;
 }
 
 /** A resolved issue carried over from the previous audit's diff. */
@@ -149,6 +151,50 @@ export interface ReportStack {
   analytics: ReportStackAxis[];
 }
 
+/**
+ * Verdict on the declared `og:image` for the preview panel (Phase 32).
+ * `"none"` — no image declared; `"unavailable"` — IMG-01 (Phase 31) proved the
+ * image unusable, so the panel renders the placeholder and NEVER requests it;
+ * `"ok"` — the image may be rendered through the same-origin proxy.
+ */
+export type SocialImageStatus = "ok" | "unavailable" | "none";
+
+/**
+ * Everything the social preview panel (PREVIEW-01..04) paints for ONE page,
+ * derived server-side from the persisted `Page.html` — the client never
+ * re-parses HTML. Every field is a primitive so the object survives the
+ * server→client props boundary (no Map/Set/function anywhere).
+ *
+ * `title`/`description` already resolve the OG→native fallback; the
+ * `*Declared` flags say whether the Open Graph tag itself was present, which is
+ * what the fix snippet needs to know (a page rendering fine via `<title>` still
+ * lacks `og:title`).
+ */
+export interface SocialPreviewData {
+  pageId: string;
+  /** Real crawled URL of the page — never the declared `og:url` (SOCIAL-04 audits that separately). */
+  pageUrl: string;
+  /** Hostname of `pageUrl`; `""` when the URL does not parse. */
+  domain: string;
+  title: string | null;
+  ogTitleDeclared: boolean;
+  description: string | null;
+  ogDescriptionDeclared: boolean;
+  ogImage: string | null;
+  imageStatus: SocialImageStatus;
+  ogUrlDeclared: boolean;
+  ogTypeDeclared: boolean;
+  /** Raw declared `twitter:card` value, `null` when absent. */
+  twitterCardDeclared: string | null;
+  /** Layout X actually renders: only an explicit, admitted `summary_large_image` widens the card. */
+  twitterCardVariant: "summary" | "summary_large_image";
+  twitterTitle: string | null;
+  twitterDescription: string | null;
+  twitterImage: string | null;
+  /** Ready-to-paste `<meta>` block for the missing tags (Plan 32-03). */
+  fixSnippet: string | null;
+}
+
 export interface ReportModel {
   audit: ReportAuditMeta;
   /** Whether the audit persisted a scoring snapshot (drives the status badge). */
@@ -190,4 +236,11 @@ export interface ReportModel {
    * degradation-safe que `perf?`/`architecture?`.
    */
   stack?: ReportStack;
+  /**
+   * Social share previews keyed by `Page.id`, derived from `Page.html` for the
+   * pages carrying a critical/warning issue of the `social` category (PREVIEW-01).
+   * `undefined` when the audit has no such page — the UI never renders an empty
+   * panel. Mismo patrón degradation-safe que `perf?`/`architecture?`/`stack?`.
+   */
+  socialPreviews?: Record<string, SocialPreviewData>;
 }

@@ -17,6 +17,7 @@ function makeIssue(overrides: Partial<ReportIssue> = {}): ReportIssue {
     fingerprint: `fp-${Math.random().toString(36).slice(2)}`,
     diffStatus: null,
     url: null,
+    pageId: null,
     ...overrides,
   };
 }

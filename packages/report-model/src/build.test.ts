@@ -236,6 +236,76 @@ describe("buildReportModel", () => {
     expect(model!.issuesByCategory.social[0]!.checkId).toBe("SOCIAL-01:og-title");
   });
 
+  // --- Social previews (Plan 32-01, PREVIEW-01) -----------------------------
+
+  it("deriva socialPreviews del HTML de las páginas con issues sociales", async () => {
+    const socialIssue = makeIssue({
+      category: "social",
+      severity: "critical",
+      checkId: "SOCIAL-01",
+      pageId: "p-social",
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit() as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue] as any);
+    pageFindMany.mockResolvedValueOnce([
+      {
+        id: "p-social",
+        url: "https://example.com/post",
+        finalUrl: null,
+        html: `<html><head><title>Nativo</title><meta property="og:description" content="Desde OG"></head><body></body></html>`,
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any);
+
+    const model = await buildReportModel("audit-1");
+
+    const preview = model!.socialPreviews!["p-social"]!;
+    expect(preview.pageId).toBe("p-social");
+    expect(preview.pageUrl).toBe("https://example.com/post");
+    expect(preview.domain).toBe("example.com");
+    // Sin og:title, el <title> nativo llena el hueco pero la bandera queda en false.
+    expect(preview.title).toBe("Nativo");
+    expect(preview.ogTitleDeclared).toBe(false);
+    expect(preview.description).toBe("Desde OG");
+    expect(preview.ogDescriptionDeclared).toBe(true);
+    expect(preview.imageStatus).toBe("none");
+    // La consulta de páginas está acotada a los ids con problema social.
+    expect(pageFindMany).toHaveBeenCalledWith({
+      where: { id: { in: ["p-social"] } },
+      select: { id: true, url: true, finalUrl: true, html: true },
+    });
+    // El propio issue conserva su pageId en el modelo (Gap 1).
+    expect(model!.issuesByCategory.social[0]!.pageId).toBe("p-social");
+  });
+
+  it("no consulta páginas ni define socialPreviews sin issues sociales críticos", async () => {
+    const okSocial = makeIssue({
+      category: "social",
+      severity: "ok",
+      checkId: "SOCIAL-01",
+      pageId: "p-social",
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit() as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([okSocial] as any);
+
+    const model = await buildReportModel("audit-1");
+
+    expect(model!.socialPreviews).toBeUndefined();
+    expect(pageFindMany).not.toHaveBeenCalled();
+  });
+
   it("returns null for a non-existent audit", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     auditFindUnique.mockResolvedValueOnce(null as any);

@@ -36,6 +36,7 @@ function fixtureModel(): ReportModel {
     fingerprint: "fp-1",
     diffStatus: "new" as const,
     url: "https://example.com/página",
+    pageId: null,
   };
   const emptyByCat = {
     tech: [issue],

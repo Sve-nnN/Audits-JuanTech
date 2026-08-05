@@ -2,9 +2,14 @@
 
 import type { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
-import { groupIssuesByType, type ReportIssue } from "@auditor/report-model";
+import {
+  groupIssuesByType,
+  type ReportIssue,
+  type SocialPreviewData,
+} from "@auditor/report-model";
 import { SeverityBadge, DiffBadge } from "./Badge";
 import { shortUrl } from "./url";
+import { SocialPreviewPanel } from "../../audits/[id]/social/SocialPreviewPanel";
 import styles from "./IssueTypeGroup.module.css";
 
 interface IssueTypeGroupProps {
@@ -12,6 +17,14 @@ interface IssueTypeGroupProps {
   issues: ReportIssue[];
   /** Dominio auditado: enlaces del mismo host muestran solo la ruta; los externos, host+ruta. */
   siteHost?: string | null;
+  /**
+   * Previews de compartición a montar ANTES de la lista de grupos (PREVIEW-01).
+   * Solo la categoría social los pasa; vacío/ausente deja el componente idéntico
+   * a como estaba.
+   */
+  socialPreviews?: SocialPreviewData[];
+  /** Auditoría dueña de las páginas del preview. */
+  auditId?: string;
 }
 
 /** Conteo de páginas afectadas con singular/plural. */
@@ -51,11 +64,23 @@ function urlCell(url: string | null, siteHost?: string | null): ReactNode {
  * El orden (severidad peor-primero → cantidad descendente) es única fuente de
  * verdad de `groupIssuesByType`; la UI solo renderiza, no reordena.
  */
-export function IssueTypeGroup({ issues, siteHost }: IssueTypeGroupProps) {
+export function IssueTypeGroup({
+  issues,
+  siteHost,
+  socialPreviews,
+  auditId,
+}: IssueTypeGroupProps) {
   const groups = groupIssuesByType(issues);
 
   return (
     <div className={styles.groups}>
+      {socialPreviews && socialPreviews.length > 0 && auditId ? (
+        <div className={styles.previews}>
+          {socialPreviews.map((preview) => (
+            <SocialPreviewPanel key={preview.pageId} data={preview} auditId={auditId} />
+          ))}
+        </div>
+      ) : null}
       {groups.map((group) => (
         <details className={styles.group} key={`${group.checkId} ${group.title}`}>
           <summary className={styles.summary}>

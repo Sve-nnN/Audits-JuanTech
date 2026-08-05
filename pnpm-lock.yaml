@@ -431,9 +431,15 @@ importers:
       '@auditor/fingerprint':
         specifier: workspace:*
         version: link:../fingerprint
+      '@auditor/meta-social':
+        specifier: workspace:*
+        version: link:../meta-social
       '@auditor/scoring':
         specifier: workspace:*
         version: link:../scoring
+      cheerio:
+        specifier: ^1.2.0
+        version: 1.2.0
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
