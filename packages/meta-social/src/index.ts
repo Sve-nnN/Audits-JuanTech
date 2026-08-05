@@ -2,6 +2,9 @@ export type { MetaSocialData } from "./types";
 
 export { extractMetaSocial, firstValue } from "./extract";
 
+export { buildFixSnippet } from "./fixSnippet";
+export type { FixSnippetField, FixSnippetTag } from "./fixSnippet";
+
 export { hasCharsetInFirstKB, CHARSET_WINDOW_BYTES } from "./charset";
 
 export {

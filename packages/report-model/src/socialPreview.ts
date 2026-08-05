@@ -1,5 +1,11 @@
 import * as cheerio from "cheerio";
-import { extractMetaSocial, firstValue, TWITTER_CARD_VALUES } from "@auditor/meta-social";
+import {
+  buildFixSnippet,
+  extractMetaSocial,
+  firstValue,
+  TWITTER_CARD_VALUES,
+  type FixSnippetField,
+} from "@auditor/meta-social";
 import type { SocialPreviewData } from "./model";
 
 /**
@@ -29,6 +35,51 @@ function resolveTwitterCardVariant(
   const normalized = card.trim().toLowerCase();
   if (!TWITTER_CARD_VALUES.includes(normalized)) return "summary";
   return normalized === "summary_large_image" ? "summary_large_image" : "summary";
+}
+
+/**
+ * Alcance del snippet de fix (FIX-01/02), resuelto acá y en ningún otro lado.
+ *
+ * Cubre EXACTAMENTE 5 etiquetas y sólo cuando están AUSENTES. Nunca por
+ * longitud fuera de rango: esos casos ya tienen su propia fila de issue, y
+ * reescribir un título real del usuario sería editorializar su contenido.
+ *
+ * `og:image` queda fuera a propósito: no existe ninguna URL de imagen real que
+ * se pueda prellenar, e inventarla violaría la regla de que el snippet nunca
+ * es un template con placeholders. `SOCIAL-06` (duplicados) y `SOCIAL-08`
+ * (charset) tampoco entran: la copy fija del panel describe agregar una
+ * etiqueta nueva, no resolver un conflicto entre dos existentes ni una
+ * declaración de encoding sensible a la posición.
+ */
+function collectFixFields(
+  data: Omit<SocialPreviewData, "pageId" | "imageStatus" | "fixSnippet">
+): FixSnippetField[] {
+  const fields: FixSnippetField[] = [];
+
+  // Sólo se ofrece un valor que la página ya tiene: si no hay ni og:title ni
+  // <title>, no hay nada real que proponer y el campo se omite.
+  if (!data.ogTitleDeclared && data.title != null) {
+    fields.push({ tag: "og:title", value: data.title });
+  }
+  if (!data.ogDescriptionDeclared && data.description != null) {
+    fields.push({ tag: "og:description", value: data.description });
+  }
+  if (!data.ogUrlDeclared) {
+    fields.push({ tag: "og:url", value: data.pageUrl });
+  }
+  // Default técnico estándar de Open Graph, no contenido inventado del sitio.
+  if (!data.ogTypeDeclared) {
+    fields.push({ tag: "og:type", value: "website" });
+  }
+  const card = data.twitterCardDeclared?.trim().toLowerCase();
+  if (card == null || !TWITTER_CARD_VALUES.includes(card)) {
+    fields.push({
+      tag: "twitter:card",
+      value: data.ogImage ? "summary_large_image" : "summary",
+    });
+  }
+
+  return fields;
 }
 
 /** Hostname of the crawled page URL. Never throws: a bad URL degrades to `""`. */
@@ -69,7 +120,7 @@ export function extractSocialPreview(
   const ogImage = firstValue(data, "og:image") ?? null;
   const twitterCard = firstValue(data, "twitter:card");
 
-  return {
+  const base = {
     pageUrl,
     domain: hostnameOf(pageUrl),
     title,
@@ -87,6 +138,7 @@ export function extractSocialPreview(
     twitterTitle: cap(firstValue(data, "twitter:title") ?? null) ?? title,
     twitterDescription: cap(firstValue(data, "twitter:description") ?? null) ?? description,
     twitterImage: firstValue(data, "twitter:image") ?? ogImage,
-    fixSnippet: null,
   };
+
+  return { ...base, fixSnippet: buildFixSnippet(collectFixFields(base)) };
 }
