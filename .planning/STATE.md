@@ -4,17 +4,17 @@ milestone: v1.6
 milestone_name: Meta Tags / Social
 current_phase: 32
 current_phase_name: panel-de-preview-social-snippets-de-fix
-status: executing
-stopped_at: Completed 32-03-PLAN.md
-last_updated: "2026-08-05T17:06:52.027Z"
+status: verifying
+stopped_at: Completed 32-04-PLAN.md
+last_updated: "2026-08-05T17:15:47.179Z"
 last_activity: 2026-08-05
 last_activity_desc: Phase 32 execution started
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 22
-  completed_plans: 20
-  percent: 60
+  completed_plans: 21
+  percent: 80
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 Phase: 32 (panel-de-preview-social-snippets-de-fix) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-05 — Phase 32 execution started
 
-Progress: [█████████░] 91%
+Progress: [██████████] 95%
 
 ## Deferred Verification
 
@@ -101,6 +101,7 @@ Progress: [█████████░] 91%
 | Phase 32 P01 | 13min | 2 tasks | 20 files |
 | Phase 32 P02 | 12min | 2 tasks | 8 files |
 | Phase 32 P03 | 9min | 2 tasks | 8 files |
+| Phase 32 P04 | 11min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase ?]: Phase 32: el snippet de fix cubre exactamente 5 etiquetas y sólo cuando están ausentes — og:image queda fuera porque no hay valor real que prellenar e inventarlo sería un placeholder
 - [Phase ?]: Phase 32: el criterio de qué etiquetas faltan vive en report-model (collectFixFields); buildFixSnippet en meta-social sólo arma HTML escapado y nunca decide
 - [Phase ?]: Phase 32: la disponibilidad de Clipboard API se detecta en el efecto de montaje con estado inicial optimista, no como expresión de render — un componente use client igual se renderiza en el servidor y la detección directa produce desajuste de hidratación
+- [Phase 32]: La tarjeta social 1.91:1 se extrae a SocialCardLayout/SocialCardText y la reusan Facebook/LinkedIn y X summary_large_image: una sola definición del clamp de truncado
+- [Phase 32]: XPreview se alimenta solo de los campos twitter*; el respaldo OG→Twitter ya está resuelto en socialPreview.ts
 
 ### Pending Todos
 
@@ -206,8 +209,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-05T17:06:52.017Z
-Stopped at: Completed 32-03-PLAN.md
+Last session: 2026-08-05T17:15:47.170Z
+Stopped at: Completed 32-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
