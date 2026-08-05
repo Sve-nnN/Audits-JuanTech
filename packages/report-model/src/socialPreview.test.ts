@@ -159,3 +159,143 @@ describe("extractSocialPreview", () => {
     expect(result.description).toHaveLength(500);
   });
 });
+
+/** Head con las 5 etiquetas candidatas del snippet declaradas y admitidas. */
+const FULLY_DECLARED = `<meta property="og:title" content="Título">
+   <meta property="og:description" content="Descripción">
+   <meta property="og:url" content="https://example.com/blog/post">
+   <meta property="og:type" content="article">
+   <meta name="twitter:card" content="summary">`;
+
+describe("extractSocialPreview — fixSnippet", () => {
+  it("es null cuando las 5 etiquetas candidatas están declaradas", () => {
+    expect(extractSocialPreview(doc(FULLY_DECLARED), PAGE_URL).fixSnippet).toBeNull();
+  });
+
+  it("omite og:title cuando tampoco hay <title> nativo: no hay valor real que ofrecer", () => {
+    const snippet = extractSocialPreview(
+      doc(`<meta property="og:description" content="D">
+           <meta property="og:url" content="u">
+           <meta property="og:type" content="website">
+           <meta name="twitter:card" content="summary">`),
+      PAGE_URL
+    ).fixSnippet;
+    expect(snippet).toBeNull();
+  });
+
+  it("usa el <title> nativo exacto cuando falta og:title", () => {
+    const snippet = extractSocialPreview(
+      doc(`<title>Guía de auditoría</title>
+           <meta property="og:description" content="D">
+           <meta property="og:url" content="u">
+           <meta property="og:type" content="website">
+           <meta name="twitter:card" content="summary">`),
+      PAGE_URL
+    ).fixSnippet;
+    expect(snippet).toBe('<meta property="og:title" content="Guía de auditoría">');
+  });
+
+  it("omite og:description cuando tampoco hay meta description nativa", () => {
+    const snippet = extractSocialPreview(
+      doc(`<title>T</title>
+           <meta property="og:title" content="T">
+           <meta property="og:url" content="u">
+           <meta property="og:type" content="website">
+           <meta name="twitter:card" content="summary">`),
+      PAGE_URL
+    ).fixSnippet;
+    expect(snippet).toBeNull();
+  });
+
+  it("usa la meta description nativa cuando falta og:description", () => {
+    const snippet = extractSocialPreview(
+      doc(`<meta name="description" content="Resumen real">
+           <meta property="og:title" content="T">
+           <meta property="og:url" content="u">
+           <meta property="og:type" content="website">
+           <meta name="twitter:card" content="summary">`),
+      PAGE_URL
+    ).fixSnippet;
+    expect(snippet).toBe('<meta property="og:description" content="Resumen real">');
+  });
+
+  it("prellena og:url con la URL real rastreada, siempre disponible", () => {
+    const snippet = extractSocialPreview(
+      doc(`<meta property="og:title" content="T">
+           <meta property="og:description" content="D">
+           <meta property="og:type" content="website">
+           <meta name="twitter:card" content="summary">`),
+      PAGE_URL
+    ).fixSnippet;
+    expect(snippet).toBe(`<meta property="og:url" content="${PAGE_URL}">`);
+  });
+
+  it("prellena og:type con el default técnico website", () => {
+    const snippet = extractSocialPreview(
+      doc(`<meta property="og:title" content="T">
+           <meta property="og:description" content="D">
+           <meta property="og:url" content="u">
+           <meta name="twitter:card" content="summary">`),
+      PAGE_URL
+    ).fixSnippet;
+    expect(snippet).toBe('<meta property="og:type" content="website">');
+  });
+
+  it("propone twitter:card summary_large_image sólo cuando hay og:image", () => {
+    const head = (extra: string) => `<meta property="og:title" content="T">
+      <meta property="og:description" content="D">
+      <meta property="og:url" content="u">
+      <meta property="og:type" content="website">${extra}`;
+
+    expect(extractSocialPreview(doc(head("")), PAGE_URL).fixSnippet).toBe(
+      '<meta name="twitter:card" content="summary">'
+    );
+    expect(
+      extractSocialPreview(
+        doc(head(`<meta property="og:image" content="https://cdn.test/a.png">`)),
+        PAGE_URL
+      ).fixSnippet
+    ).toBe('<meta name="twitter:card" content="summary_large_image">');
+  });
+
+  it("repone twitter:card cuando el valor declarado no está admitido", () => {
+    const snippet = extractSocialPreview(
+      doc(`<meta property="og:title" content="T">
+           <meta property="og:description" content="D">
+           <meta property="og:url" content="u">
+           <meta property="og:type" content="website">
+           <meta name="twitter:card" content="photo">`),
+      PAGE_URL
+    ).fixSnippet;
+    expect(snippet).toBe('<meta name="twitter:card" content="summary">');
+  });
+
+  it("emite las 5 líneas en orden fijo cuando no hay ninguna etiqueta declarada", () => {
+    const snippet = extractSocialPreview(
+      doc(`<title>T real</title><meta name="description" content="D real">`),
+      PAGE_URL
+    ).fixSnippet;
+    expect(snippet).toBe(
+      [
+        '<meta property="og:title" content="T real">',
+        '<meta property="og:description" content="D real">',
+        `<meta property="og:url" content="${PAGE_URL}">`,
+        '<meta property="og:type" content="website">',
+        '<meta name="twitter:card" content="summary">',
+      ].join("\n")
+    );
+  });
+
+  it("nunca propone og:image, ni siquiera cuando falta por completo", () => {
+    const snippet = extractSocialPreview(doc(`<title>T</title>`), PAGE_URL).fixSnippet;
+    expect(snippet).not.toContain("og:image");
+  });
+
+  it("escapa el contenido hostil del sitio auditado dentro del snippet (T-32-11)", () => {
+    const snippet = extractSocialPreview(
+      doc(`<title>A &amp; B "C"</title>`),
+      PAGE_URL
+    ).fixSnippet;
+    expect(snippet).toContain('content="A &amp; B &quot;C&quot;">');
+  });
+});
