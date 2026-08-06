@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Meta Tags / Social
-current_phase: 32
-current_phase_name: panel-de-preview-social-snippets-de-fix
-status: verifying
-stopped_at: verification_deferred_human — 7 items UAT diferidos por Juan (2026-08-06)
-last_updated: "2026-08-06T14:10:00Z"
+status: Awaiting next milestone
+stopped_at: context exhaustion at 100% (2026-08-05)
+last_updated: "2026-08-06T21:59:59.271Z"
 last_activity: 2026-08-06
-last_activity_desc: Phase 32 code review (3 iteraciones auto-fix) + verify — 4/4 must-haves, human_needed diferido
+last_activity_desc: Milestone 1.6 completed and archived
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 22
   completed_plans: 21
   percent: 80
+current_phase: 32
+current_phase_name: panel-de-preview-social-snippets-de-fix
 ---
 
 # Project State
@@ -28,12 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
 
 ## Current Position
 
-Phase: 32 (panel-de-preview-social-snippets-de-fix) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-08-05 — Phase 32 execution started
-
-Progress: [██████████] 95%
+Phase: Milestone 1.6 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-06 — Milestone 1.6 completed and archived
 
 ## Deferred Verification
 
@@ -199,6 +197,17 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 | v2 | Deploy a producción (Vercel/Railway/Resend/GDPR), monetización, RENDER-04/05, EXPORT-06, REPORT-05, Domain Rating, FPRINT-10..14, CMSFIX-06/07 | not started | v1.4 close (2026-07-10) / v1.5 REQUIREMENTS.md |
 | v1.6.x/v1.7 | SOCIAL-10..12 (previews WhatsApp/Discord/Slack/Telegram, og:image default compartida, alt de imágenes sociales), CMSFIX-08 (snippets por CMS vía cms-adapters), IMG-05 (favicon alcanzable) | not started | v1.6 REQUIREMENTS.md (2026-07-31) |
 
+Items acknowledged and deferred at milestone close (v1.6, 2026-08-06) — `closeout_type=override_closeout`:
+
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| debug | knowledge-base | unknown — sin hypothesis registrada, requiere retomar sesión de debug para diagnosticar | v1.6 close (2026-08-06) |
+| uat_gap | Phase 29 — 29-UAT.md | testing — 5 escenarios pendientes | v1.6 close (2026-08-06) |
+| uat_gap | Phase 30 — 30-UAT.md | testing — 3 escenarios pendientes | v1.6 close (2026-08-06) |
+| uat_gap | Phase 32 — 32-UAT.md | testing — 7 escenarios pendientes (ver fila Fase 32 en Deferred Verification arriba) | v1.6 close (2026-08-06) |
+| verification_gap | Phase 32 — 32-VERIFICATION.md | human_needed — 4/4 must-haves verificados por código, 0 gaps (ver Deferred Verification arriba) | v1.6 close (2026-08-06) |
+| verification_gap | Phase 28 — sin 28-VERIFICATION.md | nunca corrió; código de PAGEPERF-01..03 completo y testeado, falta Task 3 (smoke test + thresholds FA-1/FA-2) | v1.6 close (2026-08-06) — ya documentado arriba en Deferred Verification desde sesión previa |
+
 ## Notas de ejecución (convenciones del proyecto, persisten entre milestones)
 
 - Cada fase: smart discuss (AskUserQuestion con grey areas batch) → planner (gsd-planner) → plan-checker (gsd-plan-checker) → executor(es) secuenciales en main tree → code-review (gsd-code-reviewer) + verify (gsd-verifier) en paralelo → fix warnings inline → commit.
@@ -216,5 +225,4 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Revisar y aprobar el roadmap v1.6 (`.planning/ROADMAP.md`).
-- Planear Phase 28 con `/gsd-plan-phase 28`.
+- Start the next milestone with /gsd-new-milestone

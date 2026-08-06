@@ -1,5 +1,33 @@
 # Project Milestones: Auditor Web (SEO/Técnico) — Lead Magnet para juan-tech.com
 
+## v1.6 Meta Tags / Social (Shipped: 2026-08-06)
+
+**Delivered:** Sexta categoría de score "Meta Tags / Social" con 8 checks nuevos de Open Graph/Twitter Card/charset por página, validación de `og:image` con fetcher dedupeado y defensa SSRF propia, métricas de performance por página (response time/HTML size), y panel visual de preview social en el reporte (Google/Facebook/LinkedIn/X) con snippets HTML de fix copiables.
+
+**Phases completed:** 5 phases, 22 plans, 42 tasks
+
+**Key accomplishments:**
+
+- Sexta categoría `social` (peso .10) en el modelo de scoring, rebalanceando on-page (.15→.10) y datos estructurados (.10→.05), con retiro limpio de `ONPAGE-05` (redundante) sin migración de datos y sin duplicar issues.
+- Paquete puro `@auditor/meta-social` (única dep de runtime `cheerio`, desacoplado de `@auditor/db`/`@auditor/checks`) con 8 checks nuevos de Open Graph/Twitter Card/charset, cero colisión de fingerprint con el check retirado.
+- Validación de `og:image` (IMG-01..04): fetcher dedupeado por URL con una sola petición con rango (nunca más de 64 KiB), defensa SSRF propia (destino no verificable se reporta como tal, nunca como "roto"), emisión por página afectada.
+- Response time + HTML size instrumentados en el crawl sin requests extra, con umbrales de severidad — código completo y testeado, verificación humana del smoke-test diferida.
+- Panel de preview social en el reporte (Google/SERP, Facebook/LinkedIn, X) con proxy server-side de imágenes (reusa la defensa SSRF de og:image) y snippets HTML de fix prellenados con valores reales, accesibles por teclado y copiables.
+- Defensa SSRF endurecida post-cierre de Phase 31 tras una segunda pasada de code review independiente (DNS rebinding + redirección sin revalidar), y el mismo patrón de code review adversarial (3 iteraciones de auto-fix) atrapó un bug real de atribución de imagen (`imageStatus`) en Phase 32.
+
+**Stats:**
+
+- 5 fases, 22 plans, 42 tasks; paquete nuevo `@auditor/meta-social`
+- Requisitos: 21/24 con verificación formal `passed`; 3/24 (PAGEPERF-01..03) con código completo/testeado y verificación humana diferida
+- Integración cross-fase: 0 blockers, 1 warning no bloqueante (`gsd-integration-checker`)
+- 2 checkpoints de UAT quedan diferidos al cierre (Fase 28, Fase 32) — ver `.planning/STATE.md` → Deferred Verification
+
+**Milestone audit:** GAPS_FOUND (no-blocking — 2 fases con verificación humana diferida, 0 blockers de integración) — ver `.planning/milestones/v1.6-MILESTONE-AUDIT.md`
+
+**What's next:** Resolver los 2 checkpoints diferidos (`/gsd-verify-work 28`, `/gsd-verify-work 32`) cuando haya acceso real a `shared-postgres`; definir próximo milestone (`/gsd-new-milestone`).
+
+---
+
 ## v1.5 Fingerprinting técnico + fixes personalizados por CMS (Shipped: 2026-07-25)
 
 **Phases completed:** 3 phases, 12 plans, 19 tasks
