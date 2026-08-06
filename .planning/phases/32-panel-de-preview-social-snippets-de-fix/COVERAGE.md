@@ -1,1 +1,0 @@
-No external API integration: this phase renders social preview UI and copy-fix snippets from data already produced by phases 30/31; the same-origin image proxy is not a third-party API client integration.
