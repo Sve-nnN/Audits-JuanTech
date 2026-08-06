@@ -5,10 +5,10 @@ milestone_name: Meta Tags / Social
 current_phase: 32
 current_phase_name: panel-de-preview-social-snippets-de-fix
 status: verifying
-stopped_at: Completed 32-04-PLAN.md
-last_updated: "2026-08-05T17:15:47.179Z"
-last_activity: 2026-08-05
-last_activity_desc: Phase 32 execution started
+stopped_at: verification_deferred_human — 7 items UAT diferidos por Juan (2026-08-06)
+last_updated: "2026-08-06T14:10:00Z"
+last_activity: 2026-08-06
+last_activity_desc: Phase 32 code review (3 iteraciones auto-fix) + verify — 4/4 must-haves, human_needed diferido
 progress:
   total_phases: 5
   completed_phases: 4
@@ -40,6 +40,7 @@ Progress: [██████████] 95%
 | Phase | State | Resume |
 |-------|-------|--------|
 | 28 | verification_deferred_human — falta Task 3 de `28-03-PLAN.md` (smoke test de re-crawl real contra un sitio ya auditado + decisión de Juan sobre FA-1/FA-2, umbrales de PAGEPERF-03) | `/gsd-execute-phase 28` (retoma wave 3; Task 1 y Task 2 ya están completas — Task 2, aplicar el schema a Postgres, se hizo manualmente el 2026-08-01 vía `ALTER TABLE` directo con superusuario sobre `shared-postgres`/`auditor`, mismo resultado que `prisma db push`) |
+| 32 | verification_deferred_human — 4/4 must-haves verificados con evidencia de código real (`32-VERIFICATION.md`), code review limpio (0 critical/0 warning tras 3 iteraciones de auto-fix: CR-01 imageStatus mal reusado en twitterImage, WR-01 cap de 500 chars faltante + su interacción con CR-01, WR-02 try/catch faltante en el proxy — WR-03 allowlist de origin exacto queda intacto, decisión de producto ya bloqueada en `32-CONTEXT.md`). Quedan 7 ítems de verificación humana (visual/red real + 3 backstops geométricos) listados en `32-UAT.md`, diferidos por Juan porque este sandbox no resuelve `shared-postgres` (sin acceso a datos reales para probar contra el dev server). | `/gsd-verify-work 32` |
 
 ## Milestone v1.6 — Phases
 
@@ -209,8 +210,8 @@ Items acknowledged and carried forward from previous milestone close (v1.4, 2026
 
 ## Session Continuity
 
-Last session: 2026-08-05T17:15:47.170Z
-Stopped at: Completed 32-04-PLAN.md
+Last session: 2026-08-05T17:40:32.421Z
+Stopped at: context exhaustion at 100% (2026-08-05)
 Resume file: None
 
 ## Operator Next Steps
