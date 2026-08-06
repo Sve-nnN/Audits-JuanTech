@@ -118,6 +118,47 @@ Motor de fingerprint propio (`@auditor/fingerprint`, única dep runtime `cheerio
 - 3 fases entregadas en 5 días calendario (2026-07-21 → 2026-07-25), con una interrupción/reconciliación de sesión en Phase 27.
 - Notable: 2 pausas explícitas para decisión humana (validar copy, decidir revisar rutas de menú) — ambas resueltas en la misma sesión, sin diferir a una corrida separada.
 
+## Milestone: v1.6 — Meta Tags / Social
+
+**Shipped:** 2026-08-06
+**Phases:** 5 (28-32) | **Plans:** 22
+
+### What Was Built
+
+Sexta categoría de score "Meta Tags / Social" (peso .10, rebalanceando on-page y datos estructurados) con 8 checks nuevos de Open Graph/Twitter Card/charset (`@auditor/meta-social`, motor puro desacoplado, mismo patrón que fingerprint/cms-adapters), validación de `og:image` con fetcher dedupeado y defensa SSRF propia (reusa/endurece la de Phase 31), instrumentación de response time/HTML size por página en el crawl, y un panel visual de preview social en el reporte (Google/Facebook/LinkedIn/X) con proxy server-side de imágenes (allowlist de origin exacto) y snippets HTML de fix prellenados con valores reales, accesibles/copiables.
+
+### What Worked
+
+- Secuenciar Scoring (Phase 29) *antes* de los checks nuevos (Phase 30) evitó escribir 8 checks contra un modelo que todavía podía cambiar.
+- El chain code-review → auto-fix → re-review (3 iteraciones, capado) atrapó un bug real de atribución de imagen (`imageStatus` de `og:image` reusado ciegamente para `twitter:image`) y, en la segunda vuelta, un efecto colateral genuino de la propia corrección (comparación de URLs post-truncado) — ninguno de los dos lo hubiera cazado una sola pasada de review.
+- Reusar la defensa SSRF de Phase 31 verbatim (subpath dedicado `packages/checks/src/network.ts`, no el barrel) en el proxy de imágenes de Phase 32 evitó reimplementar una superficie de seguridad ya endurecida.
+- El integration checker de cierre de milestone confirmó en una sola pasada que la incompletitud de Phase 28 (Task 3 sin correr) no sangraba a ninguna fase downstream — permitió cerrar con confianza en vez de re-verificar manualmente cada consumidor.
+
+### What Was Inefficient
+
+- La sesión que ejecutó Phase 32 se cortó por agotamiento de contexto justo después del último plan (32-04), antes de correr code-review/verify — igual que el patrón ya visto en v1.5 Phase 27. Sigue siendo el punto de corte más común y más costoso de reconciliar.
+- El sandbox donde corrió el cierre de milestone no resuelve `shared-postgres` (DNS), así que no se pudo browser-test contra datos reales — los 7 ítems de verificación visual/de red de Phase 32 y el smoke-test de Phase 28 quedaron genuinamente diferidos (no reconstruidos retroactivamente como en v1.4), lo cual es más honesto pero deja más trabajo pendiente post-cierre.
+- El primer intento de spawnear los agentes de code-review/verify falló por límite de sesión/cuota de API a mitad de ejecución — el retry funcionó sin pérdida de trabajo (no había artefactos parciales que reconciliar), pero es la segunda vez que un límite de cuota interrumpe una corrida autónoma larga (ver v1.5).
+- `gsd-tools milestone.complete` archivó con el prefijo de versión sin `v` (`1.6-ROADMAP.md` en vez de `v1.6-ROADMAP.md`) porque se le pasó `"1.6"` en vez de `"v1.6"` — inconsistente con el resto de `.planning/milestones/`; se corrigió a mano antes de comitear. Pasar siempre el argumento de versión con el prefijo `v` completo.
+
+### Patterns Established
+
+- Auto-fix loop de code review (fix → re-review independiente → fix si hace falta, capado a 3 iteraciones) como práctica estándar para hallazgos critical/warning antes de marcar una fase verificada — no confiar en que la primera corrección sea completa, especialmente cuando toca lógica de comparación/igualdad.
+- Decisiones de seguridad "no es un bug" (ej. WR-03: allowlist de origin exacto sin excepciones) se dejan explícitamente sin tocar por el auto-fix y quedan documentadas para sign-off humano — el fixer no debe reinterpretar una decisión de producto ya bloqueada en el CONTEXT.md de la fase.
+- Verificación humana genuinamente diferida (UAT.md con items pendientes + fila en `STATE.md` → Deferred Verification) es preferible a inventar una confirmación retroactiva cuando no hay forma real de probar contra datos/entorno reales — más honesto, aunque dependa de una sesión posterior con acceso real.
+
+### Key Lessons
+
+- Cuando `/gsd-autonomous` corre en un entorno sin acceso a la infraestructura real (DB/red interna), la verificación humana de UI/red debe quedar explícitamente diferida, no simulada ni omitida — decírselo al usuario y dejarlo registrado es mejor que fingir cobertura.
+- Un fallo de cuota/límite de sesión a mitad de un Agent() no implica pérdida de trabajo si el agente no había escrito su artefacto de salida todavía — reintentar el mismo spawn es seguro; el riesgo real está en fallos *después* de que el artefacto ya se escribió pero antes del commit.
+- Pasar siempre la versión completa con prefijo (`v1.6`, no `1.6`) a comandos de `gsd-tools` que la usan para nombrar archivos — un desajuste de convención en el nombre de archivo no rompe nada funcionalmente pero ensucia el archivo histórico si no se revisa a mano.
+
+### Cost Observations
+
+- Modo GSD: YOLO, granularidad standard.
+- 5 fases entregadas entre 2026-08-01 y 2026-08-06 (con retoma de Phase 32 y cierre de milestone en una sesión separada tras agotamiento de contexto), más un retry de agentes por límite de cuota.
+- Notable: el chain de auto-fix (3 iteraciones de review + fix) sobre una sola fase (32) costó más tokens de subagente que las 3 fases previas combinadas (29-31) — pero cazó 2 bugs reales que una verificación de una sola pasada no hubiera encontrado.
+
 ## Cross-Milestone Trends
 
 | Milestone | Phases | Plans | Shipped | Nota |
@@ -126,9 +167,12 @@ Motor de fingerprint propio (`@auditor/fingerprint`, única dep runtime `cheerio
 | v1.1 UI/UX | 3 | 19 | 2026-07-06 | UI-only, 31/31 req, pipeline v1.0 intacto |
 | v1.4 Visualización avanzada + resolución URL | 4 | 10 | 2026-07-10 | 7/7 req, audit inicial gaps_found (proceso, no funcional) resuelto por confirmación retroactiva |
 | v1.5 Fingerprinting técnico + fixes por CMS | 3 | 12 | 2026-07-25 | 18/18 req, audit `passed`, integración 10/10 wired, primer `SECURITY.md` del proyecto |
+| v1.6 Meta Tags / Social | 5 | 22 | 2026-08-06 | 21/24 req `passed`, audit `gaps_found` (2 fases con UAT genuinamente diferido, 0 blockers de integración), auto-fix loop cazó 2 bugs reales |
 
 **Tendencias:**
 - Verificación con datos reales (juan-tech.com) sigue siendo la que caza los bugs de mayor impacto.
 - Separar milestones por naturaleza (pipeline vs UI) mantuvo el blast radius chico y el audit limpio.
-- Los checkpoints `human-verify` necesitan cerrarse con un artefacto escrito en el momento de la aprobación — de lo contrario el milestone-audit los marca como gap y hay que reconstruir la aprobación retroactivamente al cerrar (visto en v1.4, Fases 21/22; evitado en v1.5 cerrando en el momento).
+- Los checkpoints `human-verify` necesitan cerrarse con un artefacto escrito en el momento de la aprobación — de lo contrario el milestone-audit los marca como gap y hay que reconstruir la aprobación retroactivamente al cerrar (visto en v1.4, Fases 21/22; evitado en v1.5 cerrando en el momento; en v1.6 quedó genuinamente diferido en vez de reconstruido porque no había acceso real a datos).
 - Copy de UI de terceros se desactualiza entre el research y el cierre de fase — verificar contra documentación oficial vigente al momento de la validación humana, no solo confiar en el research inicial (v1.5, Phase 27).
+- La última fase de un milestone es la que más frecuentemente se corta por agotamiento de contexto justo antes de code-review/verify (v1.5 Phase 27, v1.6 Phase 32) — patrón recurrente a tener presente al planear la última fase de un milestone (dejarla más chica, o presupuestar una sesión de retoma).
+- El auto-fix loop (review → fix → re-review, capado a 3 iteraciones) paga su costo extra de tokens cuando encuentra bugs reales de segunda orden (efectos colaterales del propio fix) que una sola pasada de review no vería (v1.6, Phase 32).
