@@ -117,7 +117,12 @@ export function extractSocialPreview(
 
   const title = cap(ogTitle ?? nativeTitle);
   const description = cap(ogDescription ?? nativeDescription);
-  const ogImage = firstValue(data, "og:image") ?? null;
+  // WR-01: `og:image`/`twitter:image`/`twitter:card` son valores de atributo
+  // `content="..."` tan site-controlled como title/description, con la misma
+  // ausencia de límite de longitud en el HTML fuente — el mismo `cap()`
+  // defensivo (T-32-02) aplica acá para que ninguno de los dos bloat el
+  // payload RSC ni se eco verbatim en el query string de `PreviewImage`.
+  const ogImage = cap(firstValue(data, "og:image") ?? null);
   const twitterCard = firstValue(data, "twitter:card");
 
   const base = {
@@ -130,14 +135,14 @@ export function extractSocialPreview(
     ogImage,
     ogUrlDeclared: firstValue(data, "og:url") !== undefined,
     ogTypeDeclared: firstValue(data, "og:type") !== undefined,
-    twitterCardDeclared: twitterCard ?? null,
+    twitterCardDeclared: cap(twitterCard ?? null),
     twitterCardVariant: resolveTwitterCardVariant(twitterCard),
     // Misma regla de respaldo OG→Twitter que ya codifica SOCIAL-07
     // (`twitterCard.ts`): X recurre a Open Graph cuando falta su etiqueta, y
     // reescribirla distinto acá haría que el panel y el issue se contradigan.
     twitterTitle: cap(firstValue(data, "twitter:title") ?? null) ?? title,
     twitterDescription: cap(firstValue(data, "twitter:description") ?? null) ?? description,
-    twitterImage: firstValue(data, "twitter:image") ?? ogImage,
+    twitterImage: cap(firstValue(data, "twitter:image") ?? null) ?? ogImage,
   };
 
   return { ...base, fixSnippet: buildFixSnippet(collectFixFields(base)) };

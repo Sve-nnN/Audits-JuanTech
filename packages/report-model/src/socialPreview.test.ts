@@ -158,6 +158,36 @@ describe("extractSocialPreview", () => {
     expect(result.title).toHaveLength(500);
     expect(result.description).toHaveLength(500);
   });
+
+  // WR-01: og:image/twitter:image/twitter:card son igual de site-controlled
+  // que title/description y no traían el mismo cap defensivo (T-32-02).
+  it("trunca a 500 caracteres og:image, twitter:image y twitter:card desmedidos", () => {
+    const longUrl = "https://cdn.test/" + "a".repeat(900);
+    const longCard = "b".repeat(900);
+    const result = extractSocialPreview(
+      doc(
+        `<meta property="og:image" content="${longUrl}">
+         <meta name="twitter:image" content="${longUrl}">
+         <meta name="twitter:card" content="${longCard}">`
+      ),
+      PAGE_URL
+    );
+    expect(result.ogImage).toHaveLength(500);
+    expect(result.twitterImage).toHaveLength(500);
+    expect(result.twitterCardDeclared).toHaveLength(500);
+  });
+
+  it("no trunca og:image/twitter:image/twitter:card dentro del límite", () => {
+    const result = extractSocialPreview(
+      doc(
+        `<meta property="og:image" content="https://cdn.test/og.png">
+         <meta name="twitter:card" content="summary_large_image">`
+      ),
+      PAGE_URL
+    );
+    expect(result.ogImage).toBe("https://cdn.test/og.png");
+    expect(result.twitterCardDeclared).toBe("summary_large_image");
+  });
 });
 
 /** Head con las 5 etiquetas candidatas del snippet declaradas y admitidas. */
