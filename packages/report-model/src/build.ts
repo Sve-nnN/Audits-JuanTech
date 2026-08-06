@@ -350,8 +350,16 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
         extracted.ogImage,
         imgIssuesByPage.get(page.id) ?? []
       );
+      // WR-01 (iteration 2): `twitterImageSameAsOgImage` is resolved in
+      // socialPreview.ts from the RAW (uncapped) URLs — comparing the
+      // already-capped `extracted.twitterImage`/`extracted.ogImage` here
+      // would let two genuinely different URLs over 500 chars that share an
+      // identical 500-char prefix collapse to "equal". It is stripped out of
+      // `extractedForModel` so it never reaches the public SocialPreviewData
+      // shape sent to the client.
+      const { twitterImageSameAsOgImage, ...extractedForModel } = extracted;
       entries[page.id] = {
-        ...extracted,
+        ...extractedForModel,
         pageId: page.id,
         imageStatus,
         // CR-01: IMG-01 only network-checks `og:image`. Only carry its verdict
@@ -359,7 +367,7 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
         // an explicit, distinct `twitter:image` has no network check in this
         // phase, so it fails open to "ok" instead of inheriting a verdict
         // about a different URL (see `twitterImageStatus` doc in model.ts).
-        twitterImageStatus: extracted.twitterImage === extracted.ogImage ? imageStatus : "ok",
+        twitterImageStatus: twitterImageSameAsOgImage ? imageStatus : "ok",
       };
     }
     socialPreviews = entries;

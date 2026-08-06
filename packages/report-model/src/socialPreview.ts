@@ -105,7 +105,20 @@ function hostnameOf(pageUrl: string): string {
 export function extractSocialPreview(
   html: string,
   pageUrl: string
-): Omit<SocialPreviewData, "pageId" | "imageStatus" | "twitterImageStatus"> {
+): Omit<SocialPreviewData, "pageId" | "imageStatus" | "twitterImageStatus"> & {
+  /**
+   * Raw (uncapped) URL-equality signal (WR-01, iteration 2 fix). `build.ts`
+   * uses this — not a comparison of the already-capped `ogImage`/
+   * `twitterImage` strings — to decide whether `twitterImageStatus` may
+   * inherit `imageStatus` (IMG-01's `og:image` verdict). Comparing the
+   * capped values would let two genuinely different image URLs longer than
+   * `PREVIEW_TEXT_MAX_CHARS` that share an identical first-500-char prefix
+   * (a real pattern for signed CDN URLs) collapse to "equal" and wrongly
+   * inherit each other's verdict. Not part of the public `SocialPreviewData`
+   * shape; `build.ts` strips it before constructing the final entry.
+   */
+  twitterImageSameAsOgImage: boolean;
+} {
   const $ = cheerio.load(html);
   const data = extractMetaSocial($);
 
@@ -122,8 +135,14 @@ export function extractSocialPreview(
   // ausencia de límite de longitud en el HTML fuente — el mismo `cap()`
   // defensivo (T-32-02) aplica acá para que ninguno de los dos bloat el
   // payload RSC ni se eco verbatim en el query string de `PreviewImage`.
-  const ogImage = cap(firstValue(data, "og:image") ?? null);
+  const rawOgImage = firstValue(data, "og:image") ?? null;
+  const ogImage = cap(rawOgImage);
   const twitterCard = firstValue(data, "twitter:card");
+  // WR-01 (iteration 2): resolve the "twitter:image falls back to og:image"
+  // rule on the RAW, uncapped strings, and derive the equality signal from
+  // those same raw strings — never from the capped `ogImage`/`twitterImage`
+  // below, which only exist for display/storage.
+  const rawTwitterImage = firstValue(data, "twitter:image") ?? rawOgImage;
 
   const base = {
     pageUrl,
@@ -142,7 +161,8 @@ export function extractSocialPreview(
     // reescribirla distinto acá haría que el panel y el issue se contradigan.
     twitterTitle: cap(firstValue(data, "twitter:title") ?? null) ?? title,
     twitterDescription: cap(firstValue(data, "twitter:description") ?? null) ?? description,
-    twitterImage: cap(firstValue(data, "twitter:image") ?? null) ?? ogImage,
+    twitterImage: cap(rawTwitterImage),
+    twitterImageSameAsOgImage: rawTwitterImage === rawOgImage,
   };
 
   return { ...base, fixSnippet: buildFixSnippet(collectFixFields(base)) };

@@ -177,6 +177,54 @@ describe("extractSocialPreview", () => {
     expect(result.twitterCardDeclared).toHaveLength(500);
   });
 
+  // WR-01 (iteration 2): dos URLs realmente distintas de más de 500
+  // caracteres que comparten el mismo prefijo de 500 caracteres (patrón
+  // típico de URLs firmadas de CDN) colapsan a la misma cadena una vez
+  // truncadas por cap(), pero NO deben marcarse como "la misma imagen": la
+  // señal `twitterImageSameAsOgImage` debe compararse sobre las URLs crudas,
+  // antes del truncado.
+  it("no confunde dos URLs distintas que comparten prefijo de 500 caracteres tras truncar", () => {
+    const sharedPrefix = "https://cdn.test/" + "a".repeat(490);
+    const ogUrl = `${sharedPrefix}-og.png`;
+    const twitterUrl = `${sharedPrefix}-tw.png`;
+    expect(ogUrl).not.toBe(twitterUrl);
+    expect(ogUrl.slice(0, 500)).toBe(twitterUrl.slice(0, 500)); // colapsan tras cap()
+
+    const result = extractSocialPreview(
+      doc(
+        `<meta property="og:image" content="${ogUrl}">
+         <meta name="twitter:image" content="${twitterUrl}">`
+      ),
+      PAGE_URL
+    );
+
+    // Las URLs mostradas/persistidas siguen truncadas e idénticas post-cap...
+    expect(result.ogImage).toBe(ogUrl.slice(0, 500));
+    expect(result.twitterImage).toBe(twitterUrl.slice(0, 500));
+    expect(result.ogImage).toBe(result.twitterImage);
+    // ...pero la señal de igualdad debe seguir viendo que son URLs distintas.
+    expect(result.twitterImageSameAsOgImage).toBe(false);
+  });
+
+  it("marca twitterImageSameAsOgImage true cuando twitter:image está ausente y hereda og:image", () => {
+    const result = extractSocialPreview(
+      doc(`<meta property="og:image" content="https://cdn.test/og.png">`),
+      PAGE_URL
+    );
+    expect(result.twitterImageSameAsOgImage).toBe(true);
+  });
+
+  it("marca twitterImageSameAsOgImage false cuando twitter:image declara una URL corta distinta", () => {
+    const result = extractSocialPreview(
+      doc(
+        `<meta property="og:image" content="https://cdn.test/og.png">
+         <meta name="twitter:image" content="https://cdn.test/x.png">`
+      ),
+      PAGE_URL
+    );
+    expect(result.twitterImageSameAsOgImage).toBe(false);
+  });
+
   it("no trunca og:image/twitter:image/twitter:card dentro del límite", () => {
     const result = extractSocialPreview(
       doc(

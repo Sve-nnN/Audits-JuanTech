@@ -428,6 +428,58 @@ describe("buildReportModel", () => {
     expect(preview.twitterImageStatus).toBe("unavailable");
   });
 
+  // WR-01 (iteration 2): og:image y twitter:image son dos URLs REALMENTE
+  // distintas de más de 500 caracteres que comparten el mismo prefijo de 500
+  // caracteres — post-cap() colapsan a la misma cadena, pero la comparación
+  // que decide la herencia de veredicto debe seguir viéndolas como distintas.
+  it("twitterImageStatus no hereda el veredicto de og:image roto cuando ambas URLs superan 500 caracteres y comparten prefijo truncado", async () => {
+    const socialIssue = makeIssue({
+      category: "social",
+      severity: "critical",
+      checkId: "SOCIAL-03",
+      pageId: "p-social",
+    });
+    const imgIssue = makeIssue({
+      category: "social",
+      severity: "critical",
+      checkId: "IMG-01",
+      pageId: "p-social",
+      fingerprint: "IMG-01:og-image-unreachable:https://example.com/post",
+    });
+
+    const sharedPrefix = "https://cdn.test/" + "a".repeat(490);
+    const ogUrl = `${sharedPrefix}-og.png`;
+    const twitterUrl = `${sharedPrefix}-tw.png`;
+    expect(ogUrl.slice(0, 500)).toBe(twitterUrl.slice(0, 500)); // colapsan tras cap()
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit() as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue, imgIssue] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue, imgIssue] as any);
+    pageFindMany.mockResolvedValueOnce([
+      {
+        id: "p-social",
+        url: "https://example.com/post",
+        finalUrl: null,
+        html: `<html><head><meta property="og:image" content="${ogUrl}"><meta name="twitter:image" content="${twitterUrl}"></head><body></body></html>`,
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any);
+
+    const model = await buildReportModel("audit-1");
+    const preview = model!.socialPreviews!["p-social"]!;
+    expect(preview.imageStatus).toBe("unavailable");
+    expect(preview.ogImage).toBe(preview.twitterImage); // ambas truncadas a 500, idénticas
+    // Falla abierto a "ok": son URLs distintas antes de truncar, aunque el
+    // valor mostrado/persistido coincida tras el cap() de 500 caracteres.
+    expect(preview.twitterImageStatus).toBe("ok");
+    // La señal interna cruda nunca debe llegar al modelo público.
+    expect(preview).not.toHaveProperty("twitterImageSameAsOgImage");
+  });
+
   it("returns null for a non-existent audit", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     auditFindUnique.mockResolvedValueOnce(null as any);
