@@ -9,26 +9,24 @@ last_activity: 2026-08-06
 last_activity_desc: Milestone 1.6 completed and archived
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 3
   total_plans: 22
   completed_plans: 21
-  percent: 80
-current_phase: 32
-current_phase_name: panel-de-preview-social-snippets-de-fix
+  percent: 95
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-31 — Milestone v1.6 iniciado)
+See: .planning/PROJECT.md (updated 2026-08-06 — v1.6 shipped, planeando próximo milestone)
 
 **Core value:** Cualquier persona ingresa una URL y recibe una auditoría completa, precisa y accionable de su web (errores reales priorizados por severidad), a cambio de su email verificado.
-**Current focus:** Phase 32 — panel-de-preview-social-snippets-de-fix
+**Current focus:** Sin milestone activo — próximo milestone por definir (`/gsd-new-milestone`)
 
 ## Current Position
 
-Phase: Milestone 1.6 complete
+Phase: — (v1.6 archivado)
 Plan: —
 Status: Awaiting next milestone
 Last activity: 2026-08-06 — Milestone 1.6 completed and archived
