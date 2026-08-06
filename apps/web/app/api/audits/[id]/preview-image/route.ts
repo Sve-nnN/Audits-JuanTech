@@ -165,7 +165,21 @@ export async function GET(
   const verdict = await assertPublicDestination(target.toString());
   if (!verdict.ok) return DENIED();
 
-  const outcome = await fetchImage(target.toString(), verdict.addresses);
+  // WR-02: `fetchImage`'s per-hop loop only wraps the `fetch()` call itself in
+  // a `try/catch` — `pinnedDispatcher(addresses)` (called before that inner
+  // try) and `dispatcher.destroy()` (in the `finally`) are NOT covered. Nothing
+  // in either throws today, but if a future change introduced a throw there,
+  // it would propagate out of `fetchImage` uncaught and let Next.js's default
+  // error handling take over instead of this route's generic-response
+  // contract (T-32-09: no rejection branch may say why it rejected). This
+  // top-level catch is defense-in-depth: it guarantees every exception from
+  // `fetchImage`, not just `fetch`'s, degrades to the same generic 404.
+  let outcome: FetchOutcome;
+  try {
+    outcome = await fetchImage(target.toString(), verdict.addresses);
+  } catch {
+    return NOT_FOUND();
+  }
   if (outcome.kind === "denied") return DENIED();
   if (outcome.kind === "failed") return NOT_FOUND();
 

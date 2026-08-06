@@ -23,12 +23,17 @@ vi.mock("@auditor/checks/network", async (importOriginal) => ({
 }));
 
 import { prisma } from "@auditor/db";
-import { assertPublicDestination, resolveRedirect } from "@auditor/checks/network";
+import {
+  assertPublicDestination,
+  resolveRedirect,
+  pinnedDispatcher,
+} from "@auditor/checks/network";
 import { GET } from "../../../../../../app/api/audits/[id]/preview-image/route";
 
 const findUnique = vi.mocked(prisma.audit.findUnique);
 const mockedAssert = vi.mocked(assertPublicDestination);
 const mockedResolveRedirect = vi.mocked(resolveRedirect);
+const mockedPinnedDispatcher = vi.mocked(pinnedDispatcher);
 
 const SITE = "https://example.com";
 const IMAGE_URL = `${SITE}/og.jpg`;
@@ -197,5 +202,25 @@ describe("GET /api/audits/[id]/preview-image", () => {
 
     expect(res.status).toBe(404);
     expect(await res.text()).toBe("");
+  });
+
+  // WR-02: cualquier excepción que escape de `fetchImage` — no sólo la de
+  // `fetch()` — debe degradar al mismo 404 genérico sin cuerpo, nunca
+  // propagar y dejar que el manejo de errores por defecto de Next.js tome el
+  // control (T-32-09). `pinnedDispatcher` se llama fuera del `try/catch`
+  // interno del loop de saltos, así que un throw suyo es el caso que
+  // ejercita el catch-all de nivel superior.
+  it("responde 404 genérico cuando pinnedDispatcher lanza fuera del try/catch interno", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    mockedPinnedDispatcher.mockImplementationOnce(() => {
+      throw new Error("fallo inesperado del dispatcher");
+    });
+
+    const res = await call(`?url=${encodeURIComponent(IMAGE_URL)}`);
+
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe("");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
