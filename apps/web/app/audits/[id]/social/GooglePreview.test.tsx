@@ -27,6 +27,7 @@ function makePreview(over: Partial<SocialPreviewData> = {}): SocialPreviewData {
     twitterTitle: null,
     twitterDescription: null,
     twitterImage: null,
+    twitterImageStatus: "none",
     fixSnippet: null,
     ...over,
   };

@@ -30,6 +30,7 @@ function makePreview(over: Partial<SocialPreviewData> = {}): SocialPreviewData {
     twitterTitle: "Título para X",
     twitterDescription: "Descripción para X.",
     twitterImage: TWITTER_IMAGE,
+    twitterImageStatus: "ok",
     fixSnippet: null,
     ...over,
   };
@@ -57,6 +58,53 @@ describe("XPreview", () => {
     const img = container.querySelector("img");
     expect(img?.getAttribute("src")).toBe(srcFor(TWITTER_IMAGE));
     expect(img?.getAttribute("src")).not.toBe(srcFor(OG_IMAGE));
+  });
+
+  /**
+   * CR-01: IMG-01 sólo prueba `og:image` por red; cuando `twitter:image` es una
+   * URL DISTINTA, su propio veredicto (`twitterImageStatus`) manda, nunca el de
+   * `og:image` (`imageStatus`). og:image roto no debe bloquear un
+   * twitter:image válido y jamás intentado.
+   */
+  it("con og:image roto pero twitterImage distinto y OK, sí intenta cargar la imagen (ambas variantes)", () => {
+    const wide = render(
+      <XPreview
+        data={makePreview({ imageStatus: "unavailable", twitterImageStatus: "ok" })}
+        auditId="a1"
+      />,
+    );
+    expect(wide.container.querySelector("img")?.getAttribute("src")).toBe(srcFor(TWITTER_IMAGE));
+    expect(screen.queryByText("Imagen no disponible")).not.toBeInTheDocument();
+    wide.unmount();
+
+    render(
+      <XPreview
+        data={makePreview({
+          imageStatus: "unavailable",
+          twitterImageStatus: "ok",
+          twitterCardDeclared: "summary",
+          twitterCardVariant: "summary",
+        })}
+        auditId="a1"
+      />,
+    );
+    expect(screen.queryByText("Imagen no disponible")).not.toBeInTheDocument();
+  });
+
+  /**
+   * CR-01, caso inverso: og:image está OK pero el twitter:image propio está
+   * marcado no disponible — el placeholder debe respetar SU verdicto, no el de
+   * og:image.
+   */
+  it("con og:image OK pero twitterImage propio no disponible, muestra el placeholder", () => {
+    const { container } = render(
+      <XPreview
+        data={makePreview({ imageStatus: "ok", twitterImageStatus: "unavailable" })}
+        auditId="a1"
+      />,
+    );
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("Imagen no disponible")).toBeInTheDocument();
   });
 
   it('con twitterCardVariant="summary" usa el layout horizontal con imagen 1:1', () => {

@@ -346,10 +346,20 @@ export async function buildReportModel(auditId: string): Promise<ReportModel | n
     const entries: Record<string, SocialPreviewData> = {};
     for (const page of socialPagesRaw as unknown as SocialPageRow[]) {
       const extracted = extractSocialPreview(page.html ?? "", page.finalUrl ?? page.url);
+      const imageStatus = resolveImageStatus(
+        extracted.ogImage,
+        imgIssuesByPage.get(page.id) ?? []
+      );
       entries[page.id] = {
         ...extracted,
         pageId: page.id,
-        imageStatus: resolveImageStatus(extracted.ogImage, imgIssuesByPage.get(page.id) ?? []),
+        imageStatus,
+        // CR-01: IMG-01 only network-checks `og:image`. Only carry its verdict
+        // over to `twitterImage` when it's literally the same declared URL —
+        // an explicit, distinct `twitter:image` has no network check in this
+        // phase, so it fails open to "ok" instead of inheriting a verdict
+        // about a different URL (see `twitterImageStatus` doc in model.ts).
+        twitterImageStatus: extracted.twitterImage === extracted.ogImage ? imageStatus : "ok",
       };
     }
     socialPreviews = entries;

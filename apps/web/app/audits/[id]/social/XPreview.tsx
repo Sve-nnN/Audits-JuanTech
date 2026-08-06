@@ -38,7 +38,9 @@ export function XPreview({ data, auditId }: XPreviewProps) {
       <SocialCardLayout
         auditId={auditId}
         image={data.twitterImage}
-        imageStatus={data.imageStatus}
+        // CR-01: `twitterImage` puede ser una URL distinta de `og:image` — usar
+        // su propio veredicto, no el de `og:image` (`data.imageStatus`).
+        imageStatus={data.twitterImageStatus}
         {...text}
       />
     );
@@ -50,7 +52,8 @@ export function XPreview({ data, auditId }: XPreviewProps) {
         <PreviewImage
           auditId={auditId}
           ogImage={data.twitterImage}
-          imageStatus={data.imageStatus}
+          // CR-01: ídem — el veredicto de `twitterImage`, no el de `og:image`.
+          imageStatus={data.twitterImageStatus}
           aspectRatio="1 / 1"
         />
       </div>

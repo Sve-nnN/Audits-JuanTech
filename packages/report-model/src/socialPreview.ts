@@ -52,7 +52,7 @@ function resolveTwitterCardVariant(
  * declaración de encoding sensible a la posición.
  */
 function collectFixFields(
-  data: Omit<SocialPreviewData, "pageId" | "imageStatus" | "fixSnippet">
+  data: Omit<SocialPreviewData, "pageId" | "imageStatus" | "twitterImageStatus" | "fixSnippet">
 ): FixSnippetField[] {
   const fields: FixSnippetField[] = [];
 
@@ -93,9 +93,9 @@ function hostnameOf(pageUrl: string): string {
 
 /**
  * Derive everything the preview panel paints for a single page from its stored
- * HTML. Pure: no network, no Prisma, no React. `pageId` and `imageStatus` are
- * resolved by the caller (`buildReportModel`), which is the only place that
- * knows the page row and the IMG-01 verdicts.
+ * HTML. Pure: no network, no Prisma, no React. `pageId`, `imageStatus` and
+ * `twitterImageStatus` are resolved by the caller (`buildReportModel`), which
+ * is the only place that knows the page row and the IMG-01 verdicts.
  *
  * The Open Graph values come from `@auditor/meta-social` — the single parsing
  * engine of the social category — but the native `<title>` and
@@ -105,7 +105,7 @@ function hostnameOf(pageUrl: string): string {
 export function extractSocialPreview(
   html: string,
   pageUrl: string
-): Omit<SocialPreviewData, "pageId" | "imageStatus"> {
+): Omit<SocialPreviewData, "pageId" | "imageStatus" | "twitterImageStatus"> {
   const $ = cheerio.load(html);
   const data = extractMetaSocial($);
 

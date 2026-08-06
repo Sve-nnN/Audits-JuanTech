@@ -191,6 +191,17 @@ export interface SocialPreviewData {
   twitterTitle: string | null;
   twitterDescription: string | null;
   twitterImage: string | null;
+  /**
+   * Verdict for `twitterImage`'s own reachability (CR-01 fix). IMG-01 only
+   * network-checks `og:image`, so this can't reuse `imageStatus` blindly: when
+   * `twitterImage` is the SAME URL as `ogImage`, IMG-01's verdict genuinely
+   * applies and is copied here; when the page declares a distinct
+   * `twitter:image`, there is no network check for it (out of scope for this
+   * phase), so it defaults to `"ok"` (fail-open) and the client-side `onError`
+   * fallback in `PreviewImage` is the real source of truth for it, same as any
+   * other image that slips past a network probe.
+   */
+  twitterImageStatus: SocialImageStatus;
   /** Ready-to-paste `<meta>` block for the missing tags (Plan 32-03). */
   fixSnippet: string | null;
 }

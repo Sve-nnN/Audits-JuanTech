@@ -123,6 +123,7 @@ describe("IssueTypeGroup", () => {
       twitterTitle: null,
       twitterDescription: null,
       twitterImage: null,
+      twitterImageStatus: "none",
       fixSnippet: null,
     };
     const { container } = render(

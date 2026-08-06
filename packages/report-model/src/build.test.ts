@@ -348,6 +348,86 @@ describe("buildReportModel", () => {
     expect(model!.socialPreviews!["p-social"]!.imageStatus).toBe("unavailable");
   });
 
+  // CR-01: `twitter:image` distinto de `og:image` no debe heredar el veredicto
+  // de IMG-01 sobre `og:image` — IMG-01 nunca probó esa URL por red.
+  it("twitterImageStatus no hereda el veredicto de og:image roto cuando twitter:image es una URL distinta", async () => {
+    const socialIssue = makeIssue({
+      category: "social",
+      severity: "critical",
+      checkId: "SOCIAL-03",
+      pageId: "p-social",
+    });
+    const imgIssue = makeIssue({
+      category: "social",
+      severity: "critical",
+      checkId: "IMG-01",
+      pageId: "p-social",
+      fingerprint: "IMG-01:og-image-unreachable:https://example.com/post",
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit() as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue, imgIssue] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue, imgIssue] as any);
+    pageFindMany.mockResolvedValueOnce([
+      {
+        id: "p-social",
+        url: "https://example.com/post",
+        finalUrl: null,
+        html: `<html><head><meta property="og:image" content="https://cdn.test/rota.png"><meta name="twitter:image" content="https://cdn.test/x-distinta.png"></head><body></body></html>`,
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any);
+
+    const model = await buildReportModel("audit-1");
+    const preview = model!.socialPreviews!["p-social"]!;
+    expect(preview.imageStatus).toBe("unavailable");
+    expect(preview.twitterImage).toBe("https://cdn.test/x-distinta.png");
+    // Falla abierto a "ok": no hay chequeo de red para twitter:image en esta fase.
+    expect(preview.twitterImageStatus).toBe("ok");
+  });
+
+  it("twitterImageStatus SÍ hereda el veredicto de IMG-01 cuando twitter:image cae al mismo og:image (sin twitter:image propio)", async () => {
+    const socialIssue = makeIssue({
+      category: "social",
+      severity: "critical",
+      checkId: "SOCIAL-03",
+      pageId: "p-social",
+    });
+    const imgIssue = makeIssue({
+      category: "social",
+      severity: "critical",
+      checkId: "IMG-01",
+      pageId: "p-social",
+      fingerprint: "IMG-01:og-image-unreachable:https://example.com/post",
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auditFindUnique.mockResolvedValueOnce(makeAudit() as any);
+    issueFindMany
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue, imgIssue] as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockResolvedValueOnce([socialIssue, imgIssue] as any);
+    pageFindMany.mockResolvedValueOnce([
+      {
+        id: "p-social",
+        url: "https://example.com/post",
+        finalUrl: null,
+        html: `<html><head><meta property="og:image" content="https://cdn.test/rota.png"></head><body></body></html>`,
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any);
+
+    const model = await buildReportModel("audit-1");
+    const preview = model!.socialPreviews!["p-social"]!;
+    expect(preview.twitterImage).toBe(preview.ogImage);
+    expect(preview.twitterImageStatus).toBe("unavailable");
+  });
+
   it("returns null for a non-existent audit", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     auditFindUnique.mockResolvedValueOnce(null as any);
